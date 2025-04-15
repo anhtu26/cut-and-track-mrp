@@ -1,4 +1,3 @@
-
 import { Customer } from "@/types/customer";
 import { Part, PartDocument } from "@/types/part";
 import { WorkOrder } from "@/types/work-order";
@@ -128,7 +127,8 @@ export const mockParts: Part[] = [
     revisionNumber: "C",
     createdAt: "2023-06-10T08:00:00Z",
     updatedAt: "2025-03-15T14:30:00Z",
-    documents: mockDocuments
+    documents: mockDocuments,
+    archived: false,
   },
   {
     id: "p2",
@@ -142,7 +142,8 @@ export const mockParts: Part[] = [
     revisionNumber: "B",
     createdAt: "2023-08-22T10:15:00Z",
     updatedAt: "2025-02-28T09:45:00Z",
-    documents: mockDocuments.slice(0, 2)
+    documents: mockDocuments.slice(0, 2),
+    archived: false,
   },
   {
     id: "p3",
@@ -156,7 +157,8 @@ export const mockParts: Part[] = [
     revisionNumber: "A",
     createdAt: "2023-11-05T14:30:00Z",
     updatedAt: "2025-03-20T11:20:00Z",
-    documents: mockDocuments.slice(1)
+    documents: mockDocuments.slice(1),
+    archived: false,
   },
   {
     id: "p4",
@@ -170,7 +172,8 @@ export const mockParts: Part[] = [
     revisionNumber: "D",
     createdAt: "2023-09-18T09:45:00Z",
     updatedAt: "2025-04-05T16:15:00Z",
-    documents: mockDocuments.slice(0, 1)
+    documents: mockDocuments.slice(0, 1),
+    archived: false,
   },
   {
     id: "p5",
@@ -184,7 +187,8 @@ export const mockParts: Part[] = [
     revisionNumber: "B",
     createdAt: "2024-01-25T11:20:00Z",
     updatedAt: "2025-03-10T14:50:00Z",
-    documents: []
+    documents: [],
+    archived: false,
   },
   {
     id: "p6",
@@ -198,7 +202,8 @@ export const mockParts: Part[] = [
     revisionNumber: "A",
     createdAt: "2023-12-30T13:40:00Z",
     updatedAt: "2024-10-15T10:25:00Z",
-    documents: mockDocuments
+    documents: mockDocuments,
+    archived: true,
   }
 ];
 
