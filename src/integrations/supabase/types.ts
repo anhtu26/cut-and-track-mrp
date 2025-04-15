@@ -9,7 +9,103 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      part_documents: {
+        Row: {
+          id: string
+          name: string
+          part_id: string
+          type: string
+          uploaded_at: string
+          url: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          part_id: string
+          type: string
+          uploaded_at?: string
+          url: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          part_id?: string
+          type?: string
+          uploaded_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_documents_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parts: {
+        Row: {
+          active: boolean
+          archive_reason: string | null
+          archived: boolean
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          machining_methods: string | null
+          materials: string[] | null
+          name: string
+          part_number: string
+          previous_revision_id: string | null
+          revision_number: string | null
+          setup_instructions: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          archive_reason?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          machining_methods?: string | null
+          materials?: string[] | null
+          name: string
+          part_number: string
+          previous_revision_id?: string | null
+          revision_number?: string | null
+          setup_instructions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          archive_reason?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          machining_methods?: string | null
+          materials?: string[] | null
+          name?: string
+          part_number?: string
+          previous_revision_id?: string | null
+          revision_number?: string | null
+          setup_instructions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_previous_revision_id_fkey"
+            columns: ["previous_revision_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
