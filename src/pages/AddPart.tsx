@@ -15,29 +15,49 @@ export default function AddPart() {
 
   const { mutateAsync: createPart, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      const { error } = await supabase
+      console.log("Submitting data to Supabase:", data);
+      
+      // Ensure materials is an array even if empty
+      const materials = Array.isArray(data.materials) ? data.materials : [];
+      
+      const { data: insertData, error } = await supabase
         .from("parts")
         .insert([{
-          name: data.name,
-          part_number: data.partNumber,
-          description: data.description,
-          materials: data.materials,
-          setup_instructions: data.setupInstructions,
-          machining_methods: data.machiningMethods,
-          revision_number: data.revisionNumber,
-          active: data.active
-        }]);
+          name: data.name || "",
+          part_number: data.partNumber || "",
+          description: data.description || "",
+          materials: materials,
+          setup_instructions: data.setupInstructions || "",
+          machining_methods: data.machiningMethods || "",
+          revision_number: data.revisionNumber || "",
+          active: typeof data.active === 'boolean' ? data.active : true
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Insert response:", insertData);
+      return insertData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Part created successfully:", data);
       toast.success("Part created successfully");
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       navigate("/parts");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error creating part:", error);
-      toast.error("Failed to create part");
+      let errorMessage = "Failed to create part";
+      
+      // Check for specific error messages from Supabase
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     }
   });
 

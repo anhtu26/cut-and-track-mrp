@@ -18,6 +18,7 @@ export default function EditPart() {
   const { data: part, isLoading } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
+      console.log("Fetching part with ID:", partId);
       const { data, error } = await supabase
         .from("parts")
         .select(`
@@ -27,8 +28,12 @@ export default function EditPart() {
         .eq("id", partId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching part:", error);
+        throw error;
+      }
 
+      console.log("Fetched part data:", data);
       return {
         id: data.id,
         name: data.name,
@@ -57,32 +62,52 @@ export default function EditPart() {
 
   const { mutateAsync: updatePart, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      const { error } = await supabase
+      console.log("Updating part with data:", data);
+      
+      // Ensure materials is an array
+      const materials = Array.isArray(data.materials) ? data.materials : [];
+      
+      const { data: updateData, error } = await supabase
         .from("parts")
         .update({
-          name: data.name,
-          part_number: data.partNumber,
-          description: data.description,
-          materials: data.materials,
-          setup_instructions: data.setupInstructions,
-          machining_methods: data.machiningMethods,
-          revision_number: data.revisionNumber,
-          active: data.active,
+          name: data.name || "",
+          part_number: data.partNumber || "",
+          description: data.description || "",
+          materials: materials,
+          setup_instructions: data.setupInstructions || "",
+          machining_methods: data.machiningMethods || "",
+          revision_number: data.revisionNumber || "",
+          active: typeof data.active === 'boolean' ? data.active : true,
           updated_at: new Date().toISOString()
         })
-        .eq("id", partId);
+        .eq("id", partId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase update error:", error);
+        throw error;
+      }
+      
+      console.log("Update response:", updateData);
+      return updateData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Part updated successfully:", data);
       toast.success("Part updated successfully");
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       navigate(`/parts/${partId}`);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error updating part:", error);
-      toast.error("Failed to update part");
+      let errorMessage = "Failed to update part";
+      
+      // Check for specific error messages from Supabase
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     }
   });
 
