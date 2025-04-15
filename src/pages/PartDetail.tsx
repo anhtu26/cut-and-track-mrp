@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,7 @@ import { useState } from "react";
 import { ArchivePartDialog } from "@/components/parts/archive-part-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { PartDocument } from "@/types/part";
+import { Part } from "@/types/part";
 
 export default function PartDetail() {
   const { partId } = useParams();
@@ -35,7 +34,7 @@ export default function PartDetail() {
         id: data.id,
         name: data.name,
         partNumber: data.part_number,
-        description: data.description,
+        description: data.description || "",
         active: data.active,
         materials: data.materials || [],
         setupInstructions: data.setup_instructions,
@@ -53,7 +52,7 @@ export default function PartDetail() {
           uploadedAt: doc.uploaded_at,
           type: doc.type
         }))
-      };
+      } as Part;
     },
   });
 
