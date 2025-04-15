@@ -24,7 +24,7 @@ const cardStatsVariants = cva(
 interface CardStatsProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
   value: string | number;
-  description?: string;
+  description?: string | ReactNode;
   icon?: ReactNode;
   variant?: "default" | "primary" | "success" | "warning" | "danger";
 }
