@@ -10,6 +10,7 @@ import { useState } from "react";
 import { ArchivePartDialog } from "@/components/parts/archive-part-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { PartDocument } from "@/types/part";
 
 export default function PartDetail() {
   const { partId } = useParams();
@@ -28,7 +29,31 @@ export default function PartDetail() {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Transform the database response to match our Part interface
+      return {
+        id: data.id,
+        name: data.name,
+        partNumber: data.part_number,
+        description: data.description,
+        active: data.active,
+        materials: data.materials || [],
+        setupInstructions: data.setup_instructions,
+        machiningMethods: data.machining_methods,
+        revisionNumber: data.revision_number,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        archived: data.archived,
+        archivedAt: data.archived_at,
+        archiveReason: data.archive_reason,
+        documents: data.documents.map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          url: doc.url,
+          uploadedAt: doc.uploaded_at,
+          type: doc.type
+        }))
+      };
     },
   });
 
@@ -88,7 +113,7 @@ export default function PartDetail() {
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
             <div>
               <CardTitle className="text-2xl">{part.name}</CardTitle>
-              <p className="text-muted-foreground mt-1">Part Number: {part.part_number}</p>
+              <p className="text-muted-foreground mt-1">Part Number: {part.partNumber}</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={part.active ? "default" : "outline"}>
@@ -97,9 +122,9 @@ export default function PartDetail() {
               {part.archived && (
                 <Badge variant="destructive">Archived</Badge>
               )}
-              {part.revision_number && (
+              {part.revisionNumber && (
                 <Badge variant="outline" className="ml-2">
-                  Rev {part.revision_number}
+                  Rev {part.revisionNumber}
                 </Badge>
               )}
             </div>
@@ -109,23 +134,23 @@ export default function PartDetail() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm font-medium">Created</p>
-              <p className="text-sm">{new Date(part.created_at).toLocaleDateString()}</p>
+              <p className="text-sm">{new Date(part.createdAt).toLocaleDateString()}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Last Updated</p>
-              <p className="text-sm">{new Date(part.updated_at).toLocaleDateString()}</p>
+              <p className="text-sm">{new Date(part.updatedAt).toLocaleDateString()}</p>
             </div>
-            {part.archived && (
+            {part.archived && part.archivedAt && (
               <div>
                 <p className="text-sm font-medium text-destructive">Archived</p>
-                <p className="text-sm">{new Date(part.archived_at).toLocaleDateString()}</p>
+                <p className="text-sm">{new Date(part.archivedAt).toLocaleDateString()}</p>
               </div>
             )}
           </div>
-          {part.archived && part.archive_reason && (
+          {part.archived && part.archiveReason && (
             <div className="mt-4 p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium">Archive Reason:</p>
-              <p className="text-sm mt-1">{part.archive_reason}</p>
+              <p className="text-sm mt-1">{part.archiveReason}</p>
             </div>
           )}
         </CardContent>
@@ -133,8 +158,8 @@ export default function PartDetail() {
 
       <PartDetailTabs 
         description={part.description}
-        setupInstructions={part.setup_instructions || "No setup instructions available."}
-        machiningMethods={part.machining_methods || "No machining methods documented."}
+        setupInstructions={part.setupInstructions || "No setup instructions available."}
+        machiningMethods={part.machiningMethods || "No machining methods documented."}
         materials={part.materials || []}
         documents={part.documents}
         history={history}
