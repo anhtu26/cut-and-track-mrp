@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,8 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import { AppLayout } from "./components/layout/app-layout";
 import AuthGuard from "./auth-guard";
+import AddPart from "./pages/AddPart";
+import EditPart from "./pages/EditPart";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,9 @@ const App = () => (
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/parts" element={<Parts />} />
+              <Route path="/parts/new" element={<AddPart />} />
               <Route path="/parts/:partId" element={<PartDetail />} />
+              <Route path="/parts/:partId/edit" element={<EditPart />} />
               <Route path="/work-orders" element={<WorkOrders />} />
               <Route path="/customers" element={<Customers />} />
             </Route>
