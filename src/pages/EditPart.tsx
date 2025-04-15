@@ -20,18 +20,37 @@ export default function EditPart() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parts")
-        .select("*")
+        .select(`
+          *,
+          documents:part_documents(*)
+        `)
         .eq("id", partId)
         .single();
 
       if (error) throw error;
 
       return {
-        ...data,
+        id: data.id,
+        name: data.name,
         partNumber: data.part_number,
+        description: data.description || "",
+        active: data.active,
+        materials: data.materials || [],
         setupInstructions: data.setup_instructions,
         machiningMethods: data.machining_methods,
         revisionNumber: data.revision_number,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        archived: data.archived,
+        archivedAt: data.archived_at,
+        archiveReason: data.archive_reason,
+        documents: (data.documents || []).map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          url: doc.url,
+          uploadedAt: doc.uploaded_at,
+          type: doc.type
+        }))
       } as Part;
     },
   });
