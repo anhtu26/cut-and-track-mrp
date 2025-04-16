@@ -106,8 +106,10 @@ export type Database = {
           estimated_end_time: string | null
           estimated_start_time: string | null
           id: string
+          is_custom: boolean
           machining_methods: string | null
           name: string
+          sequence: number
           setup_instructions: string | null
           status: string
           updated_at: string
@@ -123,8 +125,10 @@ export type Database = {
           estimated_end_time?: string | null
           estimated_start_time?: string | null
           id?: string
+          is_custom?: boolean
           machining_methods?: string | null
           name: string
+          sequence?: number
           setup_instructions?: string | null
           status?: string
           updated_at?: string
@@ -140,8 +144,10 @@ export type Database = {
           estimated_end_time?: string | null
           estimated_start_time?: string | null
           id?: string
+          is_custom?: boolean
           machining_methods?: string | null
           name?: string
+          sequence?: number
           setup_instructions?: string | null
           status?: string
           updated_at?: string

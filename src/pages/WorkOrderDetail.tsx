@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +40,6 @@ export default function WorkOrderDetail() {
     },
   });
 
-  // Fetch work order data
   const { data: workOrder, isLoading, error } = useQuery({
     queryKey: ["work-order", workOrderId],
     queryFn: async () => {
@@ -61,7 +59,6 @@ export default function WorkOrderDetail() {
       if (error) throw error;
       if (!data) throw new Error("Work Order not found");
       
-      // Transform the database response to match our WorkOrder interface
       return {
         id: data.id,
         workOrderNumber: data.work_order_number,
@@ -120,9 +117,7 @@ export default function WorkOrderDetail() {
             status: op.status as OperationStatus,
             machiningMethods: op.machining_methods || "",
             setupInstructions: op.setup_instructions || "",
-            // Map the sequence from the database
             sequence: op.sequence || 0,
-            // Map the isCustom flag
             isCustom: op.is_custom || false,
             estimatedStartTime: op.estimated_start_time,
             estimatedEndTime: op.estimated_end_time,
@@ -131,13 +126,12 @@ export default function WorkOrderDetail() {
             comments: op.comments,
             assignedTo: op.assigned_to_id ? {
               id: op.assigned_to_id,
-              name: "Unknown" // We would need to fetch operator names separately
+              name: "Unknown"
             } : undefined,
             createdAt: op.created_at,
             updatedAt: op.updated_at,
             documents: []
           }))
-          // Sort operations by sequence number
           .sort((a: Operation, b: Operation) => a.sequence - b.sequence),
         archived: data.archived,
         archivedAt: data.archived_at,
@@ -148,7 +142,6 @@ export default function WorkOrderDetail() {
     enabled: !!workOrderId,
   });
 
-  // Archive work order mutation
   const { mutateAsync: archiveWorkOrder, isPending: isArchiving } = useMutation({
     mutationFn: async (reason: string) => {
       if (!workOrderId) throw new Error("Work Order ID is required");
@@ -178,14 +171,12 @@ export default function WorkOrderDetail() {
     },
   });
 
-  // Update work order status mutation
   const { mutateAsync: updateWorkOrderStatus, isPending: isUpdatingStatus } = useMutation({
     mutationFn: async (status: WorkOrderStatus) => {
       if (!workOrderId) throw new Error("Work Order ID is required");
       
       let updateData: any = { status };
       
-      // If changing to Complete status, set completed date
       if (status === "Complete") {
         updateData.completed_date = new Date().toISOString();
       }
