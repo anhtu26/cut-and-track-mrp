@@ -18,35 +18,46 @@ export default function AddCustomer() {
       name: string;
       company: string;
       email: string;
-      phone?: string;
-      address?: string;
-      notes?: string;
+      phone?: string | null;
+      address?: string | null;
+      notes?: string | null;
     }) => {
+      console.log("Creating customer with data:", data);
+
       const { data: customer, error } = await supabase
         .from('customers')
         .insert([{
           name: data.name,
           company: data.company,
           email: data.email,
-          phone: data.phone,
-          address: data.address,
-          notes: data.notes,
+          phone: data.phone || null,
+          address: data.address || null,
+          notes: data.notes || null,
           active: true
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error(error.message || "Failed to create customer");
+      }
+      
+      if (!customer) {
+        throw new Error("No customer data returned from database");
+      }
+      
       return customer;
     },
     onSuccess: () => {
       toast.success("Customer created successfully");
+      // Important: invalidate both customers query AND the cache for work order form
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       navigate("/customers");
     },
     onError: (error: any) => {
       console.error("Error creating customer:", error);
-      toast.error("Failed to create customer");
+      toast.error(error.message || "Failed to create customer");
     },
   });
 

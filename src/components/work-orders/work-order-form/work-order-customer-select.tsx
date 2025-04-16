@@ -17,22 +17,32 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CustomerSelectProps {
   field: any;
   isLoading?: boolean;
 }
 
-export function CustomerSelect({ field, isLoading }: CustomerSelectProps) {
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+export function CustomerSelect({ field, isLoading: formIsLoading }: CustomerSelectProps) {
+  // Use staleTime: 0 to always fetch fresh data to ensure new customers appear immediately
+  const { data: customers = [], isLoading: isLoadingCustomers, error } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
+      console.log("Fetching customers for dropdown");
+      
       const { data, error } = await supabase
         .from('customers')
         .select("*")
+        .eq('active', true)  // Only get active customers
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching customers:", error);
+        throw error;
+      }
+      
+      console.log("Retrieved customers:", data?.length || 0);
       
       return (data || []).map((item: any) => ({
         id: item.id,
@@ -48,7 +58,14 @@ export function CustomerSelect({ field, isLoading }: CustomerSelectProps) {
         orderCount: item.order_count || 0
       })) as Customer[];
     },
+    staleTime: 0, // Always refetch to get the latest customers
   });
+
+  const isDisabled = formIsLoading || isLoadingCustomers;
+  
+  if (error) {
+    console.error("Customer select error:", error);
+  }
 
   return (
     <FormField
@@ -57,24 +74,35 @@ export function CustomerSelect({ field, isLoading }: CustomerSelectProps) {
       render={({ field }) => (
         <FormItem>
           <FormLabel>Customer</FormLabel>
-          <Select 
-            onValueChange={field.onChange} 
-            defaultValue={field.value} 
-            disabled={isLoadingCustomers || isLoading}
-          >
-            <FormControl>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {customers.map(customer => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.company}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoadingCustomers ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <Select 
+              onValueChange={field.onChange} 
+              defaultValue={field.value} 
+              value={field.value}
+              disabled={isDisabled}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {customers.length === 0 ? (
+                  <SelectItem value="no-customers" disabled>
+                    No customers found
+                  </SelectItem>
+                ) : (
+                  customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name} - {customer.company}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          )}
           <FormMessage />
         </FormItem>
       )}

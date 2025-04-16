@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Customer } from "@/types/customer";
 
+// Updated schema to properly handle optional fields
 const customerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   company: z.string().min(1, "Company is required"),
@@ -45,9 +46,27 @@ export function CustomerForm({ initialData, onSubmit, isSubmitting }: CustomerFo
     },
   });
 
+  const handleSubmit = async (data: CustomerFormData) => {
+    // Ensure optional fields are properly handled
+    const formattedData = {
+      name: data.name,
+      company: data.company,
+      email: data.email,
+      phone: data.phone || null,
+      address: data.address || null,
+      notes: data.notes || null,
+    };
+    
+    try {
+      await onSubmit(formattedData);
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
