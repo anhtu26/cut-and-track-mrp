@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const workOrderSchema = z.object({
   workOrderNumber: z.string().optional(),
-  purchaseOrderNumber: z.string().optional(),
+  purchaseOrderNumber: z.string().optional().nullable(),
   customerId: z.string().min(1, "Customer is required"),
   partId: z.string().min(1, "Part is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
