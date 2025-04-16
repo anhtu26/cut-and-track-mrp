@@ -49,22 +49,60 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const checkOperationTemplatesTable = async (): Promise<boolean> => {
     try {
       console.log("[SCHEMA CHECK] Verifying operation_templates table exists...");
+      // FIX: This query checks if the table exists in the public schema
       const { data, error } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_name', 'operation_templates');
+        .from('operation_templates')
+        .select('id')
+        .limit(1);
         
       if (error) {
+        // Check if it's a "relation does not exist" error
+        if (error.message?.includes('relation "operation_templates" does not exist') || 
+            error.message?.includes('relation "public.operation_templates" does not exist')) {
+          console.error("[SCHEMA CHECK ERROR] Table doesn't exist:", error);
+          return false;
+        }
+        
+        // For other errors, log but don't assume table doesn't exist
         console.error("[SCHEMA CHECK ERROR]", error);
-        return false;
+        // For non-existence errors, we'll return true and let the next operation fail with a more specific error
+        return true;
       }
       
-      return data && data.length > 0;
+      console.log("[SCHEMA CHECK] Table exists, returned data:", data);
+      return true;
     } catch (error) {
       console.error("[SCHEMA CHECK ERROR]", error);
       return false;
     }
+  };
+
+  // FIX: Display a helpful error message when the table doesn't exist
+  const handleTableNotExistError = () => {
+    const errorMessage = "The operation_templates table doesn't exist in the database. Please contact your administrator to create it.";
+    toast.error(errorMessage, {
+      duration: 10000, // Show longer so user can read
+    });
+    
+    console.error(`[SCHEMA ERROR] ${errorMessage}`);
+    
+    // Suggest SQL to create the table
+    const suggestionMessage = `
+CREATE TABLE operation_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  part_id UUID REFERENCES parts(id) NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  machining_methods TEXT,
+  setup_instructions TEXT,
+  estimated_duration INTEGER,
+  sequence INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);`;
+    console.info("[SCHEMA SUGGESTION] SQL to create operation_templates table:", suggestionMessage);
+    
+    return false;
   };
 
   // Add operation template mutation
@@ -72,11 +110,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
     mutationFn: async (data: any) => {
       console.log("[TEMPLATE ADD] Starting submission with payload:", data);
       
-      // Verify table exists
+      // FIX: Verify table exists
       const tableExists = await checkOperationTemplatesTable();
       if (!tableExists) {
-        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
-        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+        return handleTableNotExistError();
       }
       
       // Make sure sequence is a number
@@ -121,7 +158,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // If result is false, the table doesn't exist error was already handled
+      if (result === false) return;
+      
       toast.success("Operation template added");
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       setIsAddDialogOpen(false);
@@ -137,11 +177,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
     mutationFn: async (data: any) => {
       if (!selectedTemplate) throw new Error("No template selected");
 
-      // Verify table exists
+      // FIX: Verify table exists
       const tableExists = await checkOperationTemplatesTable();
       if (!tableExists) {
-        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
-        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+        return handleTableNotExistError();
       }
 
       console.log("[SUPABASE REQUEST] Updating template:", data);
@@ -189,7 +228,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // If result is false, the table doesn't exist error was already handled
+      if (result === false) return;
+      
       toast.success("Operation template updated");
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       setIsEditDialogOpen(false);
@@ -206,11 +248,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
     mutationFn: async () => {
       if (!selectedTemplate) throw new Error("No template selected");
 
-      // Verify table exists
+      // FIX: Verify table exists
       const tableExists = await checkOperationTemplatesTable();
       if (!tableExists) {
-        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
-        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+        return handleTableNotExistError();
       }
 
       const { error } = await supabase
@@ -221,7 +262,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
       if (error) throw new Error(error.message || "Failed to delete template");
       return true;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // If result is false, the table doesn't exist error was already handled
+      if (result === false) return;
+      
       toast.success("Operation template deleted");
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       setIsDeleteDialogOpen(false);

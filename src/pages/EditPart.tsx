@@ -127,21 +127,26 @@ export default function EditPart() {
     },
     onSuccess: (data) => {
       console.log("[UPDATE SUCCESS] Part updated successfully:", data);
-      toast.success("Part updated successfully");
-      // Invalidate relevant queries before navigating
+      
+      // FIX: Force invalidate queries to ensure fresh data before navigation
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       
-      // Log navigation action before performing it
-      console.log("[NAVIGATION] Redirecting to part details:", `/parts/${partId}`);
-      
-      // Ensure the part ID is still valid before navigating
-      if (partId) {
-        navigate(`/parts/${partId}`);
-      } else {
-        console.error("[NAVIGATION ERROR] Missing partId before navigation");
-        navigate("/parts");
-      }
+      // Add a slight delay to ensure the query cache is updated before navigation
+      // This helps prevent the "Not Found" issue after editing
+      setTimeout(() => {
+        console.log("[NAVIGATION] Redirecting to part details:", `/parts/${partId}`);
+        
+        // Double check that partId is still valid
+        if (partId) {
+          toast.success("Part updated successfully");
+          navigate(`/parts/${partId}`);
+        } else {
+          console.error("[NAVIGATION ERROR] Missing partId before navigation");
+          toast.error("Navigation error: Part ID is missing");
+          navigate("/parts");
+        }
+      }, 300);
     },
     onError: (error: any) => {
       console.error("[UPDATE ERROR] Error updating part:", error);

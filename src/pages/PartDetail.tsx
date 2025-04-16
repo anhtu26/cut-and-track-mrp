@@ -18,7 +18,7 @@ export default function PartDetail() {
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const navigate = useNavigate();
   const navigationAttempted = useRef(false);
-
+  
   console.log("[PART DETAIL INIT] Part ID from router:", partId);
   
   // Only run navigation effect once to prevent loops
@@ -41,62 +41,84 @@ export default function PartDetail() {
       }
       
       try {
-        const { data, error } = await supabase
+        // FIX 1: Split the query into two parts to avoid foreign key relationship error
+        // First, get the part data without the operation_templates
+        const { data: partData, error: partError } = await supabase
           .from("parts")
           .select(`
             *,
-            documents:part_documents(*),
-            operation_templates(*)
+            documents:part_documents(*)
           `)
           .eq("id", partId)
-          .maybeSingle(); // Using maybeSingle instead of single to prevent errors when no item is found
+          .maybeSingle(); // FIX 2: Using maybeSingle instead of single to prevent errors
 
-        if (error) {
-          console.error("[PART DETAIL ERROR]", error);
-          throw error;
+        if (partError) {
+          console.error("[PART DETAIL ERROR]", partError);
+          throw partError;
         }
         
-        console.log("[PART DETAIL] Supabase result:", data);
-        
-        if (!data) {
+        if (!partData) {
           console.error("[PART DETAIL ERROR] No part found with ID:", partId);
-          return null; // Return null instead of throwing error, this will handle the "not found" case more gracefully
+          return null; // Return null instead of throwing error for "not found" case
         }
+
+        // FIX 3: Separate query for operation_templates
+        // Only run this query if the part exists
+        let operationTemplates = [];
+        try {
+          const { data: templatesData, error: templatesError } = await supabase
+            .from("operation_templates")
+            .select("*")
+            .eq("part_id", partId);
+
+          if (templatesError) {
+            // Just log the error but don't fail the whole query
+            console.error("[OPERATION TEMPLATES ERROR]", templatesError);
+          } else if (templatesData) {
+            operationTemplates = templatesData.map((template: any) => ({
+              id: template.id,
+              partId: template.part_id,
+              name: template.name,
+              description: template.description || "",
+              machiningMethods: template.machining_methods || "",
+              setupInstructions: template.setup_instructions || "",
+              estimatedDuration: template.estimated_duration,
+              sequence: template.sequence,
+              createdAt: template.created_at,
+              updatedAt: template.updated_at
+            }));
+          }
+        } catch (templateQueryError) {
+          // Catch but don't fail the whole part load
+          console.error("[OPERATION TEMPLATES QUERY ERROR]", templateQueryError);
+        }
+        
+        // FIX 4: Map the part data to the Part type
+        console.log("[PART DETAIL] Supabase result:", partData);
         
         return {
-          id: data.id,
-          name: data.name,
-          partNumber: data.part_number,
-          description: data.description || "",
-          active: data.active,
-          materials: data.materials || [],
-          setupInstructions: data.setup_instructions,
-          machiningMethods: data.machining_methods,
-          revisionNumber: data.revision_number,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          archived: data.archived,
-          archivedAt: data.archived_at,
-          archiveReason: data.archive_reason,
-          documents: (data.documents || []).map((doc: any) => ({
+          id: partData.id,
+          name: partData.name,
+          partNumber: partData.part_number,
+          description: partData.description || "",
+          active: partData.active,
+          materials: partData.materials || [],
+          setupInstructions: partData.setup_instructions,
+          machiningMethods: partData.machining_methods,
+          revisionNumber: partData.revision_number,
+          createdAt: partData.created_at,
+          updatedAt: partData.updated_at,
+          archived: partData.archived,
+          archivedAt: partData.archived_at,
+          archiveReason: partData.archive_reason,
+          documents: (partData.documents || []).map((doc: any) => ({
             id: doc.id,
             name: doc.name,
             url: doc.url,
             uploadedAt: doc.uploaded_at,
             type: doc.type
           })),
-          operationTemplates: (data.operation_templates || []).map((template: any) => ({
-            id: template.id,
-            partId: template.part_id,
-            name: template.name,
-            description: template.description || "",
-            machiningMethods: template.machining_methods || "",
-            setupInstructions: template.setup_instructions || "",
-            estimatedDuration: template.estimated_duration,
-            sequence: template.sequence,
-            createdAt: template.created_at,
-            updatedAt: template.updated_at
-          })) as OperationTemplate[]
+          operationTemplates: operationTemplates as OperationTemplate[]
         } as Part;
       } catch (error) {
         console.error("[PART DETAIL ERROR]", error);
@@ -105,7 +127,7 @@ export default function PartDetail() {
     },
     enabled: Boolean(partId),
     retry: 1,
-    staleTime: 30000, // Adding staleTime to prevent unnecessary refetches
+    staleTime: 30000, // FIX 5: Adding staleTime to prevent unnecessary refetches
   });
 
   const { data: workOrders = [] } = useQuery({
