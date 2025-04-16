@@ -1,16 +1,20 @@
 
 import { Customer } from "./customer";
 import { Part } from "./part";
+import { Operation } from "./operation";
+import { WorkOrderStatus, WorkOrderPriority } from "./work-order-status";
 
 export interface WorkOrder {
   id: string;
   workOrderNumber: string;
   purchaseOrderNumber?: string;
   customer: Customer;
+  customerId: string;
   part: Part;
+  partId: string;
   quantity: number;
-  status: "Not Started" | "In Progress" | "QC" | "Complete" | "Shipped";
-  priority: "Low" | "Normal" | "High" | "Critical";
+  status: WorkOrderStatus;
+  priority: WorkOrderPriority;
   createdAt: string;
   updatedAt: string;
   startDate?: string;
@@ -21,4 +25,29 @@ export interface WorkOrder {
     name: string;
   };
   notes?: string;
+  operations: Operation[];
+  archived: boolean;
+  archivedAt?: string;
+  archiveReason?: string;
+}
+
+export interface CreateWorkOrderInput {
+  workOrderNumber?: string; // Auto-generated if not provided
+  purchaseOrderNumber?: string;
+  customerId: string;
+  partId: string;
+  quantity: number;
+  status?: WorkOrderStatus;
+  priority?: WorkOrderPriority;
+  startDate?: string;
+  dueDate: string;
+  assignedToId?: string;
+  notes?: string;
+}
+
+export interface UpdateWorkOrderInput extends Partial<CreateWorkOrderInput> {
+  id: string;
+  completedDate?: string;
+  archived?: boolean;
+  archiveReason?: string;
 }

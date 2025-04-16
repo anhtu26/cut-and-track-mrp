@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Parts from "./pages/Parts";
 import PartDetail from "./pages/PartDetail";
 import WorkOrders from "./pages/WorkOrders";
+import AddWorkOrder from "./pages/AddWorkOrder";
 import Customers from "./pages/Customers";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -44,6 +46,7 @@ const App = () => (
               <Route path="/parts/:partId" element={<PartDetail />} />
               <Route path="/parts/:partId/edit" element={<EditPart />} />
               <Route path="/work-orders" element={<WorkOrders />} />
+              <Route path="/work-orders/new" element={<AddWorkOrder />} />
               <Route path="/customers" element={<Customers />} />
             </Route>
             

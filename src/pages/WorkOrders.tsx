@@ -1,39 +1,104 @@
 
 import { useState } from "react";
-import { WorkOrderCard } from "@/components/work-orders/work-order-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockWorkOrders } from "@/data/mock-data";
-import { 
-  CheckCircle2, 
-  CircleDashed, 
-  Filter, 
-  PlayCircle, 
-  PlusCircle, 
-  Search, 
-  ShieldAlert, 
-  TruckIcon 
-} from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { WorkOrder } from "@/types/work-order";
+import { WorkOrderCard } from "@/components/work-orders/work-order-card";
 
 export default function WorkOrders() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [includeArchived, setIncludeArchived] = useState(false);
   
-  const filteredOrders = mockWorkOrders.filter(order => {
-    // Apply search filter
-    const matchesSearch = 
-      !searchTerm || 
-      order.workOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.purchaseOrderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.part.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Apply status filter
-    const matchesStatus = !statusFilter || order.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const { data: workOrders = [], isLoading } = useQuery({
+    queryKey: ["workOrders", includeArchived],
+    queryFn: async () => {
+      console.log("Fetching work orders, includeArchived:", includeArchived);
+      
+      try {
+        const query = supabase
+          .from("work_orders")
+          .select(`
+            *,
+            customer:customers(*),
+            part:parts(*),
+            operations:operations(*)
+          `)
+          .order('created_at', { ascending: false });
+  
+        if (!includeArchived) {
+          query.eq('archived', false);
+        }
+  
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching work orders:", error);
+          throw error;
+        }
+        
+        console.log("Fetched work orders:", data);
+        
+        // Transform the database response to match our WorkOrder interface
+        return data.map((item: any) => ({
+          id: item.id,
+          workOrderNumber: item.work_order_number,
+          purchaseOrderNumber: item.purchase_order_number,
+          customer: {
+            id: item.customer.id,
+            name: item.customer.name,
+            // Include other customer fields as needed
+          },
+          customerId: item.customer_id,
+          part: {
+            id: item.part.id,
+            name: item.part.name,
+            partNumber: item.part.part_number,
+            // Include other part fields as needed
+          },
+          partId: item.part_id,
+          quantity: item.quantity,
+          status: item.status,
+          priority: item.priority,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          startDate: item.start_date,
+          dueDate: item.due_date,
+          completedDate: item.completed_date,
+          assignedTo: item.assigned_to_id ? {
+            id: item.assigned_to_id,
+            name: item.assigned_to_name || "Unknown"
+          } : undefined,
+          notes: item.notes,
+          operations: (item.operations || []).map((op: any) => ({
+            id: op.id,
+            name: op.name,
+            status: op.status,
+            // Include other operation fields as needed
+          })),
+          archived: item.archived,
+          archivedAt: item.archived_at,
+          archiveReason: item.archive_reason
+        })) as WorkOrder[];
+      } catch (error) {
+        console.error("Error in work orders query:", error);
+        throw error;
+      }
+    },
+  });
+
+  const filteredWorkOrders = workOrders.filter(order => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return (
+      order.workOrderNumber?.toLowerCase().includes(lowerSearchTerm) ||
+      order.purchaseOrderNumber?.toLowerCase().includes(lowerSearchTerm) ||
+      order.customer.name.toLowerCase().includes(lowerSearchTerm) ||
+      order.part.name.toLowerCase().includes(lowerSearchTerm) ||
+      order.part.partNumber.toLowerCase().includes(lowerSearchTerm)
+    );
   });
 
   return (
@@ -42,104 +107,55 @@ export default function WorkOrders() {
         <h1 className="text-3xl font-bold tracking-tight">Work Orders</h1>
         <Button asChild>
           <Link to="/work-orders/new">
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Work Order
+            <Plus className="h-4 w-4 mr-2" />
+            Create Work Order
           </Link>
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by work order number, customer, or part..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by work order number, PO number, customer or part..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <Button
-          variant={statusFilter === null ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter(null)}
-          className="min-w-fit"
+          variant="outline"
+          onClick={() => setIncludeArchived(!includeArchived)}
+          className="whitespace-nowrap"
         >
-          <Filter className="mr-1 h-4 w-4" />
-          All
-        </Button>
-        <Button
-          variant={statusFilter === "Not Started" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("Not Started")}
-          className="min-w-fit"
-        >
-          <CircleDashed className="mr-1 h-4 w-4" />
-          Not Started
-        </Button>
-        <Button
-          variant={statusFilter === "In Progress" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("In Progress")}
-          className="min-w-fit"
-        >
-          <PlayCircle className="mr-1 h-4 w-4" />
-          In Progress
-        </Button>
-        <Button
-          variant={statusFilter === "QC" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("QC")}
-          className="min-w-fit"
-        >
-          <ShieldAlert className="mr-1 h-4 w-4" />
-          QC
-        </Button>
-        <Button
-          variant={statusFilter === "Complete" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("Complete")}
-          className="min-w-fit"
-        >
-          <CheckCircle2 className="mr-1 h-4 w-4" />
-          Complete
-        </Button>
-        <Button
-          variant={statusFilter === "Shipped" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("Shipped")}
-          className="min-w-fit"
-        >
-          <TruckIcon className="mr-1 h-4 w-4" />
-          Shipped
+          {includeArchived ? "Hide Archived" : "Show Archived"}
         </Button>
       </div>
 
-      {filteredOrders.length > 0 ? (
-        <>
-          {statusFilter && (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-sm">
-                Filtering by: {statusFilter}
-                <button 
-                  className="ml-2 hover:text-destructive"
-                  onClick={() => setStatusFilter(null)}
-                >
-                  ×
-                </button>
-              </Badge>
-            </div>
-          )}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredOrders.map((order) => (
-              <WorkOrderCard key={order.id} workOrder={order} />
-            ))}
-          </div>
-        </>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <p>Loading work orders...</p>
+        </div>
+      ) : filteredWorkOrders.length > 0 ? (
+        <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+          {filteredWorkOrders.map((workOrder) => (
+            <WorkOrderCard key={workOrder.id} workOrder={workOrder} />
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-xl font-semibold">No work orders found</p>
-          <p className="text-muted-foreground">Try adjusting your filters or search terms</p>
+          <p className="text-muted-foreground">
+            {searchTerm 
+              ? "Try adjusting your search terms" 
+              : "Create your first work order to get started"}
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/work-orders/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Work Order
+            </Link>
+          </Button>
         </div>
       )}
     </div>
