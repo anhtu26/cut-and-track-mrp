@@ -9,88 +9,55 @@ import { PartForm } from "@/components/parts/part-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Part } from "@/types/part";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EditPart() {
   const { partId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  console.log("[EDIT PART] Part ID from router:", partId);
-
-  // Early validation of partId
-  if (!partId) {
-    console.error("[EDIT LOAD ERROR] Part ID is missing from route params");
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <h1 className="text-2xl font-bold mb-4">Invalid Request</h1>
-        <p className="text-muted-foreground mb-6">No part ID was provided.</p>
-        <Button asChild>
-          <Link to="/parts">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Parts
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
   const { data: part, isLoading } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
-      console.log("[EDIT LOAD] Requested part ID:", partId);
-      
-      try {
-        const { data, error } = await supabase
-          .from("parts")
-          .select(`
-            *,
-            documents:part_documents(*)
-          `)
-          .eq("id", partId)
-          .maybeSingle();
+      console.log("Fetching part with ID:", partId);
+      const { data, error } = await supabase
+        .from("parts")
+        .select(`
+          *,
+          documents:part_documents(*)
+        `)
+        .eq("id", partId)
+        .single();
 
-        if (error) {
-          console.error("[EDIT LOAD ERROR]", error);
-          throw error;
-        }
-        
-        console.log("[EDIT LOAD] Supabase result:", data);
-        
-        if (!data) {
-          console.error("[EDIT LOAD ERROR] No part found with ID:", partId);
-          throw new Error("Part not found");
-        }
-
-        return {
-          id: data.id,
-          name: data.name,
-          partNumber: data.part_number,
-          description: data.description || "",
-          active: data.active,
-          materials: data.materials || [],
-          setupInstructions: data.setup_instructions,
-          machiningMethods: data.machining_methods,
-          revisionNumber: data.revision_number,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          archived: data.archived,
-          archivedAt: data.archived_at,
-          archiveReason: data.archive_reason,
-          documents: (data.documents || []).map((doc: any) => ({
-            id: doc.id,
-            name: doc.name,
-            url: doc.url,
-            uploadedAt: doc.uploaded_at,
-            type: doc.type
-          }))
-        } as Part;
-      } catch (error) {
-        console.error("[EDIT LOAD ERROR]", error);
+      if (error) {
+        console.error("Error fetching part:", error);
         throw error;
       }
+
+      console.log("Fetched part data:", data);
+      return {
+        id: data.id,
+        name: data.name,
+        partNumber: data.part_number,
+        description: data.description || "",
+        active: data.active,
+        materials: data.materials || [],
+        setupInstructions: data.setup_instructions,
+        machiningMethods: data.machining_methods,
+        revisionNumber: data.revision_number,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        archived: data.archived,
+        archivedAt: data.archived_at,
+        archiveReason: data.archive_reason,
+        documents: (data.documents || []).map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          url: doc.url,
+          uploadedAt: doc.uploaded_at,
+          type: doc.type
+        }))
+      } as Part;
     },
-    retry: 1, // Limit retry attempts
   });
 
   const { mutateAsync: updatePartMutation, isPending } = useMutation({
@@ -117,25 +84,22 @@ export default function EditPart() {
         .select();
 
       if (error) {
-        console.error("[UPDATE ERROR] Supabase update error:", error);
+        console.error("Supabase update error:", error);
         throw error;
       }
       
-      console.log("[UPDATE SUCCESS] Update response:", updateData);
+      console.log("Update response:", updateData);
       return updateData;
     },
     onSuccess: (data) => {
-      console.log("[UPDATE SUCCESS] Part updated successfully:", data);
+      console.log("Part updated successfully:", data);
       toast.success("Part updated successfully");
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
-      
-      // Log navigation action before performing it
-      console.log("[NAVIGATION] Redirecting to part details:", `/parts/${partId}`);
       navigate(`/parts/${partId}`);
     },
     onError: (error: any) => {
-      console.error("[UPDATE ERROR] Error updating part:", error);
+      console.error("Error updating part:", error);
       let errorMessage = "Failed to update part";
       
       // Check for specific error messages from Supabase
@@ -149,43 +113,17 @@ export default function EditPart() {
 
   // Wrapper function to handle the type mismatch
   const handleSubmit = async (data: any): Promise<void> => {
-    console.log("[FORM SUBMIT] Submitting part update:", data);
     await updatePartMutation(data);
     // Return void to satisfy the type requirements
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Button variant="outline" asChild size="sm">
-            <Link to="/parts">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Parts
-            </Link>
-          </Button>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle><Skeleton className="h-8 w-64" /></CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
   if (!part) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+      <div className="flex flex-col items-center justify-center py-12">
         <h1 className="text-2xl font-bold mb-4">Part Not Found</h1>
         <p className="text-muted-foreground mb-6">The part you are trying to edit does not exist or has been removed.</p>
         <Button asChild>

@@ -1,33 +1,26 @@
 
+// Add a checkbox to select if we want to use operation templates
 import React, { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelect } from "./work-order-customer-select";
 import { PartSelect } from "./work-order-part-select";
-import { WorkOrderDatePicker } from "./work-order-date-picker";
+import { DatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
-import { WorkOrder } from "@/types/work-order";
 
 interface WorkOrderFormContentProps {
   form: any;
   isSubmitting: boolean;
   isEditMode?: boolean;
-  initialData?: Partial<WorkOrder>; // Updated to accept partial work order
 }
 
 export function WorkOrderFormContent({
   form,
   isSubmitting,
   isEditMode = false,
-  initialData,
 }: WorkOrderFormContentProps) {
-  // Using optional chaining to safely access useOperationTemplates
-  const [useTemplates, setUseTemplates] = useState(
-    initialData?.useOperationTemplates !== undefined 
-      ? !!initialData.useOperationTemplates 
-      : true
-  );
+  const [useTemplates, setUseTemplates] = useState(true);
 
   return (
     <>
@@ -151,17 +144,21 @@ export function WorkOrderFormContent({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <WorkOrderDatePicker
-          control={form.control}
+        <DatePicker
+          form={form}
           name="startDate"
           label="Start Date"
-          optional={true}
+          placeholder="Select start date (optional)"
+          isRequired={false}
+          disabled={isSubmitting}
         />
-        <WorkOrderDatePicker
-          control={form.control}
+        <DatePicker
+          form={form}
           name="dueDate"
           label="Due Date"
-          optional={false}
+          placeholder="Select due date"
+          isRequired={true}
+          disabled={isSubmitting}
         />
       </div>
 

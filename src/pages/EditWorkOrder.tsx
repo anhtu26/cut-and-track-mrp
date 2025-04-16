@@ -1,3 +1,4 @@
+
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,116 +19,97 @@ export default function EditWorkOrder() {
   const { data: workOrder, isLoading, error } = useQuery({
     queryKey: ["work-order", workOrderId],
     queryFn: async () => {
-      if (!workOrderId) {
-        console.error("[EDIT LOAD ERROR] Work Order ID is missing");
-        throw new Error("Work Order ID is required");
-      }
+      if (!workOrderId) throw new Error("Work Order ID is required");
       
-      console.log("[EDIT LOAD] Requested work order ID:", workOrderId);
-      
-      try {
-        const { data, error } = await supabase
-          .from('work_orders')
-          .select(`
-            *,
-            customer:customers(*),
-            part:parts(*),
-            operations:operations(*)
-          `)
-          .eq('id', workOrderId)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select(`
+          *,
+          customer:customers(*),
+          part:parts(*),
+          operations:operations(*)
+        `)
+        .eq('id', workOrderId)
+        .single();
 
-        if (error) {
-          console.error("[EDIT LOAD ERROR]", error);
-          throw error;
-        }
-        
-        console.log("[EDIT LOAD] Supabase result:", data);
-        
-        if (!data) {
-          console.error("[EDIT LOAD ERROR] No work order found with ID:", workOrderId);
-          throw new Error("Work Order not found");
-        }
-        
-        // Transform the database response to match our WorkOrder interface
-        return {
-          id: data.id,
-          workOrderNumber: data.work_order_number,
-          purchaseOrderNumber: data.purchase_order_number,
-          customer: {
-            id: data.customer.id,
-            name: data.customer.name,
-            company: data.customer.company,
-            email: data.customer.email,
-            phone: data.customer.phone,
-            address: data.customer.address,
-            active: data.customer.active,
-            notes: data.customer.notes,
-            createdAt: data.customer.created_at,
-            updatedAt: data.customer.updated_at,
-            orderCount: data.customer.order_count || 0
-          },
-          customerId: data.customer_id,
-          part: {
-            id: data.part.id,
-            name: data.part.name,
-            partNumber: data.part.part_number,
-            description: data.part.description,
-            active: data.part.active,
-            materials: data.part.materials || [],
-            setupInstructions: data.part.setup_instructions,
-            machiningMethods: data.part.machining_methods,
-            revisionNumber: data.part.revision_number,
-            createdAt: data.part.created_at,
-            updatedAt: data.part.updated_at,
-            documents: [],
-            archived: data.part.archived,
-            archivedAt: data.part.archived_at,
-            archiveReason: data.part.archive_reason
-          },
-          partId: data.part_id,
-          quantity: data.quantity,
-          status: data.status,
-          priority: data.priority,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          startDate: data.start_date,
-          dueDate: data.due_date,
-          completedDate: data.completed_date,
-          assignedTo: data.assigned_to_id ? {
-            id: data.assigned_to_id,
-            name: data.assigned_to_name || "Unknown"
+      if (error) throw error;
+      if (!data) throw new Error("Work Order not found");
+      
+      // Transform the database response to match our WorkOrder interface
+      return {
+        id: data.id,
+        workOrderNumber: data.work_order_number,
+        purchaseOrderNumber: data.purchase_order_number,
+        customer: {
+          id: data.customer.id,
+          name: data.customer.name,
+          company: data.customer.company,
+          email: data.customer.email,
+          phone: data.customer.phone,
+          address: data.customer.address,
+          active: data.customer.active,
+          notes: data.customer.notes,
+          createdAt: data.customer.created_at,
+          updatedAt: data.customer.updated_at,
+          orderCount: data.customer.order_count || 0
+        },
+        customerId: data.customer_id,
+        part: {
+          id: data.part.id,
+          name: data.part.name,
+          partNumber: data.part.part_number,
+          description: data.part.description,
+          active: data.part.active,
+          materials: data.part.materials || [],
+          setupInstructions: data.part.setup_instructions,
+          machiningMethods: data.part.machining_methods,
+          revisionNumber: data.part.revision_number,
+          createdAt: data.part.created_at,
+          updatedAt: data.part.updated_at,
+          documents: [],
+          archived: data.part.archived,
+          archivedAt: data.part.archived_at,
+          archiveReason: data.part.archive_reason
+        },
+        partId: data.part_id,
+        quantity: data.quantity,
+        status: data.status,
+        priority: data.priority,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        startDate: data.start_date,
+        dueDate: data.due_date,
+        completedDate: data.completed_date,
+        assignedTo: data.assigned_to_id ? {
+          id: data.assigned_to_id,
+          name: data.assigned_to_name || "Unknown"
+        } : undefined,
+        notes: data.notes,
+        operations: (data.operations || []).map((op: any) => ({
+          id: op.id,
+          workOrderId: op.work_order_id,
+          name: op.name,
+          description: op.description || "",
+          status: op.status,
+          machiningMethods: op.machining_methods || "",
+          setupInstructions: op.setup_instructions || "",
+          estimatedStartTime: op.estimated_start_time,
+          estimatedEndTime: op.estimated_end_time,
+          actualStartTime: op.actual_start_time,
+          actualEndTime: op.actual_end_time,
+          comments: op.comments,
+          assignedTo: op.assigned_to_id ? {
+            id: op.assigned_to_id,
+            name: "Unknown" // We would need to fetch operator names separately
           } : undefined,
-          notes: data.notes,
-          operations: (data.operations || []).map((op: any) => ({
-            id: op.id,
-            workOrderId: op.work_order_id,
-            name: op.name,
-            description: op.description || "",
-            status: op.status,
-            machiningMethods: op.machining_methods || "",
-            setupInstructions: op.setup_instructions || "",
-            estimatedStartTime: op.estimated_start_time,
-            estimatedEndTime: op.estimated_end_time,
-            actualStartTime: op.actual_start_time,
-            actualEndTime: op.actual_end_time,
-            comments: op.comments,
-            assignedTo: op.assigned_to_id ? {
-              id: op.assigned_to_id,
-              name: "Unknown" // We would need to fetch operator names separately
-            } : undefined,
-            createdAt: op.created_at,
-            updatedAt: op.updated_at,
-            documents: []
-          })),
-          archived: data.archived,
-          archivedAt: data.archived_at,
-          archiveReason: data.archive_reason
-        } as WorkOrder;
-      } catch (error) {
-        console.error("[EDIT LOAD ERROR]", error);
-        throw error;
-      }
+          createdAt: op.created_at,
+          updatedAt: op.updated_at,
+          documents: []
+        })),
+        archived: data.archived,
+        archivedAt: data.archived_at,
+        archiveReason: data.archive_reason
+      } as WorkOrder;
     },
     enabled: !!workOrderId,
   });
@@ -203,16 +185,10 @@ export default function EditWorkOrder() {
 
   if (error || !workOrder) {
     return (
-      <div className="flex flex-col justify-center items-center h-96 space-y-4">
+      <div className="flex justify-center items-center h-96">
         <p className="text-destructive">
           Error loading work order: {error instanceof Error ? error.message : "Unknown error"}
         </p>
-        <Button asChild variant="outline">
-          <Link to="/work-orders">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Work Orders
-          </Link>
-        </Button>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,49 +22,30 @@ export default function EditCustomer() {
   const { data: customer, isLoading: isCustomerLoading, error: customerError } = useQuery({
     queryKey: ["customer", customerId],
     queryFn: async () => {
-      if (!customerId) {
-        console.error("[EDIT LOAD ERROR] Customer ID is missing");
-        throw new Error("Customer ID is required");
-      }
+      if (!customerId) throw new Error("Customer ID is required");
       
-      console.log("[EDIT LOAD] Requested customer ID:", customerId);
-      
-      try {
-        const { data, error } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('id', customerId)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customerId)
+        .single();
 
-        if (error) {
-          console.error("[EDIT LOAD ERROR]", error);
-          throw error;
-        }
-        
-        console.log("[EDIT LOAD] Supabase result:", data);
-        
-        if (!data) {
-          console.error("[EDIT LOAD ERROR] No customer found with ID:", customerId);
-          throw new Error("Customer not found");
-        }
-        
-        return {
-          id: data.id,
-          name: data.name,
-          company: data.company,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          active: data.active,
-          notes: data.notes,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          orderCount: data.order_count || 0
-        } as Customer;
-      } catch (error) {
-        console.error("[EDIT LOAD ERROR]", error);
-        throw error;
-      }
+      if (error) throw error;
+      if (!data) throw new Error("Customer not found");
+      
+      return {
+        id: data.id,
+        name: data.name,
+        company: data.company,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        active: data.active,
+        notes: data.notes,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        orderCount: data.order_count || 0
+      } as Customer;
     },
     enabled: !!customerId,
   });
@@ -188,16 +170,10 @@ export default function EditCustomer() {
 
   if (customerError || !customer) {
     return (
-      <div className="flex flex-col justify-center items-center h-96 space-y-4">
+      <div className="flex justify-center items-center h-96">
         <p className="text-destructive">
           Error loading customer: {customerError instanceof Error ? customerError.message : "Unknown error"}
         </p>
-        <Button asChild variant="outline">
-          <Link to="/customers">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Customers
-          </Link>
-        </Button>
       </div>
     );
   }

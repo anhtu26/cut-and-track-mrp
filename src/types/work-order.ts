@@ -4,7 +4,6 @@ import { Part } from "./part";
 import { Operation } from "./operation";
 import { WorkOrderStatus, WorkOrderPriority } from "./work-order-status";
 
-// Export the WorkOrderStatus and WorkOrderPriority types
 export type { WorkOrderStatus, WorkOrderPriority };
 
 export interface WorkOrder {
@@ -32,7 +31,6 @@ export interface WorkOrder {
   archived: boolean;
   archivedAt?: string;
   archiveReason?: string;
-  useOperationTemplates?: boolean; // Added this field to match the schema
 }
 
 export interface CreateWorkOrderInput {
@@ -47,10 +45,10 @@ export interface CreateWorkOrderInput {
   dueDate: string;
   assignedToId?: string;
   notes?: string;
-  useOperationTemplates?: boolean; // Field to indicate if we should use templates
+  useOperationTemplates?: boolean; // New field to indicate if we should use templates
 }
 
-export interface UpdateWorkOrderInput extends Partial<Omit<CreateWorkOrderInput, 'id'>> {
+export interface UpdateWorkOrderInput extends Partial<CreateWorkOrderInput> {
   id: string;
   completedDate?: string;
   archived?: boolean;

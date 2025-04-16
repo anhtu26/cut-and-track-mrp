@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,22 +9,20 @@ import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateWorkOrderInput } from "@/types/work-order";
+import { WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
 import { format } from "date-fns";
 
 export default function AddWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  
-  // Create initial data object with only the properties needed for creation
   const [initialData, setInitialData] = useState({
     customerId: searchParams.get("customerId") || "",
     partId: searchParams.get("partId") || "",
   });
 
   const { mutateAsync: createWorkOrderMutation, isPending } = useMutation({
-    mutationFn: async (formData: CreateWorkOrderInput) => {
+    mutationFn: async (formData: WorkOrderFormValues) => {
       console.log("Creating work order with data:", formData);
       
       try {
@@ -37,8 +35,8 @@ export default function AddWorkOrder() {
           quantity: formData.quantity,
           status: formData.status || "Not Started",
           priority: formData.priority || "Normal",
-          start_date: formData.startDate || null,
-          due_date: formData.dueDate,
+          start_date: formData.startDate ? format(formData.startDate, "yyyy-MM-dd") : null,
+          due_date: format(formData.dueDate, "yyyy-MM-dd"),
           assigned_to_id: formData.assignedToId || null,
           notes: formData.notes || null
         };
@@ -122,9 +120,10 @@ export default function AddWorkOrder() {
     }
   });
 
-  // Handle form submission by passing to the mutation
-  const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
+  // Wrapper function to handle the type mismatch
+  const handleSubmit = async (data: WorkOrderFormValues): Promise<void> => {
     await createWorkOrderMutation(data);
+    // Return void to satisfy the type requirements
   };
 
   return (
@@ -144,7 +143,7 @@ export default function AddWorkOrder() {
         </CardHeader>
         <CardContent>
           <WorkOrderForm 
-            initialData={initialData as any} 
+            initialData={initialData}
             onSubmit={handleSubmit} 
             isSubmitting={isPending} 
           />
