@@ -143,11 +143,26 @@ export default function EditWorkOrder() {
     },
     enabled: !!workOrderId,
     retry: 1, // Only retry once to avoid excessive retries on auth issues
-    onError: (error: any) => {
-      console.error("Error in work order query:", error);
-      setLoadError(error.message || "Failed to load work order");
+    staleTime: 30000, // 30 seconds
+    // Instead of using onError directly, use onSettled or handle it in the queryFn
+    meta: {
+      errorHandler: (error: any) => {
+        console.error("Error in work order query:", error);
+        setLoadError(error.message || "Failed to load work order");
+      }
     }
   });
+
+  // Call the error handler from meta once we have the error
+  if (error && workOrder === undefined) {
+    console.error("Error in work order query:", error);
+    const errorHandler = (error as any).meta?.errorHandler;
+    if (typeof errorHandler === 'function') {
+      errorHandler(error);
+    } else {
+      setLoadError(error instanceof Error ? error.message : "Failed to load work order");
+    }
+  }
 
   // Update work order mutation
   const { mutateAsync: updateWorkOrderMutation, isPending } = useMutation({
