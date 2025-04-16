@@ -2,10 +2,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkOrder, WorkOrderStatus, WorkOrderPriority } from "@/types/work-order";
-import { Operation, OperationStatus } from "@/types/operation";
+import { Operation, OperationStatus, UpdateOperationInput } from "@/types/operation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Archive, CalendarClock, Package, User, ListChecks, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Edit, Archive, CalendarClock, Package, User, ListChecks, AlertTriangle, CheckCircle2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { format } from "date-fns";
@@ -20,7 +20,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const archiveReasonSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
@@ -32,6 +33,8 @@ export default function WorkOrderDetail() {
   const queryClient = useQueryClient();
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
+  const [editedOperations, setEditedOperations] = useState<Record<string, Partial<UpdateOperationInput>>>({});
+  const [isEditing, setIsEditing] = useState(false);
   
   const archiveForm = useForm<z.infer<typeof archiveReasonSchema>>({
     resolver: zodResolver(archiveReasonSchema),
@@ -202,6 +205,61 @@ export default function WorkOrderDetail() {
     },
   });
 
+  const { mutateAsync: batchUpdateOperations, isPending: isBatchUpdating } = useMutation({
+    mutationFn: async (operations: Record<string, Partial<UpdateOperationInput>>) => {
+      const updates = Object.entries(operations).map(async ([id, changes]) => {
+        const { data, error } = await supabase
+          .from('operations')
+          .update({
+            sequence: changes.sequence,
+            status: changes.status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select();
+          
+        if (error) throw error;
+        return data;
+      });
+      
+      return Promise.all(updates);
+    },
+    onSuccess: () => {
+      toast.success("Operations updated successfully");
+      setEditedOperations({});
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["work-order", workOrderId] });
+    },
+    onError: (error: any) => {
+      console.error("Error updating operations:", error);
+      toast.error(error.message || "Failed to update operations");
+    }
+  });
+
+  const { mutateAsync: updateOperationStatus, isPending: isStatusUpdating } = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: OperationStatus }) => {
+      const { data, error } = await supabase
+        .from('operations')
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Operation status updated");
+      queryClient.invalidateQueries({ queryKey: ["work-order", workOrderId] });
+    },
+    onError: (error: any) => {
+      console.error("Error updating operation status:", error);
+      toast.error(error.message || "Failed to update status");
+    }
+  });
+
   const handleArchiveSubmit = async (data: z.infer<typeof archiveReasonSchema>) => {
     try {
       await archiveWorkOrder(data.reason);
@@ -214,6 +272,43 @@ export default function WorkOrderDetail() {
 
   const handleStatusUpdate = (status: WorkOrderStatus) => {
     updateWorkOrderStatus(status);
+  };
+
+  const handleSequenceChange = (id: string, value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue)) {
+      setEditedOperations(prev => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          id,
+          sequence: numValue
+        }
+      }));
+    }
+  };
+
+  const handleOperationStatusChange = (id: string, status: OperationStatus) => {
+    updateOperationStatus({ id, status });
+  };
+
+  const saveAllChanges = async () => {
+    if (Object.keys(editedOperations).length > 0) {
+      await batchUpdateOperations(editedOperations);
+    } else {
+      toast.info("No changes to save");
+    }
+  };
+
+  const toggleEditing = () => {
+    if (isEditing && Object.keys(editedOperations).length > 0) {
+      if (confirm("You have unsaved changes. Do you want to save them before exiting edit mode?")) {
+        saveAllChanges();
+      } else {
+        setEditedOperations({});
+      }
+    }
+    setIsEditing(!isEditing);
   };
 
   if (isLoading) {
@@ -486,7 +581,31 @@ export default function WorkOrderDetail() {
           </div>
           
           <div>
-            <h3 className="text-lg font-medium mb-2">Operations</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Operations</h3>
+              {!workOrder.archived && workOrder.operations.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  {isEditing && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={saveAllChanges}
+                      disabled={isBatchUpdating || Object.keys(editedOperations).length === 0}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
+                    </Button>
+                  )}
+                  <Button 
+                    variant={isEditing ? "secondary" : "outline"} 
+                    size="sm" 
+                    onClick={toggleEditing}
+                  >
+                    {isEditing ? "Exit Edit Mode" : "Edit Sequences"}
+                  </Button>
+                </div>
+              )}
+            </div>
             {workOrder.operations.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -502,7 +621,21 @@ export default function WorkOrderDetail() {
                 <TableBody>
                   {workOrder.operations.map((operation) => (
                     <TableRow key={operation.id}>
-                      <TableCell>{operation.sequence}</TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            className="w-20"
+                            value={(editedOperations[operation.id]?.sequence !== undefined) 
+                              ? editedOperations[operation.id].sequence 
+                              : operation.sequence}
+                            onChange={(e) => handleSequenceChange(operation.id, e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-mono">{operation.sequence}</span>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {operation.name}
                         {operation.isCustom && (
@@ -510,13 +643,38 @@ export default function WorkOrderDetail() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={
-                          operation.status === "Complete" ? "secondary" : 
-                          operation.status === "In Progress" ? "default" : 
-                          "outline"
-                        }>
-                          {operation.status}
-                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 px-2 py-0">
+                              <Badge variant={
+                                operation.status === "Complete" ? "secondary" : 
+                                operation.status === "In Progress" ? "default" : 
+                                operation.status === "QC" ? "outline" :
+                                "outline"
+                              }>
+                                {operation.status}
+                              </Badge>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {["Not Started", "In Progress", "QC", "Complete"].map((status) => (
+                              <DropdownMenuItem 
+                                key={status}
+                                onClick={() => handleOperationStatusChange(operation.id, status as OperationStatus)}
+                              >
+                                <Badge variant={
+                                  status === "Complete" ? "secondary" : 
+                                  status === "In Progress" ? "default" : 
+                                  status === "QC" ? "outline" :
+                                  "outline"
+                                } className="mr-2">
+                                  {status}
+                                </Badge>
+                                {status}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                       <TableCell>{operation.description || "—"}</TableCell>
                       <TableCell>

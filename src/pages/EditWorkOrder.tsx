@@ -1,18 +1,21 @@
-import { useNavigate, useParams } from "react-router-dom";
+
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UpdateWorkOrderInput, WorkOrder } from "@/types/work-order";
+import { useState } from "react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function EditWorkOrder() {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Fetch work order data
   const { data: workOrder, isLoading, error } = useQuery({
@@ -39,6 +42,7 @@ export default function EditWorkOrder() {
 
         if (error) {
           console.error("[EDIT LOAD ERROR]", error);
+          setLoadError(error.message);
           throw error;
         }
         
@@ -46,6 +50,7 @@ export default function EditWorkOrder() {
         
         if (!data) {
           console.error("[EDIT LOAD ERROR] No work order found with ID:", workOrderId);
+          setLoadError("Work Order not found");
           throw new Error("Work Order not found");
         }
         
@@ -107,6 +112,8 @@ export default function EditWorkOrder() {
             status: op.status,
             machiningMethods: op.machining_methods || "",
             setupInstructions: op.setup_instructions || "",
+            sequence: op.sequence || 0,
+            isCustom: op.is_custom || false,
             estimatedStartTime: op.estimated_start_time,
             estimatedEndTime: op.estimated_end_time,
             actualStartTime: op.actual_start_time,
@@ -126,10 +133,20 @@ export default function EditWorkOrder() {
         } as WorkOrder;
       } catch (error) {
         console.error("[EDIT LOAD ERROR]", error);
+        if (error instanceof Error) {
+          setLoadError(error.message);
+        } else {
+          setLoadError("Unknown error occurred");
+        }
         throw error;
       }
     },
     enabled: !!workOrderId,
+    retry: 1, // Only retry once to avoid excessive retries on auth issues
+    onError: (error: any) => {
+      console.error("Error in work order query:", error);
+      setLoadError(error.message || "Failed to load work order");
+    }
   });
 
   // Update work order mutation
@@ -187,10 +204,17 @@ export default function EditWorkOrder() {
     }
   });
 
-  // Create a wrapper function that conforms to the expected type
   const handleSubmit = async (data: UpdateWorkOrderInput) => {
-    await updateWorkOrderMutation(data);
-    // Return void explicitly
+    try {
+      await updateWorkOrderMutation(data);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      if (error instanceof Error) {
+        toast.error(`Failed to update work order: ${error.message}`);
+      } else {
+        toast.error("An unknown error occurred while updating");
+      }
+    }
   };
 
   if (isLoading) {
@@ -201,11 +225,11 @@ export default function EditWorkOrder() {
     );
   }
 
-  if (error || !workOrder) {
+  if (error || loadError || !workOrder) {
     return (
       <div className="flex flex-col justify-center items-center h-96 space-y-4">
         <p className="text-destructive">
-          Error loading work order: {error instanceof Error ? error.message : "Unknown error"}
+          Error loading work order: {(error instanceof Error ? error.message : loadError) || "Unknown error"}
         </p>
         <Button asChild variant="outline">
           <Link to="/work-orders">
@@ -259,11 +283,27 @@ export default function EditWorkOrder() {
           <CardTitle>Edit Work Order</CardTitle>
         </CardHeader>
         <CardContent>
-          <WorkOrderForm 
-            initialData={workOrder} 
-            onSubmit={handleSubmit} 
-            isSubmitting={isPending} 
-          />
+          <ErrorBoundary fallback={
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
+              <h3 className="text-lg font-medium text-red-800 dark:text-red-300">Error Loading Form</h3>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
+                There was an error loading the form. Please try refreshing the page or contact support.
+              </p>
+              <Button 
+                className="mt-4" 
+                variant="outline" 
+                onClick={() => navigate(`/work-orders/${workOrderId}`)}
+              >
+                Return to Work Order
+              </Button>
+            </div>
+          }>
+            <WorkOrderForm 
+              initialData={workOrder} 
+              onSubmit={handleSubmit} 
+              isSubmitting={isPending} 
+            />
+          </ErrorBoundary>
         </CardContent>
       </Card>
     </div>

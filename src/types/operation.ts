@@ -16,8 +16,8 @@ export interface Operation {
   status: OperationStatus;
   machiningMethods: string;
   setupInstructions: string;
-  sequence: number; // Added sequence field to match templates
-  isCustom?: boolean; // Flag to identify custom operations
+  sequence: number;
+  isCustom?: boolean;
   estimatedStartTime?: string;
   estimatedEndTime?: string;
   actualStartTime?: string;
@@ -44,8 +44,8 @@ export interface CreateOperationInput {
   status: OperationStatus;
   machiningMethods?: string | null;
   setupInstructions?: string | null;
-  sequence: number; // Added sequence field as required
-  isCustom?: boolean; // Flag to identify custom operations
+  sequence: number;
+  isCustom?: boolean;
   estimatedStartTime?: string | null;
   estimatedEndTime?: string | null;
   assignedToId?: string | null;
