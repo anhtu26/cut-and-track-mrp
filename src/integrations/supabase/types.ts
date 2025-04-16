@@ -9,6 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customers: {
+        Row: {
+          active: boolean
+          address: string | null
+          company: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      operations: {
+        Row: {
+          actual_end_time: string | null
+          actual_start_time: string | null
+          assigned_to_id: string | null
+          comments: string | null
+          created_at: string
+          description: string | null
+          estimated_end_time: string | null
+          estimated_start_time: string | null
+          id: string
+          machining_methods: string | null
+          name: string
+          setup_instructions: string | null
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          assigned_to_id?: string | null
+          comments?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_end_time?: string | null
+          estimated_start_time?: string | null
+          id?: string
+          machining_methods?: string | null
+          name: string
+          setup_instructions?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          actual_end_time?: string | null
+          actual_start_time?: string | null
+          assigned_to_id?: string | null
+          comments?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_end_time?: string | null
+          estimated_start_time?: string | null
+          id?: string
+          machining_methods?: string | null
+          name?: string
+          setup_instructions?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       part_documents: {
         Row: {
           id: string
@@ -100,6 +201,84 @@ export type Database = {
           {
             foreignKeyName: "parts_previous_revision_id_fkey"
             columns: ["previous_revision_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_orders: {
+        Row: {
+          archive_reason: string | null
+          archived: boolean
+          archived_at: string | null
+          assigned_to_id: string | null
+          completed_date: string | null
+          created_at: string
+          customer_id: string
+          due_date: string
+          id: string
+          notes: string | null
+          part_id: string
+          priority: string
+          purchase_order_number: string | null
+          quantity: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          work_order_number: string
+        }
+        Insert: {
+          archive_reason?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          assigned_to_id?: string | null
+          completed_date?: string | null
+          created_at?: string
+          customer_id: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          part_id: string
+          priority?: string
+          purchase_order_number?: string | null
+          quantity: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          work_order_number: string
+        }
+        Update: {
+          archive_reason?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          assigned_to_id?: string | null
+          completed_date?: string | null
+          created_at?: string
+          customer_id?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          part_id?: string
+          priority?: string
+          purchase_order_number?: string | null
+          quantity?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          work_order_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_part_id_fkey"
+            columns: ["part_id"]
             isOneToOne: false
             referencedRelation: "parts"
             referencedColumns: ["id"]
