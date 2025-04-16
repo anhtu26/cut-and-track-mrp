@@ -47,7 +47,7 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   // Add operation template mutation
   const { mutateAsync: addTemplate, isPending: isAddingTemplate } = useMutation({
     mutationFn: async (data: any) => {
-      console.log("[SUPABASE REQUEST] Adding operation template with payload:", data);
+      console.log("[TEMPLATE ADD] Starting submission with payload:", data);
       
       // Make sure sequence is a number
       const sequence = typeof data.sequence === 'number' ? data.sequence : 
@@ -65,9 +65,29 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
         sequence: sequence
       };
       
-      console.log("[SUPABASE REQUEST] Formatted payload for insert:", formattedData);
+      console.log("[SUPABASE REQUEST] Adding operation template with formatted payload:", formattedData);
       
       try {
+        // Check if the operation_templates table exists
+        const { data: tablesResult, error: tablesError } = await supabase
+          .from('information_schema.tables')
+          .select('table_name')
+          .eq('table_schema', 'public')
+          .eq('table_name', 'operation_templates');
+          
+        if (tablesError) {
+          console.error("[SCHEMA CHECK ERROR]", tablesError);
+          throw new Error(`Schema check error: ${tablesError.message}`);
+        }
+        
+        console.log("[SCHEMA CHECK] Table exists check:", tablesResult);
+        
+        if (!tablesResult || tablesResult.length === 0) {
+          console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist in schema 'public'");
+          throw new Error("The operation_templates table does not exist in the database");
+        }
+        
+        // Proceed with insert after confirming table exists
         const { data: result, error } = await supabase
           .from('operation_templates')
           .insert(formattedData)
