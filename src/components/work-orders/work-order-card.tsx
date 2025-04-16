@@ -6,42 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, FileText, User } from "lucide-react";
 import { format, isValid, parseISO } from "date-fns";
+import { getStatusBadgeVariant, getPriorityBadgeVariant } from "@/types/work-order-status";
 
 interface WorkOrderCardProps {
   workOrder: WorkOrder;
 }
 
 export function WorkOrderCard({ workOrder }: WorkOrderCardProps) {
-  // Status badge variations
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "Complete":
-        return "success";
-      case "In Progress":
-        return "default";
-      case "QC":
-        return "warning";
-      case "Shipped":
-        return "secondary";
-      default:
-        return "outline";
-    }
-  };
-  
-  // Priority badge variations
-  const getPriorityVariant = (priority: string) => {
-    switch (priority) {
-      case "Critical":
-        return "destructive";
-      case "High":
-        return "warning";
-      case "Normal":
-        return "default";
-      default:
-        return "outline";
-    }
-  };
-
   // Format date safely
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Not set";
@@ -79,10 +50,10 @@ export function WorkOrderCard({ workOrder }: WorkOrderCardProps) {
               <p className="text-sm text-muted-foreground">{workOrder.customer.name}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant={getStatusVariant(workOrder.status)}>
+              <Badge variant={getStatusBadgeVariant(workOrder.status)}>
                 {workOrder.status}
               </Badge>
-              <Badge variant={getPriorityVariant(workOrder.priority)}>
+              <Badge variant={getPriorityBadgeVariant(workOrder.priority)}>
                 {workOrder.priority}
               </Badge>
               {workOrder.archived && 

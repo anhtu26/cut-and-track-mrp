@@ -38,8 +38,9 @@ export default function AddWorkOrder() {
         archived: false
       };
 
+      // This is a workaround until we update the Supabase types
       const { data: insertData, error } = await supabase
-        .from("work_orders")
+        .from('work_orders')
         .insert([workOrderData])
         .select();
 

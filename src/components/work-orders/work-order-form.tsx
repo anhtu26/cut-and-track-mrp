@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,8 +19,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,12 +63,25 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     queryKey: ["customers"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("customers")
+        .from('customers')
         .select("*")
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data as Customer[];
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        company: item.company,
+        email: item.email,
+        phone: item.phone,
+        address: item.address,
+        active: item.active,
+        notes: item.notes,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        orderCount: item.order_count || 0
+      })) as Customer[];
     },
   });
 
@@ -78,7 +89,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     queryKey: ["parts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("parts")
+        .from('parts')
         .select("*")
         .eq('archived', false)
         .eq('active', true)
@@ -86,16 +97,26 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
 
       if (error) throw error;
       
-      return data.map((item: any) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         name: item.name,
         partNumber: item.part_number,
-        // Include other fields as needed
+        description: item.description,
+        active: item.active,
+        materials: item.materials || [],
+        setupInstructions: item.setup_instructions,
+        machiningMethods: item.machining_methods,
+        revisionNumber: item.revision_number,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        documents: [],
+        archived: item.archived || false,
+        archivedAt: item.archived_at,
+        archiveReason: item.archive_reason
       })) as Part[];
     },
   });
   
-  // Prepare default values from initialData if provided
   const defaultValues: Partial<WorkOrderFormData> = {
     workOrderNumber: initialData?.workOrderNumber || "",
     purchaseOrderNumber: initialData?.purchaseOrderNumber || "",
@@ -115,7 +136,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     defaultValues,
   });
 
-  // Handle form submission
   const handleSubmit = async (data: WorkOrderFormData) => {
     setSubmitError(null);
     try {
@@ -144,7 +164,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Work Order Number - Optional, system generated if not provided */}
         <FormField
           control={form.control}
           name="workOrderNumber"
@@ -163,7 +182,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Purchase Order Number */}
         <FormField
           control={form.control}
           name="purchaseOrderNumber"
@@ -178,7 +196,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Customer Selection */}
         <FormField
           control={form.control}
           name="customerId"
@@ -208,7 +225,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Part Selection */}
         <FormField
           control={form.control}
           name="partId"
@@ -238,7 +254,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Quantity */}
         <FormField
           control={form.control}
           name="quantity"
@@ -258,7 +273,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Status */}
         <FormField
           control={form.control}
           name="status"
@@ -284,7 +298,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Priority */}
         <FormField
           control={form.control}
           name="priority"
@@ -309,7 +322,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Start Date - Optional */}
         <FormField
           control={form.control}
           name="startDate"
@@ -349,7 +361,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Due Date - Required */}
         <FormField
           control={form.control}
           name="dueDate"
@@ -389,7 +400,6 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Notes - Optional */}
         <FormField
           control={form.control}
           name="notes"
@@ -404,14 +414,12 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           )}
         />
 
-        {/* Error display */}
         {submitError && (
           <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
             {submitError}
           </div>
         )}
 
-        {/* Submit Button */}
         <div className="flex justify-end gap-4">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : initialData ? "Update Work Order" : "Create Work Order"}

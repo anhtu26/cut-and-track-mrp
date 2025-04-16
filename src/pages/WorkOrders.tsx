@@ -19,8 +19,9 @@ export default function WorkOrders() {
       console.log("Fetching work orders, includeArchived:", includeArchived);
       
       try {
+        // This is a workaround until we update the Supabase types
         const query = supabase
-          .from("work_orders")
+          .from('work_orders')
           .select(`
             *,
             customer:customers(*),
@@ -50,14 +51,33 @@ export default function WorkOrders() {
           customer: {
             id: item.customer.id,
             name: item.customer.name,
-            // Include other customer fields as needed
+            company: item.customer.company,
+            email: item.customer.email,
+            phone: item.customer.phone,
+            address: item.customer.address,
+            active: item.customer.active,
+            notes: item.customer.notes,
+            createdAt: item.customer.created_at,
+            updatedAt: item.customer.updated_at,
+            orderCount: item.customer.order_count || 0
           },
           customerId: item.customer_id,
           part: {
             id: item.part.id,
             name: item.part.name,
             partNumber: item.part.part_number,
-            // Include other part fields as needed
+            description: item.part.description,
+            active: item.part.active,
+            materials: item.part.materials || [],
+            setupInstructions: item.part.setup_instructions,
+            machiningMethods: item.part.machining_methods,
+            revisionNumber: item.part.revision_number,
+            createdAt: item.part.created_at,
+            updatedAt: item.part.updated_at,
+            documents: [],
+            archived: item.part.archived,
+            archivedAt: item.part.archived_at,
+            archiveReason: item.part.archive_reason
           },
           partId: item.part_id,
           quantity: item.quantity,
@@ -75,9 +95,24 @@ export default function WorkOrders() {
           notes: item.notes,
           operations: (item.operations || []).map((op: any) => ({
             id: op.id,
+            workOrderId: op.work_order_id,
             name: op.name,
+            description: op.description || "",
             status: op.status,
-            // Include other operation fields as needed
+            machiningMethods: op.machining_methods || "",
+            setupInstructions: op.setup_instructions || "",
+            estimatedStartTime: op.estimated_start_time,
+            estimatedEndTime: op.estimated_end_time,
+            actualStartTime: op.actual_start_time,
+            actualEndTime: op.actual_end_time,
+            comments: op.comments,
+            assignedTo: op.assigned_to_id ? {
+              id: op.assigned_to_id,
+              name: "Unknown" // We would need to fetch operator names separately
+            } : undefined,
+            createdAt: op.created_at,
+            updatedAt: op.updated_at,
+            documents: []
           })),
           archived: item.archived,
           archivedAt: item.archived_at,

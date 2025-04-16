@@ -214,7 +214,9 @@ export const mockWorkOrders: WorkOrder[] = [
     workOrderNumber: "WO-2025-0042",
     purchaseOrderNumber: "AI-PO-7752",
     customer: mockCustomers[0],
+    customerId: mockCustomers[0].id,
     part: mockParts[0],
+    partId: mockParts[0].id,
     quantity: 25,
     status: "In Progress",
     priority: "High",
@@ -226,14 +228,18 @@ export const mockWorkOrders: WorkOrder[] = [
       id: "u3",
       name: "Mike Johnson"
     },
-    notes: "Customer requires expedited delivery. Quality inspection report required with shipment."
+    notes: "Customer requires expedited delivery. Quality inspection report required with shipment.",
+    operations: [],
+    archived: false
   },
   {
     id: "wo2",
     workOrderNumber: "WO-2025-0043",
     purchaseOrderNumber: "MD-PO-1235",
     customer: mockCustomers[1],
+    customerId: mockCustomers[1].id,
     part: mockParts[2],
+    partId: mockParts[2].id,
     quantity: 100,
     status: "QC",
     priority: "Normal",
@@ -245,28 +251,36 @@ export const mockWorkOrders: WorkOrder[] = [
       id: "u4",
       name: "Sarah Wilson"
     },
-    notes: "Biocompatibility certification required. Handle with white gloves only."
+    notes: "Biocompatibility certification required. Handle with white gloves only.",
+    operations: [],
+    archived: false
   },
   {
     id: "wo3",
     workOrderNumber: "WO-2025-0044",
     purchaseOrderNumber: "IS-PO-3342",
     customer: mockCustomers[2],
+    customerId: mockCustomers[2].id,
     part: mockParts[4],
+    partId: mockParts[4].id,
     quantity: 50,
     status: "Not Started",
     priority: "Normal",
     createdAt: "2025-04-05T14:20:00Z",
     updatedAt: "2025-04-05T14:20:00Z",
     dueDate: "2025-05-10T17:00:00Z",
-    notes: "Standard production run. Use material from lot #L7742."
+    notes: "Standard production run. Use material from lot #L7742.",
+    operations: [],
+    archived: false
   },
   {
     id: "wo4",
     workOrderNumber: "WO-2025-0045",
     purchaseOrderNumber: "DS-PO-9981",
     customer: mockCustomers[3],
+    customerId: mockCustomers[3].id,
     part: mockParts[3],
+    partId: mockParts[3].id,
     quantity: 10,
     status: "Complete",
     priority: "Critical",
@@ -279,14 +293,18 @@ export const mockWorkOrders: WorkOrder[] = [
       id: "u5",
       name: "Robert Chen"
     },
-    notes: "ITAR controlled item. Secure handling required throughout production."
+    notes: "ITAR controlled item. Secure handling required throughout production.",
+    operations: [],
+    archived: false
   },
   {
     id: "wo5",
     workOrderNumber: "WO-2025-0046",
     purchaseOrderNumber: "PA-PO-5521",
     customer: mockCustomers[4],
+    customerId: mockCustomers[4].id,
     part: mockParts[4],
+    partId: mockParts[4].id,
     quantity: 200,
     status: "In Progress",
     priority: "High",
@@ -298,21 +316,27 @@ export const mockWorkOrders: WorkOrder[] = [
       id: "u3",
       name: "Mike Johnson"
     },
-    notes: "Production will pause for material QC check at 50% completion."
+    notes: "Production will pause for material QC check at 50% completion.",
+    operations: [],
+    archived: false
   },
   {
     id: "wo6",
     workOrderNumber: "WO-2025-0047",
     purchaseOrderNumber: "PE-PO-6675",
     customer: mockCustomers[5],
+    customerId: mockCustomers[5].id,
     part: mockParts[5],
+    partId: mockParts[5].id,
     quantity: 5,
     status: "Not Started",
     priority: "Low",
     createdAt: "2025-04-10T15:40:00Z",
     updatedAt: "2025-04-10T15:40:00Z",
     dueDate: "2025-05-20T17:00:00Z",
-    notes: "Special material order required before production can begin."
+    notes: "Special material order required before production can begin.",
+    operations: [],
+    archived: false
   }
 ];
 
