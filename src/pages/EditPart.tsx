@@ -1,4 +1,3 @@
-
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,13 +89,14 @@ export default function EditPart() {
         throw error;
       }
     },
-    retry: 1, // Limit retry attempts
-    staleTime: 30000, // Adding staleTime to prevent unnecessary refetches
+    retry: 1,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { mutateAsync: updatePartMutation, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Updating part with data:", data);
+      console.log("[UPDATE] Updating part with data:", data);
       
       // Ensure materials is an array
       const materials = Array.isArray(data.materials) ? data.materials : [];
@@ -128,16 +128,16 @@ export default function EditPart() {
     onSuccess: (data) => {
       console.log("[UPDATE SUCCESS] Part updated successfully:", data);
       
-      // FIX: Force invalidate queries to ensure fresh data before navigation
+      // FIX 1: Force invalidate queries to ensure fresh data before navigation
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       
-      // Add a slight delay to ensure the query cache is updated before navigation
+      // FIX 2: Add a slight delay to ensure the query cache is updated before navigation
       // This helps prevent the "Not Found" issue after editing
       setTimeout(() => {
         console.log("[NAVIGATION] Redirecting to part details:", `/parts/${partId}`);
         
-        // Double check that partId is still valid
+        // FIX 3: Double check that partId is still valid
         if (partId) {
           toast.success("Part updated successfully");
           navigate(`/parts/${partId}`);
@@ -161,11 +161,9 @@ export default function EditPart() {
     }
   });
 
-  // Wrapper function to handle the type mismatch
   const handleSubmit = async (data: any): Promise<void> => {
     console.log("[FORM SUBMIT] Submitting part update:", data);
     await updatePartMutation(data);
-    // Return void to satisfy the type requirements
   };
 
   if (isLoading) {

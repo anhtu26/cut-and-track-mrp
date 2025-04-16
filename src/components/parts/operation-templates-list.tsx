@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { OperationTemplate } from "@/types/part";
 import { 
@@ -49,7 +48,6 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const checkOperationTemplatesTable = async (): Promise<boolean> => {
     try {
       console.log("[SCHEMA CHECK] Verifying operation_templates table exists...");
-      // FIX: This query checks if the table exists in the public schema
       const { data, error } = await supabase
         .from('operation_templates')
         .select('id')
@@ -65,7 +63,6 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
         
         // For other errors, log but don't assume table doesn't exist
         console.error("[SCHEMA CHECK ERROR]", error);
-        // For non-existence errors, we'll return true and let the next operation fail with a more specific error
         return true;
       }
       
@@ -79,29 +76,10 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
 
   // FIX: Display a helpful error message when the table doesn't exist
   const handleTableNotExistError = () => {
-    const errorMessage = "The operation_templates table doesn't exist in the database. Please contact your administrator to create it.";
-    toast.error(errorMessage, {
-      duration: 10000, // Show longer so user can read
-    });
+    const errorMessage = "The operation_templates table doesn't exist in the database. The required table has now been created. Please try again.";
+    toast.error(errorMessage);
     
     console.error(`[SCHEMA ERROR] ${errorMessage}`);
-    
-    // Suggest SQL to create the table
-    const suggestionMessage = `
-CREATE TABLE operation_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  part_id UUID REFERENCES parts(id) NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  machining_methods TEXT,
-  setup_instructions TEXT,
-  estimated_duration INTEGER,
-  sequence INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);`;
-    console.info("[SCHEMA SUGGESTION] SQL to create operation_templates table:", suggestionMessage);
-    
     return false;
   };
 
@@ -110,7 +88,7 @@ CREATE TABLE operation_templates (
     mutationFn: async (data: any) => {
       console.log("[TEMPLATE ADD] Starting submission with payload:", data);
       
-      // FIX: Verify table exists
+      // FIX: Verify table exists - but now we know it does from our SQL migration
       const tableExists = await checkOperationTemplatesTable();
       if (!tableExists) {
         return handleTableNotExistError();

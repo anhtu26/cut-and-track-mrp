@@ -48,6 +48,53 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_duration: number | null
+          id: string
+          machining_methods: string | null
+          name: string
+          part_id: string
+          sequence: number
+          setup_instructions: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          machining_methods?: string | null
+          name: string
+          part_id: string
+          sequence?: number
+          setup_instructions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          machining_methods?: string | null
+          name?: string
+          part_id?: string
+          sequence?: number
+          setup_instructions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_templates_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operations: {
         Row: {
           actual_end_time: string | null

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,10 +61,19 @@ export default function PartDetail() {
           return null; // Return null instead of throwing error for "not found" case
         }
 
-        // FIX 3: Separate query for operation_templates
-        // Only run this query if the part exists
+        // FIX 3: Add explicit check for operation_templates table before querying
         let operationTemplates = [];
         try {
+          // Check if the operation_templates table exists first
+          const { error: checkError } = await supabase
+            .from("operation_templates")
+            .select("count")
+            .limit(1)
+            .throwOnError();
+            
+          // If we get here, the table exists
+          console.log("[OPERATION TEMPLATES] Table check successful, proceeding with query");
+            
           const { data: templatesData, error: templatesError } = await supabase
             .from("operation_templates")
             .select("*")
@@ -89,8 +97,9 @@ export default function PartDetail() {
             }));
           }
         } catch (templateQueryError) {
-          // Catch but don't fail the whole part load
+          // Catch but don't fail the whole part load - improved error handling
           console.error("[OPERATION TEMPLATES QUERY ERROR]", templateQueryError);
+          console.warn("[OPERATION TEMPLATES] Continuing with empty templates list");
         }
         
         // FIX 4: Map the part data to the Part type
@@ -125,9 +134,10 @@ export default function PartDetail() {
         throw error;
       }
     },
-    enabled: Boolean(partId),
-    retry: 1,
-    staleTime: 30000, // FIX 5: Adding staleTime to prevent unnecessary refetches
+    enabled: Boolean(partId), // FIX 5: Only run query if partId exists
+    retry: 1, // Limit retry attempts
+    staleTime: 30000, // FIX 6: Adding staleTime to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // FIX 7: Prevent refetch on window focus which can cause loops
   });
 
   const { data: workOrders = [] } = useQuery({
