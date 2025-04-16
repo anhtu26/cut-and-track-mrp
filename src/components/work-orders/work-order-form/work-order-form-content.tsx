@@ -6,19 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelect } from "./work-order-customer-select";
 import { PartSelect } from "./work-order-part-select";
-import { DatePicker } from "./work-order-date-picker";
+import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
+import { WorkOrder } from "@/types/work-order";
 
 interface WorkOrderFormContentProps {
   form: any;
   isSubmitting: boolean;
   isEditMode?: boolean;
+  initialData?: WorkOrder; // Added initialData to the props interface
 }
 
 export function WorkOrderFormContent({
   form,
   isSubmitting,
   isEditMode = false,
+  initialData,
 }: WorkOrderFormContentProps) {
   const [useTemplates, setUseTemplates] = useState(true);
 
@@ -144,21 +147,17 @@ export function WorkOrderFormContent({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <DatePicker
-          form={form}
+        <WorkOrderDatePicker
+          control={form.control}
           name="startDate"
           label="Start Date"
-          placeholder="Select start date (optional)"
-          isRequired={false}
-          disabled={isSubmitting}
+          optional={true}
         />
-        <DatePicker
-          form={form}
+        <WorkOrderDatePicker
+          control={form.control}
           name="dueDate"
           label="Due Date"
-          placeholder="Select due date"
-          isRequired={true}
-          disabled={isSubmitting}
+          optional={false}
         />
       </div>
 

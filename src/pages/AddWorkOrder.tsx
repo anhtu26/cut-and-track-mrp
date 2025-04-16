@@ -11,11 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
 import { format } from "date-fns";
+import { CreateWorkOrderInput } from "@/types/work-order";
 
 export default function AddWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  // Changed initialData type to match what WorkOrderForm expects
   const [initialData, setInitialData] = useState({
     customerId: searchParams.get("customerId") || "",
     partId: searchParams.get("partId") || "",
@@ -120,8 +122,24 @@ export default function AddWorkOrder() {
     }
   });
 
-  // Wrapper function to handle the type mismatch
+  // Wrapper function to handle the type mismatch by converting between types
   const handleSubmit = async (data: WorkOrderFormValues): Promise<void> => {
+    // Convert WorkOrderFormValues to CreateWorkOrderInput
+    const createWorkOrderData: CreateWorkOrderInput = {
+      workOrderNumber: data.workOrderNumber,
+      purchaseOrderNumber: data.purchaseOrderNumber,
+      customerId: data.customerId,
+      partId: data.partId,
+      quantity: data.quantity,
+      status: data.status as any, // Safe cast since we're using the same enum values
+      priority: data.priority as any, // Safe cast since we're using the same enum values
+      startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
+      dueDate: format(data.dueDate, "yyyy-MM-dd"),
+      assignedToId: data.assignedToId,
+      notes: data.notes,
+      useOperationTemplates: data.useOperationTemplates
+    };
+    
     await createWorkOrderMutation(data);
     // Return void to satisfy the type requirements
   };
@@ -143,7 +161,7 @@ export default function AddWorkOrder() {
         </CardHeader>
         <CardContent>
           <WorkOrderForm 
-            initialData={initialData}
+            initialData={initialData as any} 
             onSubmit={handleSubmit} 
             isSubmitting={isPending} 
           />
