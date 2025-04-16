@@ -4,6 +4,8 @@ import { Part } from "./part";
 import { Operation } from "./operation";
 import { WorkOrderStatus, WorkOrderPriority } from "./work-order-status";
 
+export type { WorkOrderStatus, WorkOrderPriority };
+
 export interface WorkOrder {
   id: string;
   workOrderNumber: string;

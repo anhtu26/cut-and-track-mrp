@@ -169,6 +169,12 @@ export default function EditWorkOrder() {
     }
   });
 
+  // Create a wrapper function that conforms to the expected type
+  const handleSubmit = async (data: UpdateWorkOrderInput) => {
+    await updateWorkOrderMutation(data);
+    // Return void explicitly
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -231,7 +237,7 @@ export default function EditWorkOrder() {
         <CardContent>
           <WorkOrderForm 
             initialData={workOrder} 
-            onSubmit={updateWorkOrderMutation} 
+            onSubmit={handleSubmit} 
             isSubmitting={isPending} 
           />
         </CardContent>
