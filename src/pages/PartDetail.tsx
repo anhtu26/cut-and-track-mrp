@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PartDetailTabs } from "@/components/parts/part-detail-tabs";
-import { getMockPartHistory } from "@/data/mock-data";
 import { ArrowLeft, Archive, FileEdit } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -331,11 +330,8 @@ export default function PartDetail() {
       <PartDetailTabs 
         partId={part.id}
         description={part.description}
-        setupInstructions={part.setupInstructions || "No setup instructions available."}
-        machiningMethods={part.machiningMethods || "No machining methods documented."}
         materials={part.materials || []}
         documents={part.documents}
-        history={history}
         operationTemplates={part.operationTemplates || []}
         workOrders={workOrders}
       />

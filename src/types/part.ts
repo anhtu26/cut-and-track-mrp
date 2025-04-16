@@ -6,7 +6,13 @@ export interface Part {
   description: string;
   active: boolean;
   materials: string[];
+  /**
+   * @deprecated These fields are no longer used in the UI. Use operationTemplates instead.
+   */
   setupInstructions?: string; // Mapped from setup_instructions
+  /**
+   * @deprecated These fields are no longer used in the UI. Use operationTemplates instead.
+   */
   machiningMethods?: string; // Mapped from machining_methods
   revisionNumber?: string; // Mapped from revision_number
   createdAt: string; // Mapped from created_at

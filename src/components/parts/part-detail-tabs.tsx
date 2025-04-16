@@ -1,42 +1,33 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PartHistoryTable } from "./part-history-table";
 import { PartDocument, OperationTemplate } from "@/types/part";
 import { OperationTemplatesList } from "./operation-templates-list";
+import { Link } from "react-router-dom";
 
 interface PartDetailTabsProps {
   partId: string;
   description: string;
-  setupInstructions: string;
-  machiningMethods: string;
   materials: string[];
   documents: PartDocument[];
-  history: any[];
   operationTemplates: OperationTemplate[];
-  workOrders?: any[]; // Adding work orders related to this part
+  workOrders?: any[]; // Work orders related to this part
 }
 
 export function PartDetailTabs({
   partId,
   description,
-  setupInstructions,
-  machiningMethods,
   materials,
   documents,
-  history,
   operationTemplates = [],
   workOrders = []
 }: PartDetailTabsProps) {
   return (
     <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="setup">Setup & Methods</TabsTrigger>
         <TabsTrigger value="operations">Operations</TabsTrigger>
         <TabsTrigger value="documents">Documents</TabsTrigger>
-        <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       
       <TabsContent value="details">
@@ -78,12 +69,12 @@ export function PartDetailTabs({
                       {workOrders.slice(0, 5).map((order) => (
                         <tr key={order.id} className="border-t">
                           <td className="px-4 py-2">
-                            <a 
-                              href={`/work-orders/${order.id}`}
+                            <Link 
+                              to={`/work-orders/${order.id}`}
                               className="text-primary hover:underline"
                             >
                               {order.workOrderNumber}
-                            </a>
+                            </Link>
                           </td>
                           <td className="px-4 py-2">{order.customer.name}</td>
                           <td className="px-4 py-2">{order.status}</td>
@@ -98,38 +89,16 @@ export function PartDetailTabs({
                 
                 {workOrders.length > 5 && (
                   <div className="mt-2 text-right">
-                    <a 
-                      href={`/work-orders?partId=${partId}`}
+                    <Link 
+                      to={`/work-orders?partId=${partId}`}
                       className="text-sm text-primary hover:underline"
                     >
                       View all {workOrders.length} work orders
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="setup">
-        <Card>
-          <CardHeader>
-            <CardTitle>Setup Instructions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium mb-1">Setup Notes</h4>
-              <ScrollArea className="h-[200px] rounded-md border p-4">
-                <p className="text-sm whitespace-pre-line">{setupInstructions}</p>
-              </ScrollArea>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-1">Machining Methods</h4>
-              <ScrollArea className="h-[200px] rounded-md border p-4">
-                <p className="text-sm whitespace-pre-line">{machiningMethods}</p>
-              </ScrollArea>
-            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -179,18 +148,6 @@ export function PartDetailTabs({
             ) : (
               <p className="text-center text-muted-foreground py-6">No documents available</p>
             )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-      
-      <TabsContent value="history">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manufacturing History</CardTitle>
-            <CardDescription>Previous work orders and production runs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PartHistoryTable history={history} />
           </CardContent>
         </Card>
       </TabsContent>
