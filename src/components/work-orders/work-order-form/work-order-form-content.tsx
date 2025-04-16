@@ -13,7 +13,7 @@ interface WorkOrderFormContentProps {
   form: any;
   isSubmitting: boolean;
   isEditMode?: boolean;
-  initialData?: Partial<WorkOrder> | { customerId: string; partId: string };
+  initialData?: Partial<WorkOrder>; // Updated to accept partial work order
 }
 
 export function WorkOrderFormContent({
@@ -22,7 +22,12 @@ export function WorkOrderFormContent({
   isEditMode = false,
   initialData,
 }: WorkOrderFormContentProps) {
-  const [useTemplates, setUseTemplates] = useState(true);
+  // Using optional chaining to safely access useOperationTemplates
+  const [useTemplates, setUseTemplates] = useState(
+    initialData?.useOperationTemplates !== undefined 
+      ? !!initialData.useOperationTemplates 
+      : true
+  );
 
   return (
     <>
@@ -156,6 +161,7 @@ export function WorkOrderFormContent({
           control={form.control}
           name="dueDate"
           label="Due Date"
+          optional={false}
         />
       </div>
 

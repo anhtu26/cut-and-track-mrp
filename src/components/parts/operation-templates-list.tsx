@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { OperationTemplate } from "@/types/part";
 import { 
@@ -10,7 +9,6 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -49,21 +47,68 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   // Add operation template mutation
   const { mutateAsync: addTemplate, isPending: isAddingTemplate } = useMutation({
     mutationFn: async (data: any) => {
-      const { data: result, error } = await supabase
-        .from('operation_templates')
-        .insert({
-          part_id: partId,
-          name: data.name,
-          description: data.description || null,
-          machining_methods: data.machiningMethods || null,
-          setup_instructions: data.setupInstructions || null,
-          estimated_duration: data.estimatedDuration || null,
-          sequence: data.sequence
-        })
-        .select();
+      console.log("[TEMPLATE ADD] Starting submission with payload:", data);
+      
+      // Make sure sequence is a number
+      const sequence = typeof data.sequence === 'number' ? data.sequence : 
+                      parseInt(data.sequence, 10) || 0;
+      
+      // Handle null vs undefined for optional fields
+      const formattedData = {
+        part_id: partId,
+        name: data.name || '',
+        description: data.description || null,
+        machining_methods: data.machiningMethods || null,
+        setup_instructions: data.setupInstructions || null,
+        estimated_duration: data.estimatedDuration ? 
+                           Number(data.estimatedDuration) : null,
+        sequence: sequence
+      };
+      
+      console.log("[SUPABASE REQUEST] Adding operation template with formatted payload:", formattedData);
+      
+      try {
+        // Check if the operation_templates table exists
+        const { data: tablesResult, error: tablesError } = await supabase
+          .from('information_schema.tables')
+          .select('table_name')
+          .eq('table_schema', 'public')
+          .eq('table_name', 'operation_templates');
+          
+        if (tablesError) {
+          console.error("[SCHEMA CHECK ERROR]", tablesError);
+          throw new Error(`Schema check error: ${tablesError.message}`);
+        }
+        
+        console.log("[SCHEMA CHECK] Table exists check:", tablesResult);
+        
+        if (!tablesResult || tablesResult.length === 0) {
+          console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist in schema 'public'");
+          throw new Error("The operation_templates table does not exist in the database");
+        }
+        
+        // Proceed with insert after confirming table exists
+        const { data: result, error } = await supabase
+          .from('operation_templates')
+          .insert(formattedData)
+          .select();
 
-      if (error) throw error;
-      return result;
+        if (error) {
+          console.error("[SUPABASE ERROR] Error adding template:", error);
+          throw new Error(error.message || "Failed to add operation template");
+        }
+        
+        if (!result || result.length === 0) {
+          console.error("[SUPABASE ERROR] No result returned from insert");
+          throw new Error("No result returned from operation template creation");
+        }
+        
+        console.log("[SUPABASE RESPONSE] Template created:", result);
+        return result;
+      } catch (error: any) {
+        console.error("[SUPABASE ERROR] Exception:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Operation template added");
@@ -71,8 +116,8 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
       setIsAddDialogOpen(false);
     },
     onError: (error: any) => {
-      console.error("Error adding operation template:", error);
-      toast.error(`Failed to add template: ${error.message}`);
+      console.error("[MUTATION ERROR] Error adding operation template:", error);
+      toast.error(`Failed to add template: ${error.message || "Unknown error"}`);
     }
   });
 
@@ -81,22 +126,50 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
     mutationFn: async (data: any) => {
       if (!selectedTemplate) throw new Error("No template selected");
 
-      const { data: result, error } = await supabase
-        .from('operation_templates')
-        .update({
-          name: data.name,
-          description: data.description || null,
-          machining_methods: data.machiningMethods || null,
-          setup_instructions: data.setupInstructions || null,
-          estimated_duration: data.estimatedDuration || null,
-          sequence: data.sequence,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedTemplate.id)
-        .select();
+      console.log("[SUPABASE REQUEST] Updating template:", data);
+      
+      // Make sure sequence is a number
+      const sequence = typeof data.sequence === 'number' ? data.sequence : 
+                      parseInt(data.sequence, 10) || 0;
+      
+      // Handle null vs undefined for optional fields
+      const formattedData = {
+        name: data.name || '',
+        description: data.description || null,
+        machining_methods: data.machiningMethods || null,
+        setup_instructions: data.setupInstructions || null,
+        estimated_duration: data.estimatedDuration ? 
+                           Number(data.estimatedDuration) : null,
+        sequence: sequence,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log("[SUPABASE REQUEST] Formatted update payload:", formattedData);
 
-      if (error) throw error;
-      return result;
+      try {
+        const { data: result, error } = await supabase
+          .from('operation_templates')
+          .update(formattedData)
+          .eq('id', selectedTemplate.id)
+          .select();
+
+        if (error) {
+          console.error("[SUPABASE ERROR] Error updating template:", error);
+          throw new Error(error.message || "Failed to update operation template");
+        }
+        
+        console.log("[SUPABASE RESPONSE] Template updated:", result);
+        
+        if (!result || result.length === 0) {
+          console.error("[SUPABASE ERROR] No result returned from update");
+          throw new Error("No result returned from operation template update");
+        }
+        
+        return result;
+      } catch (error: any) {
+        console.error("[SUPABASE ERROR] Exception:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Operation template updated");
@@ -105,8 +178,8 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
       setSelectedTemplate(null);
     },
     onError: (error: any) => {
-      console.error("Error updating operation template:", error);
-      toast.error(`Failed to update template: ${error.message}`);
+      console.error("[MUTATION ERROR] Error updating template:", error);
+      toast.error(`Failed to update template: ${error.message || "Unknown error"}`);
     }
   });
 
@@ -120,7 +193,7 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
         .delete()
         .eq('id', selectedTemplate.id);
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to delete template");
       return true;
     },
     onSuccess: () => {
@@ -139,15 +212,32 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const sortedTemplates = [...templates].sort((a, b) => a.sequence - b.sequence);
 
   const handleAddSubmit = async (data: any): Promise<void> => {
-    await addTemplate(data);
+    try {
+      console.log("[TEMPLATE ADD] Starting submission of template:", data);
+      await addTemplate(data);
+    } catch (error) {
+      console.error("[TEMPLATE ADD ERROR] Submission error:", error);
+      // Error is already handled in the mutation
+    }
   };
 
   const handleUpdateSubmit = async (data: any): Promise<void> => {
-    await updateTemplate(data);
+    try {
+      console.log("[TEMPLATE UPDATE] Starting update of template:", data);
+      await updateTemplate(data);
+    } catch (error) {
+      console.error("[TEMPLATE UPDATE ERROR] Submission error:", error);
+      // Error is already handled in the mutation
+    }
   };
 
   const handleDeleteConfirm = async () => {
-    await deleteTemplate();
+    try {
+      await deleteTemplate();
+    } catch (error) {
+      console.error("Delete template error:", error);
+      // Error is already handled in the mutation
+    }
   };
 
   const openEditDialog = (template: OperationTemplate) => {

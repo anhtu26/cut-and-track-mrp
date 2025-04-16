@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,9 @@ export default function AddWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [initialData, setInitialData] = useState<{ customerId: string; partId: string }>({
+  
+  // Create initial data object with only the properties needed for creation
+  const [initialData, setInitialData] = useState({
     customerId: searchParams.get("customerId") || "",
     partId: searchParams.get("partId") || "",
   });
@@ -120,7 +122,7 @@ export default function AddWorkOrder() {
     }
   });
 
-  // Wrapper function to handle the form submission
+  // Handle form submission by passing to the mutation
   const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
     await createWorkOrderMutation(data);
   };
@@ -142,7 +144,7 @@ export default function AddWorkOrder() {
         </CardHeader>
         <CardContent>
           <WorkOrderForm 
-            initialData={initialData}
+            initialData={initialData as any} 
             onSubmit={handleSubmit} 
             isSubmitting={isPending} 
           />
