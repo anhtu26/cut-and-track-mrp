@@ -32,6 +32,7 @@ export interface WorkOrder {
   archived: boolean;
   archivedAt?: string;
   archiveReason?: string;
+  useOperationTemplates?: boolean; // Added this field to match the schema
 }
 
 export interface CreateWorkOrderInput {

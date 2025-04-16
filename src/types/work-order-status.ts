@@ -1,6 +1,6 @@
 
 export type WorkOrderStatus = "Not Started" | "In Progress" | "QC" | "Complete" | "Shipped";
-export type WorkOrderPriority = "Low" | "Normal" | "High" | "Critical";
+export type WorkOrderPriority = "Low" | "Normal" | "High" | "Urgent";
 
 // Badge variant mapping for shadcn/ui Badge component
 export type BadgeVariant = "default" | "secondary" | "outline" | "destructive";
@@ -24,7 +24,7 @@ export function getStatusBadgeVariant(status: WorkOrderStatus): BadgeVariant {
 // Map priority to badge variant
 export function getPriorityBadgeVariant(priority: WorkOrderPriority): BadgeVariant {
   switch (priority) {
-    case "Critical":
+    case "Urgent":
       return "destructive";
     case "High":
       return "outline"; // Instead of "warning" which isn't a valid variant

@@ -19,6 +19,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isEditMode = !!initialData?.id;
   
+  // Explicitly handle the useOperationTemplates with a default value
   const defaultValues: Partial<WorkOrderFormValues> = {
     workOrderNumber: initialData?.workOrderNumber || "",
     purchaseOrderNumber: initialData?.purchaseOrderNumber || "",
@@ -39,50 +40,53 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     defaultValues,
   });
 
+  // Helper functions for type conversion
+  const formValuesToCreateWorkOrderInput = (data: WorkOrderFormValues): CreateWorkOrderInput => {
+    return {
+      workOrderNumber: data.workOrderNumber,
+      purchaseOrderNumber: data.purchaseOrderNumber,
+      customerId: data.customerId,
+      partId: data.partId,
+      quantity: data.quantity,
+      status: data.status,
+      priority: data.priority,
+      startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
+      dueDate: format(data.dueDate, "yyyy-MM-dd"),
+      assignedToId: data.assignedToId,
+      notes: data.notes,
+      useOperationTemplates: data.useOperationTemplates,
+    };
+  };
+
+  const formValuesToUpdateWorkOrderInput = (data: WorkOrderFormValues, id: string): UpdateWorkOrderInput => {
+    return {
+      id,
+      workOrderNumber: data.workOrderNumber,
+      purchaseOrderNumber: data.purchaseOrderNumber,
+      customerId: data.customerId,
+      partId: data.partId,
+      quantity: data.quantity,
+      status: data.status,
+      priority: data.priority,
+      startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
+      dueDate: format(data.dueDate, "yyyy-MM-dd"),
+      assignedToId: data.assignedToId,
+      notes: data.notes,
+      useOperationTemplates: data.useOperationTemplates,
+    };
+  };
+
   const handleSubmit = async (data: WorkOrderFormValues) => {
     setSubmitError(null);
     try {
-      // Format dates as strings for the API
-      const formattedDates = {
-        startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
-        dueDate: format(data.dueDate, "yyyy-MM-dd"),
-      };
-      
       let formattedData;
       
       if (isEditMode && initialData?.id) {
         // Edit mode - create UpdateWorkOrderInput
-        const updateData: UpdateWorkOrderInput = {
-          id: initialData.id,
-          workOrderNumber: data.workOrderNumber,
-          purchaseOrderNumber: data.purchaseOrderNumber,
-          customerId: data.customerId,
-          partId: data.partId,
-          quantity: data.quantity,
-          status: data.status,
-          priority: data.priority,
-          ...formattedDates,
-          assignedToId: data.assignedToId,
-          notes: data.notes,
-          useOperationTemplates: data.useOperationTemplates,
-        };
-        formattedData = updateData;
+        formattedData = formValuesToUpdateWorkOrderInput(data, initialData.id);
       } else {
         // Create mode - create CreateWorkOrderInput
-        const createData: CreateWorkOrderInput = {
-          workOrderNumber: data.workOrderNumber,
-          purchaseOrderNumber: data.purchaseOrderNumber,
-          customerId: data.customerId,
-          partId: data.partId,
-          quantity: data.quantity,
-          status: data.status,
-          priority: data.priority,
-          ...formattedDates,
-          assignedToId: data.assignedToId,
-          notes: data.notes,
-          useOperationTemplates: data.useOperationTemplates,
-        };
-        formattedData = createData;
+        formattedData = formValuesToCreateWorkOrderInput(data);
       }
       
       await onSubmit(formattedData);

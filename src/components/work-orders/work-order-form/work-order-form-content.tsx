@@ -22,9 +22,10 @@ export function WorkOrderFormContent({
   isEditMode = false,
   initialData,
 }: WorkOrderFormContentProps) {
+  // Using optional chaining to safely access useOperationTemplates
   const [useTemplates, setUseTemplates] = useState(
     initialData?.useOperationTemplates !== undefined 
-      ? initialData.useOperationTemplates 
+      ? !!initialData.useOperationTemplates 
       : true
   );
 
