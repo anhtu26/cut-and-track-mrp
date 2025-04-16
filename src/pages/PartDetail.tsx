@@ -247,8 +247,6 @@ export default function PartDetail() {
     );
   }
 
-  const history = getMockPartHistory(part.id);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
