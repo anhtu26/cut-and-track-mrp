@@ -1,5 +1,6 @@
 
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,61 +9,109 @@ import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateWorkOrderInput } from "@/types/work-order";
-import { WorkOrderStatus, WorkOrderPriority } from "@/types/work-order-status";
+import { WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
+import { format } from "date-fns";
 
 export default function AddWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const [initialData, setInitialData] = useState({
+    customerId: searchParams.get("customerId") || "",
+    partId: searchParams.get("partId") || "",
+  });
 
   const { mutateAsync: createWorkOrderMutation, isPending } = useMutation({
-    mutationFn: async (data: CreateWorkOrderInput) => {
-      console.log("Submitting work order data to Supabase:", data);
+    mutationFn: async (formData: WorkOrderFormValues) => {
+      console.log("Creating work order with data:", formData);
       
-      // Generate a work order number if not provided
-      const workOrderNumber = data.workOrderNumber || `WO-${Date.now().toString().slice(-6)}`;
-      
-      // Validate and process data
-      const workOrderData = {
-        work_order_number: workOrderNumber,
-        purchase_order_number: data.purchaseOrderNumber || null,
-        customer_id: data.customerId,
-        part_id: data.partId,
-        quantity: data.quantity,
-        status: (data.status || "Not Started") as WorkOrderStatus,
-        priority: (data.priority || "Normal") as WorkOrderPriority,
-        start_date: data.startDate || null,
-        due_date: data.dueDate,
-        assigned_to_id: data.assignedToId || null,
-        notes: data.notes || null,
-        archived: false
-      };
-
-      // This is a workaround until we update the Supabase types
-      const { data: insertData, error } = await supabase
-        .from('work_orders')
-        .insert([workOrderData])
-        .select();
-
-      if (error) {
-        console.error("Supabase error creating work order:", error);
+      try {
+        // Format dates for Supabase
+        const workOrderData = {
+          work_order_number: formData.workOrderNumber || `WO-${Date.now().toString().substring(7)}`,
+          purchase_order_number: formData.purchaseOrderNumber || null,
+          customer_id: formData.customerId,
+          part_id: formData.partId,
+          quantity: formData.quantity,
+          status: formData.status || "Not Started",
+          priority: formData.priority || "Normal",
+          start_date: formData.startDate ? format(formData.startDate, "yyyy-MM-dd") : null,
+          due_date: format(formData.dueDate, "yyyy-MM-dd"),
+          assigned_to_id: formData.assignedToId || null,
+          notes: formData.notes || null
+        };
+        
+        // Insert the work order first
+        const { data: workOrder, error: workOrderError } = await supabase
+          .from('work_orders')
+          .insert(workOrderData)
+          .select()
+          .single();
+          
+        if (workOrderError) throw workOrderError;
+        
+        console.log("Work order created:", workOrder);
+        
+        // If using operation templates, fetch them and create operations
+        if (formData.useOperationTemplates) {
+          console.log("Fetching operation templates for part:", formData.partId);
+          
+          const { data: templates, error: templatesError } = await supabase
+            .from('operation_templates')
+            .select('*')
+            .eq('part_id', formData.partId)
+            .order('sequence', { ascending: true });
+            
+          if (templatesError) throw templatesError;
+          
+          if (templates && templates.length > 0) {
+            console.log("Found operation templates:", templates);
+            
+            // Create operations from templates
+            const operations = templates.map((template) => ({
+              work_order_id: workOrder.id,
+              name: template.name,
+              description: template.description,
+              status: "Not Started",
+              machining_methods: template.machining_methods,
+              setup_instructions: template.setup_instructions,
+              estimated_start_time: null, // Can be calculated if needed
+              estimated_end_time: null, // Can be calculated if needed
+            }));
+            
+            console.log("Creating operations:", operations);
+            const { data: createdOps, error: opsError } = await supabase
+              .from('operations')
+              .insert(operations);
+              
+            if (opsError) {
+              console.error("Error creating operations:", opsError);
+              // We'll continue even if operation creation fails
+              toast.error("Work order created, but failed to add operations");
+            } else {
+              console.log("Operations created successfully");
+            }
+          } else {
+            console.log("No operation templates found for part");
+          }
+        }
+        
+        return workOrder;
+      } catch (error) {
+        console.error("Error in transaction:", error);
         throw error;
       }
-      
-      console.log("Work order created successfully:", insertData);
-      return insertData;
     },
     onSuccess: (data) => {
       console.log("Work order created successfully:", data);
       toast.success("Work order created successfully");
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
-      navigate("/work-orders");
+      navigate(`/work-orders/${data.id}`);
     },
     onError: (error: any) => {
       console.error("Error creating work order:", error);
       let errorMessage = "Failed to create work order";
       
-      // Check for specific error messages from Supabase
       if (error.message) {
         errorMessage += `: ${error.message}`;
       }
@@ -72,7 +121,7 @@ export default function AddWorkOrder() {
   });
 
   // Wrapper function to handle the type mismatch
-  const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
+  const handleSubmit = async (data: WorkOrderFormValues): Promise<void> => {
     await createWorkOrderMutation(data);
     // Return void to satisfy the type requirements
   };
@@ -93,7 +142,11 @@ export default function AddWorkOrder() {
           <CardTitle>Create New Work Order</CardTitle>
         </CardHeader>
         <CardContent>
-          <WorkOrderForm onSubmit={handleSubmit} isSubmitting={isPending} />
+          <WorkOrderForm 
+            initialData={initialData}
+            onSubmit={handleSubmit} 
+            isSubmitting={isPending} 
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,20 +1,22 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PartDetailTabs } from "@/components/parts/part-detail-tabs";
-import { getMockPartHistory, mockParts } from "@/data/mock-data";
+import { getMockPartHistory } from "@/data/mock-data";
 import { ArrowLeft, Archive, FileEdit } from "lucide-react";
 import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
 import { ArchivePartDialog } from "@/components/parts/archive-part-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Part } from "@/types/part";
+import { Part, OperationTemplate } from "@/types/part";
 
 export default function PartDetail() {
   const { partId } = useParams();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 
+  // Fetch part data including operation templates
   const { data: part, isLoading } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
@@ -22,7 +24,8 @@ export default function PartDetail() {
         .from("parts")
         .select(`
           *,
-          documents:part_documents(*)
+          documents:part_documents(*),
+          operation_templates(*)
         `)
         .eq("id", partId)
         .single();
@@ -51,9 +54,54 @@ export default function PartDetail() {
           url: doc.url,
           uploadedAt: doc.uploaded_at,
           type: doc.type
-        }))
+        })),
+        operationTemplates: data.operation_templates.map((template: any) => ({
+          id: template.id,
+          partId: template.part_id,
+          name: template.name,
+          description: template.description || "",
+          machiningMethods: template.machining_methods || "",
+          setupInstructions: template.setup_instructions || "",
+          estimatedDuration: template.estimated_duration,
+          sequence: template.sequence,
+          createdAt: template.created_at,
+          updatedAt: template.updated_at
+        })) as OperationTemplate[]
       } as Part;
     },
+  });
+
+  // Fetch work orders related to this part
+  const { data: workOrders = [] } = useQuery({
+    queryKey: ["part-work-orders", partId],
+    queryFn: async () => {
+      if (!partId) return [];
+      
+      const { data, error } = await supabase
+        .from("work_orders")
+        .select(`
+          id, 
+          work_order_number,
+          status,
+          created_at,
+          customer:customers(name)
+        `)
+        .eq("part_id", partId)
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
+      
+      return data.map((item: any) => ({
+        id: item.id,
+        workOrderNumber: item.work_order_number,
+        status: item.status,
+        createdAt: item.created_at,
+        customer: {
+          name: item.customer?.name || "Unknown Customer"
+        }
+      }));
+    },
+    enabled: !!partId,
   });
 
   if (isLoading) {
@@ -156,12 +204,15 @@ export default function PartDetail() {
       </Card>
 
       <PartDetailTabs 
+        partId={part.id}
         description={part.description}
         setupInstructions={part.setupInstructions || "No setup instructions available."}
         machiningMethods={part.machiningMethods || "No machining methods documented."}
         materials={part.materials || []}
         documents={part.documents}
         history={history}
+        operationTemplates={part.operationTemplates || []}
+        workOrders={workOrders}
       />
 
       <ArchivePartDialog

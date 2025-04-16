@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/types/customer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, FileText, CalendarClock, UserCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CustomerDetail() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -55,14 +56,29 @@ export default function CustomerDetail() {
         .from('work_orders')
         .select(`
           id, work_order_number, purchase_order_number, 
-          status, priority, created_at, due_date
+          status, priority, created_at, due_date, completed_date,
+          part:parts(id, name, part_number)
         `)
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      return data;
+      return data.map((order: any) => ({
+        id: order.id,
+        workOrderNumber: order.work_order_number,
+        purchaseOrderNumber: order.purchase_order_number,
+        status: order.status,
+        priority: order.priority,
+        createdAt: order.created_at,
+        dueDate: order.due_date,
+        completedDate: order.completed_date,
+        part: {
+          id: order.part.id,
+          name: order.part.name,
+          partNumber: order.part.part_number
+        }
+      }));
     },
     enabled: !!customerId,
   });
@@ -84,6 +100,15 @@ export default function CustomerDetail() {
       </div>
     );
   }
+
+  // Separate work orders by status for better display
+  const activeWorkOrders = workOrders.filter(order => 
+    !["Complete", "Shipped"].includes(order.status)
+  );
+  
+  const completedWorkOrders = workOrders.filter(order => 
+    ["Complete", "Shipped"].includes(order.status)
+  );
 
   return (
     <div className="space-y-6">
@@ -147,13 +172,18 @@ export default function CustomerDetail() {
             
             <div className="space-y-2">
               <div className="flex items-center">
-                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Created on {format(new Date(customer.createdAt), "PPP")}</span>
+                <UserCircle className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>Customer since {format(new Date(customer.createdAt), "PPP")}</span>
+              </div>
+              
+              <div className="flex items-center">
+                <CalendarClock className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>Last updated on {format(new Date(customer.updatedAt), "PPP")}</span>
               </div>
               
               <div className="flex items-center">
                 <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{workOrders.length} Work Orders</span>
+                <span>Total orders: {workOrders.length}</span>
               </div>
             </div>
           </div>
@@ -171,37 +201,26 @@ export default function CustomerDetail() {
             <h3 className="text-lg font-medium mb-2">Work Orders</h3>
             {isWorkOrdersLoading ? (
               <p>Loading work orders...</p>
-            ) : workOrders.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Work Order #</TableHead>
-                    <TableHead>PO Number</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Due Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {workOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <Link to={`/work-orders/${order.id}`} className="text-primary hover:underline">
-                          {order.work_order_number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{order.purchase_order_number || "—"}</TableCell>
-                      <TableCell>{order.status}</TableCell>
-                      <TableCell>{order.priority}</TableCell>
-                      <TableCell>{format(new Date(order.created_at), "PP")}</TableCell>
-                      <TableCell>{format(new Date(order.due_date), "PP")}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
             ) : (
-              <p className="text-muted-foreground">No work orders found for this customer.</p>
+              <Tabs defaultValue="active" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="active">Active Orders ({activeWorkOrders.length})</TabsTrigger>
+                  <TabsTrigger value="completed">Completed Orders ({completedWorkOrders.length})</TabsTrigger>
+                  <TabsTrigger value="all">All Orders ({workOrders.length})</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="active">
+                  {renderWorkOrdersTable(activeWorkOrders)}
+                </TabsContent>
+                
+                <TabsContent value="completed">
+                  {renderWorkOrdersTable(completedWorkOrders)}
+                </TabsContent>
+                
+                <TabsContent value="all">
+                  {renderWorkOrdersTable(workOrders)}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         </CardContent>
@@ -216,4 +235,54 @@ export default function CustomerDetail() {
       </Card>
     </div>
   );
+  
+  function renderWorkOrdersTable(orders: any[]) {
+    if (orders.length === 0) {
+      return (
+        <div className="text-center p-8 bg-muted/10 border rounded-md">
+          <p className="text-muted-foreground">No work orders found in this category.</p>
+        </div>
+      );
+    }
+    
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Work Order #</TableHead>
+            <TableHead>PO Number</TableHead>
+            <TableHead>Part</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead>Due Date</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => (
+            <TableRow key={order.id}>
+              <TableCell>
+                <Link to={`/work-orders/${order.id}`} className="text-primary hover:underline">
+                  {order.workOrderNumber}
+                </Link>
+              </TableCell>
+              <TableCell>{order.purchaseOrderNumber || "—"}</TableCell>
+              <TableCell>
+                <Link to={`/parts/${order.part.id}`} className="text-primary hover:underline">
+                  {order.part.name}
+                </Link>
+                <div className="text-xs text-muted-foreground">
+                  {order.part.partNumber}
+                </div>
+              </TableCell>
+              <TableCell>{order.status}</TableCell>
+              <TableCell>{order.priority}</TableCell>
+              <TableCell>{format(new Date(order.createdAt), "PP")}</TableCell>
+              <TableCell>{format(new Date(order.dueDate), "PP")}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
 }

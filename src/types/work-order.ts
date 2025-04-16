@@ -45,6 +45,7 @@ export interface CreateWorkOrderInput {
   dueDate: string;
   assignedToId?: string;
   notes?: string;
+  useOperationTemplates?: boolean; // New field to indicate if we should use templates
 }
 
 export interface UpdateWorkOrderInput extends Partial<CreateWorkOrderInput> {

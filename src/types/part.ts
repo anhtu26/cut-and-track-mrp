@@ -15,6 +15,7 @@ export interface Part {
   archived: boolean;
   archivedAt?: string; // Mapped from archived_at
   archiveReason?: string; // Mapped from archive_reason
+  operationTemplates?: OperationTemplate[]; // New field for operation templates
 }
 
 export interface PartDocument {
@@ -23,4 +24,17 @@ export interface PartDocument {
   url: string;
   uploadedAt: string; // This needs to match the field in part-detail-tabs.tsx
   type: string;
+}
+
+export interface OperationTemplate {
+  id: string;
+  partId: string;
+  name: string;
+  description?: string;
+  machiningMethods?: string;
+  setupInstructions?: string;
+  estimatedDuration?: number; // in minutes
+  sequence: number;
+  createdAt: string;
+  updatedAt: string;
 }
