@@ -1,5 +1,4 @@
 
-// Add a checkbox to select if we want to use operation templates
 import React, { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -8,17 +7,20 @@ import { CustomerSelect } from "./work-order-customer-select";
 import { PartSelect } from "./work-order-part-select";
 import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
+import { WorkOrder } from "@/types/work-order";
 
 interface WorkOrderFormContentProps {
   form: any;
   isSubmitting: boolean;
   isEditMode?: boolean;
+  initialData?: Partial<WorkOrder> | { customerId: string; partId: string };
 }
 
 export function WorkOrderFormContent({
   form,
   isSubmitting,
   isEditMode = false,
+  initialData,
 }: WorkOrderFormContentProps) {
   const [useTemplates, setUseTemplates] = useState(true);
 

@@ -10,7 +10,7 @@ import { workOrderSchema, WorkOrderFormData } from "./work-order-form/work-order
 import { WorkOrderFormContent } from "./work-order-form/work-order-form-content";
 
 interface WorkOrderFormProps {
-  initialData?: WorkOrder;
+  initialData?: WorkOrder | { customerId: string; partId: string };
   onSubmit: (data: CreateWorkOrderInput | UpdateWorkOrderInput) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -19,17 +19,18 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
   const [submitError, setSubmitError] = useState<string | null>(null);
   
   const defaultValues: Partial<WorkOrderFormData> = {
-    workOrderNumber: initialData?.workOrderNumber || "",
-    purchaseOrderNumber: initialData?.purchaseOrderNumber || "",
+    workOrderNumber: (initialData as WorkOrder)?.workOrderNumber || "",
+    purchaseOrderNumber: (initialData as WorkOrder)?.purchaseOrderNumber || "",
     customerId: initialData?.customerId || "",
     partId: initialData?.partId || "",
-    quantity: initialData?.quantity || 1,
-    status: initialData?.status || "Not Started",
-    priority: initialData?.priority || "Normal",
-    startDate: initialData?.startDate ? new Date(initialData.startDate) : undefined,
-    dueDate: initialData?.dueDate ? new Date(initialData.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    assignedToId: initialData?.assignedTo?.id || "",
-    notes: initialData?.notes || "",
+    quantity: (initialData as WorkOrder)?.quantity || 1,
+    status: (initialData as WorkOrder)?.status || "Not Started",
+    priority: (initialData as WorkOrder)?.priority || "Normal",
+    startDate: (initialData as WorkOrder)?.startDate ? new Date((initialData as WorkOrder).startDate) : undefined,
+    dueDate: (initialData as WorkOrder)?.dueDate ? new Date((initialData as WorkOrder).dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    assignedToId: (initialData as WorkOrder)?.assignedTo?.id || "",
+    notes: (initialData as WorkOrder)?.notes || "",
+    useOperationTemplates: true,
   };
 
   const form = useForm<WorkOrderFormData>({
@@ -41,7 +42,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     setSubmitError(null);
     try {
       const formattedData = {
-        ...(initialData?.id ? { id: initialData.id } : {}),
+        ...(initialData && 'id' in initialData ? { id: initialData.id } : {}),
         workOrderNumber: data.workOrderNumber,
         purchaseOrderNumber: data.purchaseOrderNumber,
         customerId: data.customerId,
@@ -53,6 +54,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
         dueDate: format(data.dueDate, "yyyy-MM-dd"),
         assignedToId: data.assignedToId,
         notes: data.notes,
+        useOperationTemplates: data.useOperationTemplates,
       };
       
       await onSubmit(formattedData);
@@ -69,6 +71,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           form={form} 
           initialData={initialData} 
           isSubmitting={isSubmitting} 
+          isEditMode={'id' in (initialData || {})}
         />
 
         {submitError && (
@@ -79,7 +82,7 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
 
         <div className="flex justify-end gap-4">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : initialData ? "Update Work Order" : "Create Work Order"}
+            {isSubmitting ? "Saving..." : 'id' in (initialData || {}) ? "Update Work Order" : "Create Work Order"}
           </Button>
         </div>
       </form>

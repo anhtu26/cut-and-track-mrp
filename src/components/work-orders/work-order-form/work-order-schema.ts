@@ -15,6 +15,7 @@ export const workOrderSchema = z.object({
   }),
   assignedToId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  useOperationTemplates: z.boolean().optional().default(true),
 });
 
 export type WorkOrderFormData = z.infer<typeof workOrderSchema>;

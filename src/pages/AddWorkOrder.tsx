@@ -9,20 +9,20 @@ import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
+import { CreateWorkOrderInput } from "@/types/work-order";
 import { format } from "date-fns";
 
 export default function AddWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [initialData, setInitialData] = useState({
+  const [initialData, setInitialData] = useState<{ customerId: string; partId: string }>({
     customerId: searchParams.get("customerId") || "",
     partId: searchParams.get("partId") || "",
   });
 
   const { mutateAsync: createWorkOrderMutation, isPending } = useMutation({
-    mutationFn: async (formData: WorkOrderFormValues) => {
+    mutationFn: async (formData: CreateWorkOrderInput) => {
       console.log("Creating work order with data:", formData);
       
       try {
@@ -35,8 +35,8 @@ export default function AddWorkOrder() {
           quantity: formData.quantity,
           status: formData.status || "Not Started",
           priority: formData.priority || "Normal",
-          start_date: formData.startDate ? format(formData.startDate, "yyyy-MM-dd") : null,
-          due_date: format(formData.dueDate, "yyyy-MM-dd"),
+          start_date: formData.startDate || null,
+          due_date: formData.dueDate,
           assigned_to_id: formData.assignedToId || null,
           notes: formData.notes || null
         };
@@ -120,10 +120,9 @@ export default function AddWorkOrder() {
     }
   });
 
-  // Wrapper function to handle the type mismatch
-  const handleSubmit = async (data: WorkOrderFormValues): Promise<void> => {
+  // Wrapper function to handle the form submission
+  const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
     await createWorkOrderMutation(data);
-    // Return void to satisfy the type requirements
   };
 
   return (
