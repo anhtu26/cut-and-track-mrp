@@ -40,7 +40,8 @@ export default function AddWorkOrder() {
           start_date: formData.startDate || null,
           due_date: formData.dueDate,
           assigned_to_id: formData.assignedToId || null,
-          notes: formData.notes || null
+          notes: formData.notes || null,
+          use_operation_templates: formData.useOperationTemplates
         };
         
         // Insert the work order first
@@ -77,8 +78,10 @@ export default function AddWorkOrder() {
               status: "Not Started",
               machining_methods: template.machining_methods,
               setup_instructions: template.setup_instructions,
-              estimated_start_time: null, // Can be calculated if needed
-              estimated_end_time: null, // Can be calculated if needed
+              sequence: template.sequence || 0, // Ensure sequence is included
+              is_custom: false, // Mark as standard operation from template
+              estimated_start_time: null,
+              estimated_end_time: null,
             }));
             
             console.log("Creating operations:", operations);

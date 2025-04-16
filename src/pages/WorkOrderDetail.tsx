@@ -111,30 +111,38 @@ export default function WorkOrderDetail() {
           name: data.assigned_to_name || "Unknown"
         } : undefined,
         notes: data.notes,
-        operations: (data.operations || []).map((op: any) => ({
-          id: op.id,
-          workOrderId: op.work_order_id,
-          name: op.name,
-          description: op.description || "",
-          status: op.status as OperationStatus,
-          machiningMethods: op.machining_methods || "",
-          setupInstructions: op.setup_instructions || "",
-          estimatedStartTime: op.estimated_start_time,
-          estimatedEndTime: op.estimated_end_time,
-          actualStartTime: op.actual_start_time,
-          actualEndTime: op.actual_end_time,
-          comments: op.comments,
-          assignedTo: op.assigned_to_id ? {
-            id: op.assigned_to_id,
-            name: "Unknown" // We would need to fetch operator names separately
-          } : undefined,
-          createdAt: op.created_at,
-          updatedAt: op.updated_at,
-          documents: []
-        })),
+        operations: (data.operations || [])
+          .map((op: any) => ({
+            id: op.id,
+            workOrderId: op.work_order_id,
+            name: op.name,
+            description: op.description || "",
+            status: op.status as OperationStatus,
+            machiningMethods: op.machining_methods || "",
+            setupInstructions: op.setup_instructions || "",
+            // Map the sequence from the database
+            sequence: op.sequence || 0,
+            // Map the isCustom flag
+            isCustom: op.is_custom || false,
+            estimatedStartTime: op.estimated_start_time,
+            estimatedEndTime: op.estimated_end_time,
+            actualStartTime: op.actual_start_time,
+            actualEndTime: op.actual_end_time,
+            comments: op.comments,
+            assignedTo: op.assigned_to_id ? {
+              id: op.assigned_to_id,
+              name: "Unknown" // We would need to fetch operator names separately
+            } : undefined,
+            createdAt: op.created_at,
+            updatedAt: op.updated_at,
+            documents: []
+          }))
+          // Sort operations by sequence number
+          .sort((a: Operation, b: Operation) => a.sequence - b.sequence),
         archived: data.archived,
         archivedAt: data.archived_at,
-        archiveReason: data.archive_reason
+        archiveReason: data.archive_reason,
+        useOperationTemplates: data.use_operation_templates
       } as WorkOrder;
     },
     enabled: !!workOrderId,
@@ -492,6 +500,7 @@ export default function WorkOrderDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sequence</TableHead>
                     <TableHead>Operation</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Description</TableHead>
@@ -502,7 +511,13 @@ export default function WorkOrderDetail() {
                 <TableBody>
                   {workOrder.operations.map((operation) => (
                     <TableRow key={operation.id}>
-                      <TableCell className="font-medium">{operation.name}</TableCell>
+                      <TableCell>{operation.sequence}</TableCell>
+                      <TableCell className="font-medium">
+                        {operation.name}
+                        {operation.isCustom && (
+                          <Badge variant="outline" className="ml-2">Custom</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={
                           operation.status === "Complete" ? "secondary" : 

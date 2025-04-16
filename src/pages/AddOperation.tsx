@@ -7,13 +7,37 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { OperationForm } from "@/components/operations/operation-form";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { CreateOperationInput } from "@/types/operation";
 
 export default function AddOperation() {
   const { workOrderId } = useParams<{ workOrderId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Query to get the maximum sequence number of existing operations
+  const { data: maxSequenceData } = useQuery({
+    queryKey: ["max-operation-sequence", workOrderId],
+    queryFn: async () => {
+      if (!workOrderId) return { maxSequence: 0 };
+      
+      const { data, error } = await supabase
+        .from('operations')
+        .select('sequence')
+        .eq('work_order_id', workOrderId)
+        .order('sequence', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error("Error fetching max sequence:", error);
+        return { maxSequence: 0 };
+      }
+      
+      const maxSequence = data && data.length > 0 ? data[0].sequence : 0;
+      return { maxSequence };
+    },
+    enabled: !!workOrderId,
+  });
 
   const { mutateAsync: createOperation, isPending } = useMutation({
     mutationFn: async (data: CreateOperationInput) => {
@@ -29,6 +53,8 @@ export default function AddOperation() {
         status: data.status,
         machining_methods: data.machiningMethods || null,
         setup_instructions: data.setupInstructions || null,
+        sequence: data.sequence, // Use the sequence from the form
+        is_custom: data.isCustom || true, // Mark as custom operation by default when added manually
         estimated_start_time: data.estimatedStartTime || null,
         estimated_end_time: data.estimatedEndTime || null,
         assigned_to_id: data.assignedToId || null,
@@ -74,6 +100,9 @@ export default function AddOperation() {
     );
   }
 
+  // Suggested next sequence number
+  const suggestedSequence = maxSequenceData ? maxSequenceData.maxSequence + 10 : 10;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -94,6 +123,7 @@ export default function AddOperation() {
             workOrderId={workOrderId}
             onSubmit={createOperation}
             isSubmitting={isPending}
+            suggestedSequence={suggestedSequence}
           />
         </CardContent>
       </Card>

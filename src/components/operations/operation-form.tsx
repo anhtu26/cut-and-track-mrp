@@ -1,148 +1,171 @@
 
+import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Operation, OperationStatus } from "@/types/operation";
-import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OperationStatus } from "@/types/operation";
 
-const operationSchema = z.object({
+// Define the schema for the operation form
+const operationFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  description: z.string().optional().nullable(),
-  status: z.enum(["Not Started", "In Progress", "QC", "Complete"]),
-  machiningMethods: z.string().optional().nullable(),
-  setupInstructions: z.string().optional().nullable(),
+  description: z.string().optional(),
+  status: z.enum(["Not Started", "In Progress", "QC", "Complete"] as const),
+  machiningMethods: z.string().optional(),
+  setupInstructions: z.string().optional(),
+  sequence: z.number().min(0, "Sequence must be a positive number"), // Add sequence validation
   estimatedStartTime: z.string().optional().nullable(),
   estimatedEndTime: z.string().optional().nullable(),
   assignedToId: z.string().optional().nullable(),
   comments: z.string().optional().nullable(),
+  isCustom: z.boolean().optional().default(true), // Default to true for manually added operations
 });
 
-type OperationFormData = z.infer<typeof operationSchema>;
-
+// Define the props for the operation form component
 interface OperationFormProps {
-  initialData?: Operation;
   workOrderId: string;
-  onSubmit: (data: any) => Promise<void>;
+  operation?: {
+    id: string;
+    name: string;
+    description?: string;
+    status: OperationStatus;
+    machiningMethods?: string;
+    setupInstructions?: string;
+    sequence: number; // Add sequence field
+    isCustom?: boolean;
+    estimatedStartTime?: string;
+    estimatedEndTime?: string;
+    assignedToId?: string;
+    comments?: string;
+  };
+  onSubmit: (data: any) => Promise<void>; // Using any to match various operation types
   isSubmitting: boolean;
+  suggestedSequence?: number; // Add suggested sequence prop
 }
 
-export function OperationForm({ initialData, workOrderId, onSubmit, isSubmitting }: OperationFormProps) {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  
-  const defaultValues: OperationFormData = {
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    status: initialData?.status || "Not Started",
-    machiningMethods: initialData?.machiningMethods || "",
-    setupInstructions: initialData?.setupInstructions || "",
-    estimatedStartTime: initialData?.estimatedStartTime || "",
-    estimatedEndTime: initialData?.estimatedEndTime || "",
-    assignedToId: initialData?.assignedTo?.id || "",
-    comments: initialData?.comments || "",
-  };
+// Function to format a date for input[type=datetime-local]
+const formatDateForInput = (dateString: string | undefined): string => {
+  if (!dateString) return "";
+  // Format the date to match the format expected by input[type=datetime-local]
+  try {
+    const date = new Date(dateString);
+    return date.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
+};
 
-  const form = useForm<OperationFormData>({
-    resolver: zodResolver(operationSchema),
+// Main Operation Form component
+export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, suggestedSequence = 10 }: OperationFormProps) {
+  // Get default values from the operation, if provided
+  const defaultValues = operation
+    ? {
+        name: operation.name,
+        description: operation.description || "",
+        status: operation.status,
+        machiningMethods: operation.machiningMethods || "",
+        setupInstructions: operation.setupInstructions || "",
+        sequence: operation.sequence, // Use the operation sequence
+        estimatedStartTime: formatDateForInput(operation.estimatedStartTime),
+        estimatedEndTime: formatDateForInput(operation.estimatedEndTime),
+        assignedToId: operation.assignedToId || undefined,
+        comments: operation.comments || "",
+        isCustom: operation.isCustom || true,
+      }
+    : {
+        name: "",
+        description: "",
+        status: "Not Started" as const,
+        machiningMethods: "",
+        setupInstructions: "",
+        sequence: suggestedSequence, // Use suggested sequence for new operations
+        estimatedStartTime: "",
+        estimatedEndTime: "",
+        assignedToId: undefined,
+        comments: "",
+        isCustom: true, // Default to custom for manually added operations
+      };
+
+  // Create the form with the schema and default values
+  const form = useForm<z.infer<typeof operationFormSchema>>({
+    resolver: zodResolver(operationFormSchema),
     defaultValues,
   });
 
-  const handleSubmit = async (data: OperationFormData) => {
-    setSubmitError(null);
+  // Handle form submission
+  const handleSubmit = async (values: z.infer<typeof operationFormSchema>) => {
     try {
-      const formattedData = {
-        ...(initialData?.id ? { id: initialData.id } : {}),
+      // Include workOrderId and the operation id if editing
+      const submitData = {
+        ...values,
         workOrderId,
-        name: data.name.trim(),
-        description: data.description?.trim() || null,
-        status: data.status as OperationStatus,
-        machiningMethods: data.machiningMethods?.trim() || null,
-        setupInstructions: data.setupInstructions?.trim() || null,
-        estimatedStartTime: data.estimatedStartTime || null,
-        estimatedEndTime: data.estimatedEndTime || null,
-        assignedToId: data.assignedToId || null,
-        comments: data.comments?.trim() || null,
+        ...(operation && { id: operation.id }),
       };
-      
-      await onSubmit(formattedData);
-    } catch (error: any) {
-      console.error("Form submission error:", error);
-      setSubmitError(error.message || "Failed to submit form");
+      await onSubmit(submitData);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      // Form errors will be handled by the parent component
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Operation Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Operation Name*</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                  <Input placeholder="Enter operation name" {...field} />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="Not Started">Not Started</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="QC">QC</SelectItem>
-                  <SelectItem value="Complete">Complete</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status*</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Not Started">Not Started</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="QC">QC</SelectItem>
+                    <SelectItem value="Complete">Complete</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description (Optional)</FormLabel>
+              <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
-                  value={field.value || ""}
-                  placeholder="Provide a detailed description"
+                <Textarea
+                  placeholder="Enter operation description"
+                  className="min-h-[100px]"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -150,19 +173,79 @@ export function OperationForm({ initialData, workOrderId, onSubmit, isSubmitting
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="machiningMethods"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Machining Methods</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter machining methods"
+                    className="min-h-[100px]"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="setupInstructions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Setup Instructions</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter setup instructions"
+                    className="min-h-[100px]"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Add Sequence Number Field */}
+        <FormField
+          control={form.control}
+          name="sequence"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sequence Number*</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter sequence number (e.g. 10, 20, 30)"
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  value={field.value}
+                />
+              </FormControl>
+              <FormDescription>
+                Determines the order of operations. Use increments of 10 (10, 20, 30) to allow for future insertions.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="estimatedStartTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Estimated Start Date (Optional)</FormLabel>
+                <FormLabel>Estimated Start Time</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="datetime-local" 
-                    {...field} 
-                    value={field.value || ""} 
-                  />
+                  <Input type="datetime-local" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,13 +257,9 @@ export function OperationForm({ initialData, workOrderId, onSubmit, isSubmitting
             name="estimatedEndTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Estimated End Date (Optional)</FormLabel>
+                <FormLabel>Estimated End Time</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="datetime-local" 
-                    {...field} 
-                    value={field.value || ""} 
-                  />
+                  <Input type="datetime-local" {...field} value={field.value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -190,51 +269,16 @@ export function OperationForm({ initialData, workOrderId, onSubmit, isSubmitting
 
         <FormField
           control={form.control}
-          name="setupInstructions"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Setup Instructions (Optional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  {...field} 
-                  value={field.value || ""}
-                  placeholder="Enter setup instructions for the operation" 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="machiningMethods"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Machining Methods (Optional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  {...field} 
-                  value={field.value || ""}
-                  placeholder="Enter machining methods for the operation" 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="comments"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Comments (Optional)</FormLabel>
+              <FormLabel>Comments</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
+                <Textarea
+                  placeholder="Enter any additional comments"
+                  className="min-h-[100px]"
+                  {...field}
                   value={field.value || ""}
-                  placeholder="Add any additional comments or notes" 
                 />
               </FormControl>
               <FormMessage />
@@ -242,15 +286,16 @@ export function OperationForm({ initialData, workOrderId, onSubmit, isSubmitting
           )}
         />
 
-        {submitError && (
-          <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
-            {submitError}
-          </div>
-        )}
-
-        <div className="flex justify-end">
+        <div className="flex justify-end space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.history.back()}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : initialData ? "Update Operation" : "Add Operation"}
+            {isSubmitting ? "Saving..." : operation ? "Update Operation" : "Add Operation"}
           </Button>
         </div>
       </form>
