@@ -35,7 +35,7 @@ export default function EditPart() {
     );
   }
 
-  const { data: part, isLoading } = useQuery({
+  const { data: part, isLoading, error } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
       console.log("[EDIT LOAD] Requested part ID:", partId);
@@ -91,6 +91,7 @@ export default function EditPart() {
       }
     },
     retry: 1, // Limit retry attempts
+    staleTime: 30000, // Adding staleTime to prevent unnecessary refetches
   });
 
   const { mutateAsync: updatePartMutation, isPending } = useMutation({
@@ -127,12 +128,20 @@ export default function EditPart() {
     onSuccess: (data) => {
       console.log("[UPDATE SUCCESS] Part updated successfully:", data);
       toast.success("Part updated successfully");
+      // Invalidate relevant queries before navigating
       queryClient.invalidateQueries({ queryKey: ["parts"] });
       queryClient.invalidateQueries({ queryKey: ["part", partId] });
       
       // Log navigation action before performing it
       console.log("[NAVIGATION] Redirecting to part details:", `/parts/${partId}`);
-      navigate(`/parts/${partId}`);
+      
+      // Ensure the part ID is still valid before navigating
+      if (partId) {
+        navigate(`/parts/${partId}`);
+      } else {
+        console.error("[NAVIGATION ERROR] Missing partId before navigation");
+        navigate("/parts");
+      }
     },
     onError: (error: any) => {
       console.error("[UPDATE ERROR] Error updating part:", error);
@@ -183,7 +192,7 @@ export default function EditPart() {
     );
   }
 
-  if (!part) {
+  if (error || !part) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Part Not Found</h1>

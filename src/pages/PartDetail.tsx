@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { PartDetailTabs } from "@/components/parts/part-detail-tabs";
 import { getMockPartHistory } from "@/data/mock-data";
 import { ArrowLeft, Archive, FileEdit } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArchivePartDialog } from "@/components/parts/archive-part-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -16,12 +17,15 @@ export default function PartDetail() {
   const { partId } = useParams();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const navigate = useNavigate();
+  const navigationAttempted = useRef(false);
 
   console.log("[PART DETAIL INIT] Part ID from router:", partId);
   
+  // Only run navigation effect once to prevent loops
   useEffect(() => {
-    if (!partId) {
+    if (!partId && !navigationAttempted.current) {
       console.error("[PART DETAIL ERROR] No part ID in route params");
+      navigationAttempted.current = true;
       navigate("/parts");
     }
   }, [partId, navigate]);
@@ -45,7 +49,7 @@ export default function PartDetail() {
             operation_templates(*)
           `)
           .eq("id", partId)
-          .maybeSingle();
+          .maybeSingle(); // Using maybeSingle instead of single to prevent errors when no item is found
 
         if (error) {
           console.error("[PART DETAIL ERROR]", error);
@@ -56,7 +60,7 @@ export default function PartDetail() {
         
         if (!data) {
           console.error("[PART DETAIL ERROR] No part found with ID:", partId);
-          throw new Error("Part not found");
+          return null; // Return null instead of throwing error, this will handle the "not found" case more gracefully
         }
         
         return {
@@ -74,14 +78,14 @@ export default function PartDetail() {
           archived: data.archived,
           archivedAt: data.archived_at,
           archiveReason: data.archive_reason,
-          documents: data.documents.map((doc: any) => ({
+          documents: (data.documents || []).map((doc: any) => ({
             id: doc.id,
             name: doc.name,
             url: doc.url,
             uploadedAt: doc.uploaded_at,
             type: doc.type
           })),
-          operationTemplates: data.operation_templates.map((template: any) => ({
+          operationTemplates: (data.operation_templates || []).map((template: any) => ({
             id: template.id,
             partId: template.part_id,
             name: template.name,
@@ -101,6 +105,7 @@ export default function PartDetail() {
     },
     enabled: Boolean(partId),
     retry: 1,
+    staleTime: 30000, // Adding staleTime to prevent unnecessary refetches
   });
 
   const { data: workOrders = [] } = useQuery({
@@ -148,6 +153,7 @@ export default function PartDetail() {
     enabled: Boolean(partId),
   });
 
+  // Show loading state while the part data is being fetched
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -189,6 +195,7 @@ export default function PartDetail() {
     );
   }
 
+  // Only show error or not found after loading is complete
   if (error || !part) {
     console.error("[PART DETAIL] Error or missing part:", error);
     return (

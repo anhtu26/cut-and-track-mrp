@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { OperationTemplate } from "@/types/part";
 import { 
@@ -44,10 +45,39 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const [selectedTemplate, setSelectedTemplate] = useState<OperationTemplate | null>(null);
   const queryClient = useQueryClient();
 
+  // Helper function to check if operation_templates table exists
+  const checkOperationTemplatesTable = async (): Promise<boolean> => {
+    try {
+      console.log("[SCHEMA CHECK] Verifying operation_templates table exists...");
+      const { data, error } = await supabase
+        .from('information_schema.tables')
+        .select('table_name')
+        .eq('table_schema', 'public')
+        .eq('table_name', 'operation_templates');
+        
+      if (error) {
+        console.error("[SCHEMA CHECK ERROR]", error);
+        return false;
+      }
+      
+      return data && data.length > 0;
+    } catch (error) {
+      console.error("[SCHEMA CHECK ERROR]", error);
+      return false;
+    }
+  };
+
   // Add operation template mutation
   const { mutateAsync: addTemplate, isPending: isAddingTemplate } = useMutation({
     mutationFn: async (data: any) => {
       console.log("[TEMPLATE ADD] Starting submission with payload:", data);
+      
+      // Verify table exists
+      const tableExists = await checkOperationTemplatesTable();
+      if (!tableExists) {
+        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
+        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+      }
       
       // Make sure sequence is a number
       const sequence = typeof data.sequence === 'number' ? data.sequence : 
@@ -68,25 +98,6 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
       console.log("[SUPABASE REQUEST] Adding operation template with formatted payload:", formattedData);
       
       try {
-        // Check if the operation_templates table exists
-        const { data: tablesResult, error: tablesError } = await supabase
-          .from('information_schema.tables')
-          .select('table_name')
-          .eq('table_schema', 'public')
-          .eq('table_name', 'operation_templates');
-          
-        if (tablesError) {
-          console.error("[SCHEMA CHECK ERROR]", tablesError);
-          throw new Error(`Schema check error: ${tablesError.message}`);
-        }
-        
-        console.log("[SCHEMA CHECK] Table exists check:", tablesResult);
-        
-        if (!tablesResult || tablesResult.length === 0) {
-          console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist in schema 'public'");
-          throw new Error("The operation_templates table does not exist in the database");
-        }
-        
         // Proceed with insert after confirming table exists
         const { data: result, error } = await supabase
           .from('operation_templates')
@@ -125,6 +136,13 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const { mutateAsync: updateTemplate, isPending: isUpdatingTemplate } = useMutation({
     mutationFn: async (data: any) => {
       if (!selectedTemplate) throw new Error("No template selected");
+
+      // Verify table exists
+      const tableExists = await checkOperationTemplatesTable();
+      if (!tableExists) {
+        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
+        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+      }
 
       console.log("[SUPABASE REQUEST] Updating template:", data);
       
@@ -187,6 +205,13 @@ export function OperationTemplatesList({ partId, templates }: OperationTemplates
   const { mutateAsync: deleteTemplate, isPending: isDeletingTemplate } = useMutation({
     mutationFn: async () => {
       if (!selectedTemplate) throw new Error("No template selected");
+
+      // Verify table exists
+      const tableExists = await checkOperationTemplatesTable();
+      if (!tableExists) {
+        console.error("[SCHEMA ERROR] Table 'operation_templates' does not exist.");
+        throw new Error("The operation_templates table does not exist in the database. Please contact your administrator.");
+      }
 
       const { error } = await supabase
         .from('operation_templates')
