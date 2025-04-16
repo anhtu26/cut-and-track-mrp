@@ -15,9 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { OperationTemplate } from "@/types/part";
-import { toast } from "@/components/ui/sonner";
 
-// Improved schema with better validation
+// Improved schema with better validation and preprocessing for all fields
 const operationTemplateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().nullable(),
@@ -88,22 +87,28 @@ export function OperationTemplateForm({
   const handleSubmit = async (values: OperationTemplateFormValues) => {
     try {
       setFormError(null);
-      console.log("Form values before submission:", values);
+      console.log("[TEMPLATE SUBMIT] Raw form values:", values);
       
       // Create a clean data object for submission
-      const submissionData = {
+      const cleanedData = {
         ...values,
         // Ensure these optional fields are null, not empty strings
         description: values.description || null,
         machiningMethods: values.machiningMethods || null,
         setupInstructions: values.setupInstructions || null,
+        // Make sure estimatedDuration is properly handled
+        estimatedDuration: values.estimatedDuration !== undefined ? 
+                           Number(values.estimatedDuration) : null,
+        // Ensure sequence is a number
+        sequence: typeof values.sequence === 'number' ? 
+                 values.sequence : Number(values.sequence) || 0
       };
       
-      console.log("Clean submission data:", submissionData);
-      await onSubmit(submissionData);
+      console.log("[TEMPLATE CLEANED] Data after schema:", cleanedData);
+      await onSubmit(cleanedData);
       form.reset();
     } catch (error) {
-      console.error("Error submitting operation template:", error);
+      console.error("[TEMPLATE SUBMIT ERROR]", error);
       setFormError(error instanceof Error ? error.message : "Failed to submit operation template");
     }
   };

@@ -1,6 +1,6 @@
 
 import { z } from "zod";
-import { WorkOrderStatus, WorkOrderPriority } from "@/types/work-order";
+import { WorkOrderStatus, WorkOrderPriority } from "@/types/work-order-status";
 
 // Define string literal types for status and priority
 const statusValues = ["Not Started", "In Progress", "QC", "Complete", "Shipped"] as const;

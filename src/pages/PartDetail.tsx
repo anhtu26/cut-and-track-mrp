@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,59 +15,94 @@ export default function PartDetail() {
   const { partId } = useParams();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 
+  console.log("[PART DETAIL INIT] Part ID from router:", partId);
+
+  // Redirect if no partId is available
+  if (!partId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <h1 className="text-2xl font-bold mb-4">Part ID Missing</h1>
+        <p className="text-muted-foreground mb-6">No part ID was provided in the URL.</p>
+        <Button asChild>
+          <Link to="/parts">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Parts
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
   // Fetch part data including operation templates
-  const { data: part, isLoading } = useQuery({
+  const { data: part, isLoading, error } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parts")
-        .select(`
-          *,
-          documents:part_documents(*),
-          operation_templates(*)
-        `)
-        .eq("id", partId)
-        .single();
+      console.log("[PART DETAIL] Fetching part with ID:", partId);
+      try {
+        const { data, error } = await supabase
+          .from("parts")
+          .select(`
+            *,
+            documents:part_documents(*),
+            operation_templates(*)
+          `)
+          .eq("id", partId)
+          .maybeSingle();
 
-      if (error) throw error;
-      
-      // Transform the database response to match our Part interface
-      return {
-        id: data.id,
-        name: data.name,
-        partNumber: data.part_number,
-        description: data.description || "",
-        active: data.active,
-        materials: data.materials || [],
-        setupInstructions: data.setup_instructions,
-        machiningMethods: data.machining_methods,
-        revisionNumber: data.revision_number,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        archived: data.archived,
-        archivedAt: data.archived_at,
-        archiveReason: data.archive_reason,
-        documents: data.documents.map((doc: any) => ({
-          id: doc.id,
-          name: doc.name,
-          url: doc.url,
-          uploadedAt: doc.uploaded_at,
-          type: doc.type
-        })),
-        operationTemplates: data.operation_templates.map((template: any) => ({
-          id: template.id,
-          partId: template.part_id,
-          name: template.name,
-          description: template.description || "",
-          machiningMethods: template.machining_methods || "",
-          setupInstructions: template.setup_instructions || "",
-          estimatedDuration: template.estimated_duration,
-          sequence: template.sequence,
-          createdAt: template.created_at,
-          updatedAt: template.updated_at
-        })) as OperationTemplate[]
-      } as Part;
+        if (error) {
+          console.error("[PART DETAIL ERROR]", error);
+          throw error;
+        }
+        
+        console.log("[PART DETAIL] Supabase result:", data);
+        
+        if (!data) {
+          console.error("[PART DETAIL ERROR] No part found with ID:", partId);
+          throw new Error("Part not found");
+        }
+        
+        // Transform the database response to match our Part interface
+        return {
+          id: data.id,
+          name: data.name,
+          partNumber: data.part_number,
+          description: data.description || "",
+          active: data.active,
+          materials: data.materials || [],
+          setupInstructions: data.setup_instructions,
+          machiningMethods: data.machining_methods,
+          revisionNumber: data.revision_number,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+          archived: data.archived,
+          archivedAt: data.archived_at,
+          archiveReason: data.archive_reason,
+          documents: data.documents.map((doc: any) => ({
+            id: doc.id,
+            name: doc.name,
+            url: doc.url,
+            uploadedAt: doc.uploaded_at,
+            type: doc.type
+          })),
+          operationTemplates: data.operation_templates.map((template: any) => ({
+            id: template.id,
+            partId: template.part_id,
+            name: template.name,
+            description: template.description || "",
+            machiningMethods: template.machining_methods || "",
+            setupInstructions: template.setup_instructions || "",
+            estimatedDuration: template.estimated_duration,
+            sequence: template.sequence,
+            createdAt: template.created_at,
+            updatedAt: template.updated_at
+          })) as OperationTemplate[]
+        } as Part;
+      } catch (error) {
+        console.error("[PART DETAIL ERROR]", error);
+        throw error;
+      }
     },
+    enabled: !!partId,
   });
 
   // Fetch work orders related to this part
@@ -105,14 +139,24 @@ export default function PartDetail() {
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="space-y-4 text-center">
+          <p>Loading part details...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!part) {
+  if (error || !part) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <h1 className="text-2xl font-bold mb-4">Part Not Found</h1>
-        <p className="text-muted-foreground mb-6">The part you are looking for does not exist or has been removed.</p>
+        <p className="text-muted-foreground mb-6">
+          {error instanceof Error 
+            ? `Error: ${error.message}` 
+            : "The part you are looking for does not exist or has been removed."}
+        </p>
         <Button asChild>
           <Link to="/parts">
             <ArrowLeft className="mr-2 h-4 w-4" />

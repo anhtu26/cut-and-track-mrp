@@ -18,45 +18,62 @@ export default function EditPart() {
   const { data: part, isLoading } = useQuery({
     queryKey: ["part", partId],
     queryFn: async () => {
-      console.log("Fetching part with ID:", partId);
-      const { data, error } = await supabase
-        .from("parts")
-        .select(`
-          *,
-          documents:part_documents(*)
-        `)
-        .eq("id", partId)
-        .single();
+      if (!partId) {
+        console.error("[EDIT LOAD ERROR] Part ID is missing");
+        throw new Error("Part ID is required");
+      }
+      
+      console.log("[EDIT LOAD] Requested part ID:", partId);
+      
+      try {
+        const { data, error } = await supabase
+          .from("parts")
+          .select(`
+            *,
+            documents:part_documents(*)
+          `)
+          .eq("id", partId)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching part:", error);
+        if (error) {
+          console.error("[EDIT LOAD ERROR]", error);
+          throw error;
+        }
+        
+        console.log("[EDIT LOAD] Supabase result:", data);
+        
+        if (!data) {
+          console.error("[EDIT LOAD ERROR] No part found with ID:", partId);
+          throw new Error("Part not found");
+        }
+
+        return {
+          id: data.id,
+          name: data.name,
+          partNumber: data.part_number,
+          description: data.description || "",
+          active: data.active,
+          materials: data.materials || [],
+          setupInstructions: data.setup_instructions,
+          machiningMethods: data.machining_methods,
+          revisionNumber: data.revision_number,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+          archived: data.archived,
+          archivedAt: data.archived_at,
+          archiveReason: data.archive_reason,
+          documents: (data.documents || []).map((doc: any) => ({
+            id: doc.id,
+            name: doc.name,
+            url: doc.url,
+            uploadedAt: doc.uploaded_at,
+            type: doc.type
+          }))
+        } as Part;
+      } catch (error) {
+        console.error("[EDIT LOAD ERROR]", error);
         throw error;
       }
-
-      console.log("Fetched part data:", data);
-      return {
-        id: data.id,
-        name: data.name,
-        partNumber: data.part_number,
-        description: data.description || "",
-        active: data.active,
-        materials: data.materials || [],
-        setupInstructions: data.setup_instructions,
-        machiningMethods: data.machining_methods,
-        revisionNumber: data.revision_number,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        archived: data.archived,
-        archivedAt: data.archived_at,
-        archiveReason: data.archive_reason,
-        documents: (data.documents || []).map((doc: any) => ({
-          id: doc.id,
-          name: doc.name,
-          url: doc.url,
-          uploadedAt: doc.uploaded_at,
-          type: doc.type
-        }))
-      } as Part;
     },
   });
 
@@ -118,12 +135,12 @@ export default function EditPart() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex justify-center items-center h-96">Loading...</div>;
   }
 
   if (!part) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Part Not Found</h1>
         <p className="text-muted-foreground mb-6">The part you are trying to edit does not exist or has been removed.</p>
         <Button asChild>
