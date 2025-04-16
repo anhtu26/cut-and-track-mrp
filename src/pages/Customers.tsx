@@ -1,16 +1,43 @@
-
 import { useState } from "react";
 import { CustomerCard } from "@/components/customers/customer-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockCustomers } from "@/data/mock-data";
 import { PlusCircle, Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Customer } from "@/types/customer";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   
-  const filteredCustomers = mockCustomers.filter(customer => 
+  const { data: customers = [], isLoading } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      return data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        company: item.company,
+        email: item.email,
+        phone: item.phone,
+        address: item.address,
+        active: item.active,
+        notes: item.notes,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        orderCount: item.order_count
+      })) as Customer[];
+    },
+  });
+  
+  const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -39,7 +66,11 @@ export default function Customers() {
         />
       </div>
 
-      {filteredCustomers.length > 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <p>Loading customers...</p>
+        </div>
+      ) : filteredCustomers.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer) => (
             <CustomerCard key={customer.id} customer={customer} />
@@ -48,7 +79,15 @@ export default function Customers() {
       ) : (
         <div className="flex flex-col items-center justify-center py-12">
           <p className="text-xl font-semibold">No customers found</p>
-          <p className="text-muted-foreground">Try adjusting your search terms</p>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Try adjusting your search terms" : "Add your first customer to get started"}
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/customers/new">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add New Customer
+            </Link>
+          </Button>
         </div>
       )}
     </div>

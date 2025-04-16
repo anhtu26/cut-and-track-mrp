@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import { AppLayout } from "./components/layout/app-layout";
 import AuthGuard from "./auth-guard";
 import AddPart from "./pages/AddPart";
 import EditPart from "./pages/EditPart";
+import AddCustomer from "./pages/AddCustomer";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +48,7 @@ const App = () => (
               <Route path="/work-orders" element={<WorkOrders />} />
               <Route path="/work-orders/new" element={<AddWorkOrder />} />
               <Route path="/customers" element={<Customers />} />
+              <Route path="/customers/new" element={<AddCustomer />} />
             </Route>
             
             <Route path="/" element={<Login />} />
