@@ -142,6 +142,7 @@ export function WorkOrderFormContent({
                   <option value="Normal">Normal</option>
                   <option value="High">High</option>
                   <option value="Urgent">Urgent</option>
+                  <option value="Critical">Critical</option>
                 </select>
               </FormControl>
               <FormMessage />

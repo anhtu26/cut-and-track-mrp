@@ -8,7 +8,7 @@ export const workOrderSchema = z.object({
   partId: z.string().min(1, "Part is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   status: z.enum(["Not Started", "In Progress", "QC", "Complete", "Shipped"]).default("Not Started"),
-  priority: z.enum(["Low", "Normal", "High", "Critical"]).default("Normal"),
+  priority: z.enum(["Low", "Normal", "High", "Urgent", "Critical"]).default("Normal"), // Added "Urgent" to match WorkOrderPriority type
   startDate: z.date().optional().nullable(),
   dueDate: z.date({
     required_error: "Due date is required",
