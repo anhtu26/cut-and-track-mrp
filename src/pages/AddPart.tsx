@@ -13,7 +13,7 @@ export default function AddPart() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { mutateAsync: createPart, isPending } = useMutation({
+  const { mutateAsync: createPartMutation, isPending } = useMutation({
     mutationFn: async (data: any) => {
       console.log("Submitting data to Supabase:", data);
       
@@ -61,6 +61,12 @@ export default function AddPart() {
     }
   });
 
+  // Wrapper function to handle the type mismatch
+  const handleSubmit = async (data: any): Promise<void> => {
+    await createPartMutation(data);
+    // Return void to satisfy the type requirements
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -77,7 +83,7 @@ export default function AddPart() {
           <CardTitle>Add New Part</CardTitle>
         </CardHeader>
         <CardContent>
-          <PartForm onSubmit={createPart} isSubmitting={isPending} />
+          <PartForm onSubmit={handleSubmit} isSubmitting={isPending} />
         </CardContent>
       </Card>
     </div>

@@ -60,7 +60,7 @@ export default function EditPart() {
     },
   });
 
-  const { mutateAsync: updatePart, isPending } = useMutation({
+  const { mutateAsync: updatePartMutation, isPending } = useMutation({
     mutationFn: async (data: any) => {
       console.log("Updating part with data:", data);
       
@@ -111,6 +111,12 @@ export default function EditPart() {
     }
   });
 
+  // Wrapper function to handle the type mismatch
+  const handleSubmit = async (data: any): Promise<void> => {
+    await updatePartMutation(data);
+    // Return void to satisfy the type requirements
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -148,7 +154,7 @@ export default function EditPart() {
         <CardContent>
           <PartForm 
             initialData={part}
-            onSubmit={updatePart}
+            onSubmit={handleSubmit}
             isSubmitting={isPending}
           />
         </CardContent>
