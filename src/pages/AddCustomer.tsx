@@ -24,17 +24,22 @@ export default function AddCustomer() {
     }) => {
       console.log("Creating customer with data:", data);
 
+      // Ensure optional fields are properly passed as null when empty
+      const customerData = {
+        name: data.name,
+        company: data.company,
+        email: data.email,
+        phone: data.phone || null,
+        address: data.address || null,
+        notes: data.notes || null,
+        active: true
+      };
+      
+      console.log("Formatted customer data for insertion:", customerData);
+
       const { data: customer, error } = await supabase
         .from('customers')
-        .insert([{
-          name: data.name,
-          company: data.company,
-          email: data.email,
-          phone: data.phone || null,
-          address: data.address || null,
-          notes: data.notes || null,
-          active: true
-        }])
+        .insert([customerData])
         .select()
         .single();
 
@@ -47,6 +52,7 @@ export default function AddCustomer() {
         throw new Error("No customer data returned from database");
       }
       
+      console.log("Successfully created customer:", customer);
       return customer;
     },
     onSuccess: () => {

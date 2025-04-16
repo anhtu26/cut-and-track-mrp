@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Customer } from "@/types/customer";
 
-// Updated schema to properly handle optional fields
+// Ensure schema properly handles optional fields as nullable
 const customerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   company: z.string().min(1, "Company is required"),
@@ -49,13 +49,16 @@ export function CustomerForm({ initialData, onSubmit, isSubmitting }: CustomerFo
   const handleSubmit = async (data: CustomerFormData) => {
     // Ensure optional fields are properly handled
     const formattedData = {
-      name: data.name,
-      company: data.company,
-      email: data.email,
-      phone: data.phone || null,
-      address: data.address || null,
-      notes: data.notes || null,
+      name: data.name.trim(),
+      company: data.company.trim(),
+      email: data.email.trim(),
+      // Convert empty strings to null for optional fields
+      phone: data.phone?.trim() || null,
+      address: data.address?.trim() || null,
+      notes: data.notes?.trim() || null,
     };
+    
+    console.log("Submitting form data:", formattedData);
     
     try {
       await onSubmit(formattedData);
@@ -114,7 +117,7 @@ export function CustomerForm({ initialData, onSubmit, isSubmitting }: CustomerFo
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone</FormLabel>
+              <FormLabel>Phone (Optional)</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -128,7 +131,7 @@ export function CustomerForm({ initialData, onSubmit, isSubmitting }: CustomerFo
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>Address (Optional)</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -142,7 +145,7 @@ export function CustomerForm({ initialData, onSubmit, isSubmitting }: CustomerFo
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>Notes (Optional)</FormLabel>
               <FormControl>
                 <Textarea {...field} />
               </FormControl>
