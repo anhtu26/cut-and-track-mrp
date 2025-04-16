@@ -1,5 +1,10 @@
 
 import { z } from "zod";
+import { WorkOrderStatus, WorkOrderPriority } from "@/types/work-order";
+
+// Define string literal types for status and priority
+const statusValues: [WorkOrderStatus, ...WorkOrderStatus[]] = ["Not Started", "In Progress", "QC", "Complete", "Shipped"];
+const priorityValues: [WorkOrderPriority, ...WorkOrderPriority[]] = ["Low", "Normal", "High", "Urgent"];
 
 export const workOrderSchema = z.object({
   workOrderNumber: z.string().optional(),
@@ -7,8 +12,8 @@ export const workOrderSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   partId: z.string().min(1, "Part is required"),
   quantity: z.number().positive("Quantity must be greater than 0"),
-  status: z.string().optional(),
-  priority: z.string().optional(),
+  status: z.enum(statusValues).optional().default("Not Started"),
+  priority: z.enum(priorityValues).optional().default("Normal"),
   startDate: z.date().optional().nullable(),
   dueDate: z.date(),
   assignedToId: z.string().optional().nullable(),

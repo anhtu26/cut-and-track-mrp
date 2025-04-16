@@ -1,5 +1,4 @@
 
-// Add a checkbox to select if we want to use operation templates
 import React, { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ interface WorkOrderFormContentProps {
   form: any;
   isSubmitting: boolean;
   isEditMode?: boolean;
-  initialData?: WorkOrder; // Added initialData to the props interface
+  initialData?: Partial<WorkOrder>; // Updated to accept partial work order
 }
 
 export function WorkOrderFormContent({
@@ -23,7 +22,11 @@ export function WorkOrderFormContent({
   isEditMode = false,
   initialData,
 }: WorkOrderFormContentProps) {
-  const [useTemplates, setUseTemplates] = useState(true);
+  const [useTemplates, setUseTemplates] = useState(
+    initialData?.useOperationTemplates !== undefined 
+      ? initialData.useOperationTemplates 
+      : true
+  );
 
   return (
     <>

@@ -15,7 +15,13 @@ export interface Part {
   archived: boolean;
   archivedAt?: string; // Mapped from archived_at
   archiveReason?: string; // Mapped from archive_reason
-  operationTemplates?: OperationTemplate[]; // New field for operation templates
+  operationTemplates?: OperationTemplate[]; // Field for operation templates
+  customerId?: string; // New: Link to customer who typically orders this part
+  customer?: { // New: Optional customer info when part details are fetched
+    id: string;
+    name: string;
+    company: string;
+  };
 }
 
 export interface PartDocument {
