@@ -4,7 +4,7 @@ import { WorkOrderStatus, WorkOrderPriority } from "@/types/work-order";
 
 // Define string literal types for status and priority
 const statusValues = ["Not Started", "In Progress", "QC", "Complete", "Shipped"] as const;
-const priorityValues = ["Low", "Normal", "High", "Urgent"] as const;
+const priorityValues = ["Low", "Normal", "High", "Urgent", "Critical"] as const;
 
 export const workOrderSchema = z.object({
   workOrderNumber: z.string().optional(),
