@@ -38,18 +38,18 @@ export interface OperationDocument {
 export interface CreateOperationInput {
   workOrderId: string;
   name: string;
-  description?: string;
+  description?: string | null;
   status: OperationStatus;
-  machiningMethods?: string;
-  setupInstructions?: string;
-  estimatedStartTime?: string;
-  estimatedEndTime?: string;
-  assignedToId?: string;
-  comments?: string;
+  machiningMethods?: string | null;
+  setupInstructions?: string | null;
+  estimatedStartTime?: string | null;
+  estimatedEndTime?: string | null;
+  assignedToId?: string | null;
+  comments?: string | null;
 }
 
 export interface UpdateOperationInput extends Partial<CreateOperationInput> {
   id: string;
-  actualStartTime?: string;
-  actualEndTime?: string;
+  actualStartTime?: string | null;
+  actualEndTime?: string | null;
 }
