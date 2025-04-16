@@ -279,6 +279,7 @@ export type Database = {
           start_date: string | null
           status: string
           updated_at: string
+          use_operation_templates: boolean
           work_order_number: string
         }
         Insert: {
@@ -299,6 +300,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          use_operation_templates?: boolean
           work_order_number: string
         }
         Update: {
@@ -319,6 +321,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          use_operation_templates?: boolean
           work_order_number?: string
         }
         Relationships: [

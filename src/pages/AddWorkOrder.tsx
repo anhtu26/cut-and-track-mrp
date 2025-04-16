@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
@@ -17,7 +16,6 @@ export default function AddWorkOrder() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   
-  // Create initial data object with only the properties needed for creation
   const [initialData, setInitialData] = useState({
     customerId: searchParams.get("customerId") || "",
     partId: searchParams.get("partId") || "",
@@ -28,7 +26,6 @@ export default function AddWorkOrder() {
       console.log("Creating work order with data:", formData);
       
       try {
-        // Format dates for Supabase
         const workOrderData = {
           work_order_number: formData.workOrderNumber || `WO-${Date.now().toString().substring(7)}`,
           purchase_order_number: formData.purchaseOrderNumber || null,
@@ -41,10 +38,9 @@ export default function AddWorkOrder() {
           due_date: formData.dueDate,
           assigned_to_id: formData.assignedToId || null,
           notes: formData.notes || null,
-          use_operation_templates: formData.useOperationTemplates
+          use_operation_templates: formData.useOperationTemplates ?? true
         };
         
-        // Insert the work order first
         const { data: workOrder, error: workOrderError } = await supabase
           .from('work_orders')
           .insert(workOrderData)
@@ -55,7 +51,6 @@ export default function AddWorkOrder() {
         
         console.log("Work order created:", workOrder);
         
-        // If using operation templates, fetch them and create operations
         if (formData.useOperationTemplates) {
           console.log("Fetching operation templates for part:", formData.partId);
           
@@ -70,7 +65,6 @@ export default function AddWorkOrder() {
           if (templates && templates.length > 0) {
             console.log("Found operation templates:", templates);
             
-            // Create operations from templates
             const operations = templates.map((template) => ({
               work_order_id: workOrder.id,
               name: template.name,
@@ -78,8 +72,8 @@ export default function AddWorkOrder() {
               status: "Not Started",
               machining_methods: template.machining_methods,
               setup_instructions: template.setup_instructions,
-              sequence: template.sequence || 0, // Ensure sequence is included
-              is_custom: false, // Mark as standard operation from template
+              sequence: template.sequence || 0,
+              is_custom: false,
               estimated_start_time: null,
               estimated_end_time: null,
             }));
@@ -91,7 +85,6 @@ export default function AddWorkOrder() {
               
             if (opsError) {
               console.error("Error creating operations:", opsError);
-              // We'll continue even if operation creation fails
               toast.error("Work order created, but failed to add operations");
             } else {
               console.log("Operations created successfully");
@@ -125,7 +118,6 @@ export default function AddWorkOrder() {
     }
   });
 
-  // Handle form submission by passing to the mutation
   const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
     await createWorkOrderMutation(data);
   };

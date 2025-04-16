@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const workOrderSchema = z.object({
@@ -8,14 +7,14 @@ export const workOrderSchema = z.object({
   partId: z.string().min(1, "Part is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   status: z.enum(["Not Started", "In Progress", "QC", "Complete", "Shipped"]).default("Not Started"),
-  priority: z.enum(["Low", "Normal", "High", "Urgent", "Critical"]).default("Normal"), // Added "Urgent" to match WorkOrderPriority type
+  priority: z.enum(["Low", "Normal", "High", "Urgent", "Critical"]).default("Normal"),
   startDate: z.date().optional().nullable(),
   dueDate: z.date({
     required_error: "Due date is required",
   }),
   assignedToId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  useOperationTemplates: z.boolean().default(true), // Add this field to the schema
+  useOperationTemplates: z.boolean().default(true),
 });
 
 export type WorkOrderFormValues = z.infer<typeof workOrderSchema>;

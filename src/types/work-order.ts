@@ -1,4 +1,3 @@
-
 import { Customer } from "./customer";
 import { Part } from "./part";
 import { Operation } from "./operation";
@@ -32,7 +31,7 @@ export interface WorkOrder {
   archived: boolean;
   archivedAt?: string;
   archiveReason?: string;
-  useOperationTemplates?: boolean; // Added this field to match the schema
+  useOperationTemplates?: boolean; // This field is now explicitly typed
 }
 
 export interface CreateWorkOrderInput {
@@ -55,4 +54,5 @@ export interface UpdateWorkOrderInput extends Partial<Omit<CreateWorkOrderInput,
   completedDate?: string;
   archived?: boolean;
   archiveReason?: string;
+  useOperationTemplates?: boolean; // Add to update input as well
 }
