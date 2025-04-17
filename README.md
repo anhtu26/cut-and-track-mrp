@@ -1,73 +1,46 @@
-# Welcome to your Lovable project
 
-## Project info
+# MRP System - Updates
 
-**URL**: https://lovable.dev/projects/562dd047-4f0c-4622-addf-de9eea097c14
+## Recent Changes
 
-## How can I edit this code?
+### Part Library Cleanup (2025-04-17)
+- Removed deprecated "Setup Instructions" and "Machining Methods" fields from Part Detail/Edit views
+- These fields have been replaced by the Operation Templates system which provides better workflow management
+- Database columns are maintained but marked as deprecated for backward compatibility
 
-There are several ways of editing your application.
+### Material Selection Fix
+- Fixed an issue with Material dropdown not working in the Part form
+- Ensured proper data binding and validation
 
-**Use Lovable**
+### Document Upload Feature Added
+- Added ITAR-compliant document upload capability for parts
+- Files are stored securely with proper validation and access controls
+- Supported formats: PDF, JPG, PNG, DXF, STP (max 10MB)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/562dd047-4f0c-4622-addf-de9eea097c14) and start prompting.
+### Work Order Usability Improvements
+- Enhanced work order creation with operation template integration
+- Added explicit "useOperationTemplates" flag for better control
 
-Changes made via Lovable will be committed automatically to this repo.
+## Usage Notes
 
-**Use your preferred IDE**
+### Document Upload
+1. Navigate to a Part Detail page
+2. Click on the "Documents" tab
+3. Use the file browser to select documents
+4. Click "Upload"
+5. Files will appear in the documents list after successful upload
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Operation Templates
+- Operation Templates have fully replaced the older Setup Instructions and Machining Methods fields
+- When creating a work order, operations can be automatically generated from templates
+- The "useOperationTemplates" option allows for manual control of this feature
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Technical Notes
 
-Follow these steps:
+### Database Schema Updates
+- Deprecated fields are maintained for backward compatibility
+- New part_documents table for storing document metadata
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/562dd047-4f0c-4622-addf-de9eea097c14) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Security Measures
+- Document upload includes ITAR-compliant validation
+- Access control ensures proper user permissions for document management

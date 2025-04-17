@@ -16,10 +16,9 @@ const partSchema = z.object({
   partNumber: z.string().min(1, "Part number is required"),
   description: z.string().optional(),
   materials: z.array(z.string()).default([]),
-  setupInstructions: z.string().optional(),
-  machiningMethods: z.string().optional(),
   revisionNumber: z.string().optional(),
-  active: z.boolean().default(true)
+  active: z.boolean().default(true),
+  customerId: z.string().optional(),
 });
 
 type PartFormData = z.infer<typeof partSchema>;
@@ -40,10 +39,9 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
       partNumber: initialData?.partNumber || "",
       description: initialData?.description || "",
       materials: initialData?.materials || [],
-      setupInstructions: initialData?.setupInstructions || "",
-      machiningMethods: initialData?.machiningMethods || "",
       revisionNumber: initialData?.revisionNumber || "",
-      active: initialData?.active !== undefined ? initialData.active : true
+      active: initialData?.active !== undefined ? initialData.active : true,
+      customerId: initialData?.customerId || undefined,
     }
   });
 
@@ -94,34 +92,6 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="setupInstructions"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Setup Instructions</FormLabel>
-              <FormControl>
-                <Textarea {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="machiningMethods"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Machining Methods</FormLabel>
               <FormControl>
                 <Textarea {...field} />
               </FormControl>

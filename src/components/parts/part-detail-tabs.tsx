@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PartDocument, OperationTemplate } from "@/types/part";
 import { OperationTemplatesList } from "./operation-templates-list";
 import { Link } from "react-router-dom";
+import { DocumentUpload } from "./document-upload";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -24,10 +25,11 @@ export function PartDetailTabs({
 }: PartDetailTabsProps) {
   return (
     <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="operations">Operations</TabsTrigger>
         <TabsTrigger value="documents">Documents</TabsTrigger>
+        <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       
       <TabsContent value="details">
@@ -124,8 +126,10 @@ export function PartDetailTabs({
             <CardDescription>Attached files and resources</CardDescription>
           </CardHeader>
           <CardContent>
+            <DocumentUpload partId={partId} />
+            
             {documents.length > 0 ? (
-              <ul className="space-y-2">
+              <ul className="space-y-2 mt-6">
                 {documents.map((doc, i) => (
                   <li key={i} className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex items-center space-x-3">
@@ -148,6 +152,18 @@ export function PartDetailTabs({
             ) : (
               <p className="text-center text-muted-foreground py-6">No documents available</p>
             )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="history">
+        <Card>
+          <CardHeader>
+            <CardTitle>Part History</CardTitle>
+            <CardDescription>Changes and revisions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground py-6">History tracking coming soon</p>
           </CardContent>
         </Card>
       </TabsContent>

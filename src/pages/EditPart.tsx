@@ -68,14 +68,13 @@ export default function EditPart() {
           description: data.description || "",
           active: data.active,
           materials: data.materials || [],
-          setupInstructions: data.setup_instructions,
-          machiningMethods: data.machining_methods,
           revisionNumber: data.revision_number,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
           archived: data.archived,
           archivedAt: data.archived_at,
           archiveReason: data.archive_reason,
+          customerId: data.customer_id || undefined,
           documents: (data.documents || []).map((doc: any) => ({
             id: doc.id,
             name: doc.name,
@@ -108,10 +107,9 @@ export default function EditPart() {
           part_number: data.partNumber || "",
           description: data.description || "",
           materials: materials,
-          setup_instructions: data.setupInstructions || "",
-          machining_methods: data.machiningMethods || "",
           revision_number: data.revisionNumber || "",
           active: typeof data.active === 'boolean' ? data.active : true,
+          customer_id: data.customerId || null,
           updated_at: new Date().toISOString()
         })
         .eq("id", partId)
@@ -223,7 +221,7 @@ export default function EditPart() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit Part: {part.name}</CardTitle>
+          <CardTitle>Edit Part: {part?.name}</CardTitle>
         </CardHeader>
         <CardContent>
           <PartForm 

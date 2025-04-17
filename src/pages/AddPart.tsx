@@ -27,10 +27,9 @@ export default function AddPart() {
           part_number: data.partNumber || "",
           description: data.description || "",
           materials: materials,
-          setup_instructions: data.setupInstructions || "",
-          machining_methods: data.machiningMethods || "",
           revision_number: data.revisionNumber || "",
-          active: typeof data.active === 'boolean' ? data.active : true
+          active: typeof data.active === 'boolean' ? data.active : true,
+          customer_id: data.customerId || null
         }])
         .select();
 
