@@ -4,10 +4,12 @@ import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockKpiData, mockWorkOrders } from "@/data/mock-data";
 import { useUserStore } from "@/stores/user-store";
+import { WorkOrder } from "@/types/work-order";
 
 export default function Dashboard() {
   const { user } = useUserStore();
-  const recentOrders = mockWorkOrders.slice(0, 5);
+  // Explicitly cast mockWorkOrders to WorkOrder[] to ensure type compatibility
+  const recentOrders = (mockWorkOrders as unknown as WorkOrder[]).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -46,7 +48,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {mockWorkOrders
+              {(mockWorkOrders as unknown as WorkOrder[])
                 .filter(wo => {
                   const dueDate = new Date(wo.dueDate);
                   const today = new Date();
@@ -74,7 +76,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {mockWorkOrders
+                {(mockWorkOrders as unknown as WorkOrder[])
                   .reduce((acc, wo) => {
                     const existing = acc.find(c => c.id === wo.customer.id);
                     if (existing) {
@@ -104,7 +106,7 @@ export default function Dashboard() {
             <CardContent>
               {user ? (
                 <ul className="space-y-2">
-                  {mockWorkOrders
+                  {(mockWorkOrders as unknown as WorkOrder[])
                     .filter(wo => wo.assignedTo?.id === user.id)
                     .map(wo => (
                       <li key={wo.id} className="flex items-center justify-between border-b pb-2">

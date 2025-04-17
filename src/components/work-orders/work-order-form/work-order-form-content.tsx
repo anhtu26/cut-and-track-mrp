@@ -4,7 +4,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelect } from "./work-order-customer-select";
-import { PartSelect } from "./work-order-part-select";
+import { PartSelectSearch } from "./work-order-part-select-search";
 import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WorkOrder } from "@/types/work-order";
@@ -75,7 +75,7 @@ export function WorkOrderFormContent({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <CustomerSelect field={form} isLoading={isSubmitting} />
-        <PartSelect field={form} isLoading={isSubmitting} />
+        <PartSelectSearch field={form} isLoading={isSubmitting} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

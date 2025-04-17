@@ -1,3 +1,4 @@
+
 import { Customer } from "@/types/customer";
 import { Operation } from "@/types/operation";
 import { Part } from "@/types/part";
@@ -9,7 +10,6 @@ export const mockCustomers: Customer[] = [
     id: "cust1",
     name: "Acme Corp",
     company: "Acme Corporation",
-    contactName: "John Doe",
     contactEmail: "john.doe@acme.com",
     contactPhone: "555-123-4567",
     address: "123 Main St",
@@ -26,7 +26,6 @@ export const mockCustomers: Customer[] = [
     id: "cust2",
     name: "Beta Industries",
     company: "Beta Industries",
-    contactName: "Jane Smith",
     contactEmail: "jane.smith@beta.com",
     contactPhone: "555-987-6543",
     address: "456 Elm St",
@@ -122,10 +121,11 @@ export const mockWorkOrders = [
     priority: "Normal",
     dueDate: "2023-06-15",
     startDate: "2023-06-01",
-    endDate: "",
     operations: [mockOperations[0], mockOperations[1]],
     archived: false,
-    useOperationTemplates: true
+    useOperationTemplates: true,
+    createdAt: "2023-05-15",
+    updatedAt: "2023-05-20",
   },
   {
     id: "wo2",
@@ -140,10 +140,11 @@ export const mockWorkOrders = [
     priority: "High",
     dueDate: "2023-07-01",
     startDate: "2023-06-20",
-    endDate: "",
     operations: [],
     archived: false,
-    useOperationTemplates: true
+    useOperationTemplates: true,
+    createdAt: "2023-06-01",
+    updatedAt: "2023-06-01",
   },
 ];
 
@@ -164,3 +165,11 @@ export const mockWorkOrderPriorities: WorkOrderPriority[] = [
   "Urgent",
   "Critical",
 ];
+
+// Mock data for KPI Metrics
+export const mockKpiData = {
+  activeJobs: 32,
+  completedThisMonth: 45,
+  utilization: 78,
+  monthlyRevenue: 125000,
+};

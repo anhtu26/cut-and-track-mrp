@@ -17,9 +17,11 @@
 - Files are stored securely with proper validation and access controls
 - Supported formats: PDF, JPG, PNG, DXF, STP (max 10MB)
 
-### Work Order Usability Improvements
+### Work Order Usability Improvements (2025-04-18)
 - Enhanced work order creation with operation template integration
 - Added explicit "useOperationTemplates" flag for better control
+- Implemented searchable Part selection for improved user experience with large catalogs
+- Fixed mock data issues to ensure consistent development and testing experience
 
 ## Usage Notes
 
@@ -35,6 +37,17 @@
 - When creating a work order, operations can be automatically generated from templates
 - The "useOperationTemplates" option allows for manual control of this feature
 
+### Work Order Part Search
+The new Part selection in the Work Order form now features a searchable interface:
+```tsx
+<PartSelectSearch field={form} isLoading={isSubmitting} />
+```
+This component allows users to:
+- Type to search for parts by name or part number
+- View part descriptions in the dropdown
+- Easily handle large part catalogs (999+ parts)
+- Filter results in real-time
+
 ## Technical Notes
 
 ### Database Schema Updates
@@ -44,3 +57,9 @@
 ### Security Measures
 - Document upload includes ITAR-compliant validation
 - Access control ensures proper user permissions for document management
+
+### Dev Mode Mock Data
+- Fixed missing mockKpiData to ensure dashboard renders correctly in dev mode
+- Updated mock data structure to match WorkOrder type requirements
+- Cast mock data to ensure type safety across the application
+
