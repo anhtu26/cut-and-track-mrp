@@ -1,8 +1,20 @@
+# MRP System - Development Guidelines
 
-# MRP System - Updates
+## Core Principles
+
+### Production-First Approach
+- 🚨 **No Mock Data**: This application is built on real, actionable data from Supabase.
+- 🔍 **Workflow Integrity**: Every feature directly supports machine shop operational efficiency.
+- 📊 Real-time data and clear user interactions are our priority.
 
 ## Recent Changes
 
+### Development Focus Reset (2025-04-17)
+- Removed all references to mock data
+- Committed to production-ready, Supabase-driven workflows
+- Emphasized error handling that preserves user experience
+
+### Previous Updates
 ### Icon Fix (2025-04-17)
 - Fixed invalid lucide-react icon import in part-detail-tabs.tsx
 - Replaced non-existent `FilePdf` with valid `File` icon
@@ -41,31 +53,7 @@
 - Implemented searchable Part selection for improved user experience with large catalogs
 - Fixed data issues to ensure consistent development and testing experience
 
-## Usage Notes
-
-### Material Input
-1. When creating or editing a part, you can now enter materials as a comma-separated list
-2. Examples: "Aluminum, Steel, Plastic" or "Titanium Grade 5, Stainless Steel 304"
-3. Each material will be stored as a separate item in the database array
-
-### Document Upload
-1. Navigate to a Part Detail page
-2. Click on the "Documents" tab
-3. Use the file browser to select documents
-4. Click "Upload"
-5. Files will be stored in Supabase Storage and appear in the documents list after successful upload
-6. Click "View" to open the document in a new tab
-
-### Technical Notes
-
-#### Storage Configuration
-- Documents are stored in Supabase Storage in the `documents` bucket
-- Files are organized in folders by part ID: `parts/{partId}/{filename}`
-- Public URLs are used for document viewing
-- MIME type validation ensures only allowed file types can be uploaded
-
-#### Material Handling
-- Materials are input as a comma-separated string in the UI
-- Before saving to Supabase, the string is split into an array
-- When displaying materials, the array items are converted to tags
-- This approach simplifies the UI while maintaining the array structure in the database
+## Error Handling Philosophy
+- Gracefully handle undefined or missing Supabase data
+- Log meaningful context without breaking user experience
+- Prioritize real-time, actionable information
