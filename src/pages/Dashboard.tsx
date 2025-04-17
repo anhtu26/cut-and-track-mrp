@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KPIMetrics } from "@/components/dashboard/kpi-metrics";
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { WorkOrder } from "@/types/work-order";
-import { Customer } from "@/types/customer";  // Add this import
+import { Customer } from "@/types/customer";
 
 export default function Dashboard() {
   const { user } = useUserStore();
@@ -78,6 +78,7 @@ export default function Dashboard() {
         return [];
       }
 
+      // Properly map the data to match the WorkOrder type
       return data.map(order => ({
         id: order.id,
         workOrderNumber: order.work_order_number,
@@ -90,7 +91,7 @@ export default function Dashboard() {
         customer: {
           id: order.customer_id,
           name: order.customers?.name || 'Unknown Customer'
-        }
+        } as Customer
       })) as WorkOrder[];
     },
     refetchOnWindowFocus: false,

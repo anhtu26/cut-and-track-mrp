@@ -8,17 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Part } from "@/types/part";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { MultiSelect } from "@/components/ui/multi-select";
 
 // Define a more permissive schema that allows all characters
 const partSchema = z.object({
   name: z.string().min(1, "Name is required"),
   partNumber: z.string().min(1, "Part number is required"),
   description: z.string().optional(),
-  materials: z.array(z.string()).default([]),
+  materials: z.string().optional(), // Changed from array to string
   revisionNumber: z.string().optional(),
   active: z.boolean().default(true),
   customerId: z.string().optional(),
@@ -31,20 +30,6 @@ interface PartFormProps {
   onSubmit: (data: PartFormData) => Promise<void>;
   isSubmitting: boolean;
 }
-
-// Material options for the dropdown
-const materialOptions = [
-  "Aluminum",
-  "Steel",
-  "Stainless Steel",
-  "Brass",
-  "Copper",
-  "Titanium",
-  "Plastic",
-  "Rubber",
-  "Composite",
-  "Other"
-].map(material => ({ label: material, value: material }));
 
 export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -71,13 +56,18 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
     }
   });
   
+  // Convert materials array to string if needed for initialData
+  const initialMaterials = Array.isArray(initialData?.materials) 
+    ? initialData.materials.join(', ') 
+    : initialData?.materials || "";
+
   const form = useForm<PartFormData>({
     resolver: zodResolver(partSchema),
     defaultValues: {
       name: initialData?.name || "",
       partNumber: initialData?.partNumber || "",
       description: initialData?.description || "",
-      materials: initialData?.materials || [],
+      materials: initialMaterials,
       revisionNumber: initialData?.revisionNumber || "",
       active: initialData?.active !== undefined ? initialData.active : true,
       customerId: initialData?.customerId || undefined,
@@ -146,20 +136,14 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
             <FormItem>
               <FormLabel>Materials</FormLabel>
               <FormControl>
-                <MultiSelect
-                  options={materialOptions}
-                  selected={field.value.map(material => ({ 
-                    label: material, 
-                    value: material 
-                  }))}
-                  onChange={(selected) => {
-                    field.onChange(selected.map(item => item.value));
-                  }}
-                  className="w-full"
-                  placeholder="Select materials..."
+                <Input 
+                  {...field} 
+                  className="text-base px-4 py-3 h-12"
+                  placeholder="Enter materials (e.g. Aluminum, Steel, Plastic)"
                 />
               </FormControl>
               <FormMessage />
+              <p className="text-sm text-muted-foreground">Comma-separated list of materials</p>
             </FormItem>
           )}
         />

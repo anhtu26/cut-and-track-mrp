@@ -5,7 +5,7 @@ export interface Part {
   partNumber: string; // Mapped from part_number
   description: string;
   active: boolean;
-  materials: string[];
+  materials: string[]; // Still an array in the database, but will be converted from string input
   /**
    * @deprecated These fields are no longer used in the UI. Use operationTemplates instead.
    */
@@ -36,6 +36,7 @@ export interface PartDocument {
   url: string;
   uploadedAt: string; // This needs to match the field in part-detail-tabs.tsx
   type: string;
+  size?: number; // Optional file size in bytes
 }
 
 export interface OperationTemplate {

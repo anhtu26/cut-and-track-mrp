@@ -76,19 +76,32 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         if (file.name.endsWith('.dxf')) fileType = 'application/dxf';
         if (file.name.endsWith('.stp')) fileType = 'application/step';
         
-        // Upload the file to a temporary location (this would be replaced with your local storage solution)
-        // For the purpose of this PoC, we'll use Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase
+        // Create storage path
+        const storagePath = `parts/${partId}/${fileName}`;
+        
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(storagePath, file);
+        
+        if (uploadError) throw uploadError;
+        
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from('documents')
+          .getPublicUrl(storagePath);
+        
+        // Store document reference in database
+        const { error: docError } = await supabase
           .from('part_documents')
           .insert({
             part_id: partId,
             name: sanitizedName,
-            url: `https://example.com/documents/${partId}/${fileName}`, // This would be replaced with your actual file path
+            url: urlData.publicUrl,
             type: fileType
-          })
-          .select();
+          });
         
-        if (uploadError) throw uploadError;
+        if (docError) throw docError;
         
         completedFiles++;
         setProgress(Math.round((completedFiles / totalFiles) * 100));
@@ -119,8 +132,9 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         <Button 
           onClick={handleUpload} 
           disabled={uploading || selectedFiles.length === 0}
+          className="h-12 px-4 text-base"
         >
-          <Upload className="mr-2 h-4 w-4" />
+          <Upload className="mr-2 h-5 w-5" />
           Upload
         </Button>
       </div>

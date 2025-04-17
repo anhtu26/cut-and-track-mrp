@@ -17,8 +17,8 @@ export default function AddPart() {
     mutationFn: async (data: any) => {
       console.log("Submitting data to Supabase:", data);
       
-      // Ensure materials is an array even if empty
-      const materials = Array.isArray(data.materials) ? data.materials : [];
+      // Convert materials string to array if provided
+      const materials = data.materials ? data.materials.split(',').map((m: string) => m.trim()) : [];
       
       const { data: insertData, error } = await supabase
         .from("parts")

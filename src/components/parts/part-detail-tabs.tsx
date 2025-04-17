@@ -5,6 +5,7 @@ import { PartDocument, OperationTemplate } from "@/types/part";
 import { OperationTemplatesList } from "./operation-templates-list";
 import { Link } from "react-router-dom";
 import { DocumentUpload } from "./document-upload";
+import { FileText, FilePdf, FileImage } from "lucide-react";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -23,6 +24,22 @@ export function PartDetailTabs({
   operationTemplates = [],
   workOrders = []
 }: PartDetailTabsProps) {
+  
+  // Helper function to get appropriate icon for document type
+  const getDocumentIcon = (type: string) => {
+    if (type.includes('pdf')) return <FilePdf className="h-4 w-4" />;
+    if (type.includes('image')) return <FileImage className="h-4 w-4" />;
+    return <FileText className="h-4 w-4" />;
+  };
+  
+  // Format file size (if available in the future)
+  const formatFileSize = (size?: number) => {
+    if (!size) return '';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
@@ -133,16 +150,23 @@ export function PartDetailTabs({
                 {documents.map((doc, i) => (
                   <li key={i} className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex items-center space-x-3">
-                      <div className="text-sm font-medium">{doc.name}</div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(doc.uploadedAt).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center">
+                        {getDocumentIcon(doc.type)}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{doc.name}</div>
+                        <div className="flex space-x-2 text-xs text-muted-foreground">
+                          <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                          {doc.size && <span>•</span>}
+                          {doc.size && <span>{formatFileSize(doc.size)}</span>}
+                        </div>
+                      </div>
                     </div>
                     <a 
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
+                      className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
                     >
                       View
                     </a>
