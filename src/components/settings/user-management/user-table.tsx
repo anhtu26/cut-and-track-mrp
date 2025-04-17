@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
-import { User } from "../types";
+import { User } from "./types";
 import { useUserStore } from "@/stores/user-store";
 import {
   Table,
