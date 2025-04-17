@@ -63,11 +63,15 @@ export function PartDetailTabs({
             <div>
               <h4 className="text-sm font-medium mb-1">Materials</h4>
               <div className="flex flex-wrap gap-1">
-                {materials.map((material, i) => (
-                  <span key={i} className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium">
-                    {material}
-                  </span>
-                ))}
+                {Array.isArray(materials) && materials.length > 0 ? (
+                  materials.map((material, i) => (
+                    <span key={i} className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium">
+                      {material}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">No materials specified</span>
+                )}
               </div>
             </div>
 
@@ -95,7 +99,7 @@ export function PartDetailTabs({
                               {order.workOrderNumber}
                             </Link>
                           </td>
-                          <td className="px-4 py-2">{order.customer.name}</td>
+                          <td className="px-4 py-2">{order.customer?.name || 'Unknown Customer'}</td>
                           <td className="px-4 py-2">{order.status}</td>
                           <td className="px-4 py-2">
                             {new Date(order.createdAt).toLocaleDateString()}
@@ -145,7 +149,7 @@ export function PartDetailTabs({
           <CardContent>
             <DocumentUpload partId={partId} />
             
-            {documents.length > 0 ? (
+            {documents && documents.length > 0 ? (
               <ul className="space-y-2 mt-6">
                 {documents.map((doc, i) => (
                   <li key={i} className="flex items-center justify-between rounded-lg border p-3">
@@ -162,14 +166,17 @@ export function PartDetailTabs({
                         </div>
                       </div>
                     </div>
-                    <a 
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
-                    >
-                      View
-                    </a>
+                    {doc.url && (
+                      <a 
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
+                        onClick={() => console.log(`Opening document: ${doc.name}`)}
+                      >
+                        View
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
