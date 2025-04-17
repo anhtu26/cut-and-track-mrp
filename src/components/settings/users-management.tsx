@@ -80,23 +80,32 @@ export function UsersManagement() {
       console.log('[USERS] Raw data:', data);
 
       // Format the data to match our User interface
-      const formattedUsers = data.map((item: any) => {
-        // Create a properly structured user object that satisfies the PartialUserData type
-        const userData: PartialUserData = {
-          id: item.id,
-          email: item.auth_users?.email || 'Unknown email',
-          first_name: item.first_name,
-          last_name: item.last_name,
-          department: item.department,
-          job_title: item.job_title,
-          roles: Array.isArray(item.roles) ? item.roles.map((role: any) => ({ 
-            name: role.roles?.name || 'Unknown role' 
-          })) : []
-        };
-        
-        console.log('[USERS] Processing user:', userData);
-        return userData;
-      });
+      const formattedUsers = data
+        .filter((item: any) => item && item.id) // Filter out items without an id
+        .map((item: any) => {
+          // Ensure required fields exist before creating the user object
+          if (!item || !item.id || !item.auth_users?.email) {
+            console.warn('[USERS WARNING] Skipping invalid user data:', item);
+            return null;
+          }
+          
+          // Create a properly structured user object with required fields
+          const userData: PartialUserData = {
+            id: item.id, // Required
+            email: item.auth_users?.email || 'Unknown email', // Required with fallback
+            first_name: item.first_name,
+            last_name: item.last_name,
+            department: item.department,
+            job_title: item.job_title,
+            roles: Array.isArray(item.roles) ? item.roles.map((role: any) => ({ 
+              name: role.roles?.name || 'Unknown role' 
+            })) : []
+          };
+          
+          console.log('[USERS] Processing user:', userData);
+          return userData;
+        })
+        .filter((user): user is PartialUserData => user !== null); // Filter out null entries and assert type
 
       console.log('[USERS] Formatted users:', formattedUsers);
 
