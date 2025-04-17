@@ -7,30 +7,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckedState } from "@radix-ui/react-checkbox";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { z } from "zod";
 
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  roles: { name: string }[];
-}
+// Define Zod schemas for validation
+const RoleSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Role name is required"),
+  description: z.string().nullable(),
+  assigned: z.boolean()
+});
 
-interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  assigned: boolean;
-}
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email("Invalid email"),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  roles: z.array(z.object({ name: z.string() }))
+});
+
+type Role = z.infer<typeof RoleSchema>;
+type User = z.infer<typeof UserSchema>;
 
 interface UserPermissionsDialogProps {
   open: boolean;
@@ -54,21 +51,32 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
   async function fetchRoles() {
     try {
       setLoading(true);
+      console.log("[USER PERMISSIONS] Fetching roles for user:", user.id);
       
-      // Fetch all roles
+      // Fetch all roles with explicit table aliases
       const { data: rolesData, error: rolesError } = await supabase
         .from("roles")
-        .select("id, name, description");
+        .select("roles.id, roles.name, roles.description");
         
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error("[USER PERMISSIONS ERROR] Failed to fetch roles:", rolesError);
+        throw rolesError;
+      }
 
-      // Fetch user's current roles
+      console.log("[USER PERMISSIONS] Available roles:", rolesData);
+
+      // Fetch user's current roles with explicit table aliases
       const { data: userRolesData, error: userRolesError } = await supabase
         .from("user_roles")
-        .select("role_id")
-        .eq("user_id", user.id);
+        .select("user_roles.role_id")
+        .eq("user_roles.user_id", user.id);
         
-      if (userRolesError) throw userRolesError;
+      if (userRolesError) {
+        console.error("[USER PERMISSIONS ERROR] Failed to fetch user roles:", userRolesError);
+        throw userRolesError;
+      }
+      
+      console.log("[USER PERMISSIONS] User roles data:", userRolesData);
       
       // Extract role IDs assigned to the user
       const assignedRoleIds = userRolesData.map(ur => ur.role_id);
@@ -82,9 +90,22 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
         assigned: assignedRoleIds.includes(role.id)
       }));
       
-      setRoles(formattedRoles);
+      // Validate roles with Zod
+      const validRoles: Role[] = [];
+      for (const role of formattedRoles) {
+        try {
+          const validRole = RoleSchema.parse(role);
+          validRoles.push(validRole);
+        } catch (validationError) {
+          console.error("[ROLES VALIDATION ERROR]", validationError);
+          // Continue with next role
+        }
+      }
+      
+      console.log("[USER PERMISSIONS] Formatted roles:", validRoles);
+      setRoles(validRoles);
     } catch (error: any) {
-      console.error("Error fetching roles:", error);
+      console.error("[USER PERMISSIONS ERROR] Error fetching roles:", error);
       toast.error(`Failed to fetch roles: ${error.message}`);
     } finally {
       setLoading(false);
@@ -102,6 +123,7 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
   async function handleSave() {
     try {
       setSaving(true);
+      console.log("[USER PERMISSIONS SAVE] Updating roles for user:", user.id);
       
       // Find roles that were added
       const rolesToAdd = roles.filter(role => 
@@ -112,6 +134,9 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
       const rolesToRemove = userRoles.filter(roleId => 
         !roles.find(role => role.id === roleId && role.assigned)
       );
+      
+      console.log("[USER PERMISSIONS SAVE] Roles to add:", rolesToAdd);
+      console.log("[USER PERMISSIONS SAVE] Roles to remove:", rolesToRemove);
       
       // Add new role assignments
       if (rolesToAdd.length > 0) {
@@ -124,7 +149,12 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
           .from("user_roles")
           .insert(newUserRoles);
           
-        if (addError) throw addError;
+        if (addError) {
+          console.error("[USER PERMISSIONS SAVE ERROR] Failed to add roles:", addError);
+          throw addError;
+        }
+        
+        console.log("[USER PERMISSIONS SAVE] Added roles successfully");
       }
       
       // Remove role assignments
@@ -135,14 +165,19 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
           .eq("user_id", user.id)
           .eq("role_id", roleId);
           
-        if (removeError) throw removeError;
+        if (removeError) {
+          console.error("[USER PERMISSIONS SAVE ERROR] Failed to remove role:", removeError);
+          throw removeError;
+        }
+        
+        console.log("[USER PERMISSIONS SAVE] Removed role successfully:", roleId);
       }
       
       toast.success("User permissions updated successfully");
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Error updating user permissions:", error);
+      console.error("[USER PERMISSIONS SAVE ERROR] Error updating permissions:", error);
       toast.error(`Failed to update permissions: ${error.message}`);
     } finally {
       setSaving(false);

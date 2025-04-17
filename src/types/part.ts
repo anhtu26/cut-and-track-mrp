@@ -1,4 +1,6 @@
 
+import { z } from "zod";
+
 export interface Part {
   id: string;
   name: string;
@@ -30,24 +32,30 @@ export interface Part {
   };
 }
 
-export interface PartDocument {
-  id: string;
-  name: string;
-  url: string;
-  uploadedAt: string; // This needs to match the field in part-detail-tabs.tsx
-  type: string;
-  size?: number; // Optional file size in bytes
-}
+// Define Zod schemas for validation
+export const PartDocumentSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Document name is required"),
+  url: z.string().url("Invalid document URL"),
+  uploadedAt: z.string().datetime(),
+  type: z.string().min(1, "Document type is required"),
+  size: z.number().optional(),
+  storagePath: z.string().optional(),
+});
 
-export interface OperationTemplate {
-  id: string;
-  partId: string;
-  name: string;
-  description?: string;
-  machiningMethods?: string;
-  setupInstructions?: string;
-  estimatedDuration?: number; // in minutes
-  sequence: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type PartDocument = z.infer<typeof PartDocumentSchema>;
+
+export const OperationTemplateSchema = z.object({
+  id: z.string().uuid(),
+  partId: z.string().uuid("Part ID is required"),
+  name: z.string().min(1, "Operation name is required"),
+  description: z.string().optional(),
+  machiningMethods: z.string().optional(),
+  setupInstructions: z.string().optional(),
+  estimatedDuration: z.number().optional(),
+  sequence: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type OperationTemplate = z.infer<typeof OperationTemplateSchema>;

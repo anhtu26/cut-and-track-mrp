@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -7,9 +8,23 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { useEffect, useState } from "react";
 
 export function Toaster() {
-  const { toasts } = useToast()
+  // Use client-side only rendering to avoid Zustand SSR issues
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Don't render anything during SSR
+  if (!mounted) {
+    return null;
+  }
+  
+  // Now that we're client-side, it's safe to use the hook
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>

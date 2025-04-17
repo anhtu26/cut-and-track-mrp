@@ -7,20 +7,26 @@ import { toast } from "@/components/ui/sonner";
 import { AddUserDialog } from "./add-user-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
 import { UserPermissionsDialog } from "./user-permissions-dialog";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useUserStore } from "@/stores/user-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { z } from "zod";
 
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  department: string | null;
-  job_title: string | null;
-  roles: { name: string }[];
-}
+// Define schema for user data validation
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email("Invalid email address"),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  department: z.string().nullable(),
+  job_title: z.string().nullable(),
+  roles: z.array(z.object({
+    name: z.string()
+  }))
+});
+
+type User = z.infer<typeof UserSchema>;
 
 export function UsersManagement() {
   const { user: currentUser } = useUserStore();
@@ -39,8 +45,9 @@ export function UsersManagement() {
   async function fetchUsers() {
     try {
       setLoading(true);
+      console.log("[USERS] Fetching user profiles");
       
-      // Get all user profiles with their roles
+      // Get all user profiles with their roles, using explicit table aliases
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -54,8 +61,12 @@ export function UsersManagement() {
         `);
 
       if (error) {
-        throw error;
+        console.error('[USERS ERROR]', error);
+        toast.error(`Failed to fetch users: ${error.message}`);
+        return;
       }
+
+      console.log('[USERS] Raw data:', data);
 
       // Format the data to match our User interface
       const formattedUsers = data.map((item: any) => ({
@@ -68,9 +79,23 @@ export function UsersManagement() {
         roles: item.roles.map((role: any) => ({ name: role.roles.name }))
       }));
 
-      setUsers(formattedUsers);
+      console.log('[USERS] Formatted users:', formattedUsers);
+
+      // Validate users with Zod
+      const validatedUsers: User[] = [];
+      for (const user of formattedUsers) {
+        try {
+          const validUser = UserSchema.parse(user);
+          validatedUsers.push(validUser);
+        } catch (validationError) {
+          console.error('[USERS VALIDATION ERROR]', validationError);
+          // Continue with next user
+        }
+      }
+
+      setUsers(validatedUsers);
     } catch (error: any) {
-      console.error('Error fetching users:', error);
+      console.error('[USERS ERROR]', error);
       toast.error(`Failed to fetch users: ${error.message}`);
     } finally {
       setLoading(false);
@@ -81,19 +106,24 @@ export function UsersManagement() {
     if (!selectedUser) return;
 
     try {
-      // Delete the user account
-      // Note: This requires admin privileges in Supabase
+      console.log('[USERS DELETE] Attempting to delete user:', selectedUser.id);
+      
+      // Delete the user from auth
       const { error } = await supabase.auth.admin.deleteUser(
         selectedUser.id
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('[USERS DELETE ERROR]', error);
+        throw error;
+      }
 
+      console.log('[USERS DELETE] User deleted successfully');
       toast.success(`User ${selectedUser.email} deleted successfully`);
       setDeleteConfirmOpen(false);
       fetchUsers();
     } catch (error: any) {
-      console.error('Error deleting user:', error);
+      console.error('[USERS DELETE ERROR]', error);
       toast.error(`Failed to delete user: ${error.message}`);
     }
   };

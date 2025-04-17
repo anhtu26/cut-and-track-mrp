@@ -7,6 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { PartDocumentSchema } from "@/types/part";
+import { z } from "zod";
+import { useUserStore } from "@/stores/user-store";
 
 interface DocumentUploadProps {
   partId: string;
@@ -17,7 +20,8 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
-
+  const { user } = useUserStore();
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -76,8 +80,10 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         if (file.name.endsWith('.dxf')) fileType = 'application/dxf';
         if (file.name.endsWith('.stp')) fileType = 'application/step';
         
-        // Create storage path
-        const storagePath = `parts/${partId}/${fileName}`;
+        // Create consistent storage path format
+        const storagePath = `documents/${partId}/${fileName}`;
+        
+        console.log(`[DOCUMENT UPLOAD] Uploading file to ${storagePath}`);
         
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
@@ -85,35 +91,62 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
           .upload(storagePath, file);
         
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          console.error("[DOCUMENT UPLOAD ERROR]:", uploadError);
           throw uploadError;
         }
         
-        // Generate either a signed URL (for private files) or a public URL
+        // Generate a signed URL with longer expiration
         const { data: urlData, error: urlError } = await supabase.storage
           .from('documents')
           .createSignedUrl(storagePath, 60 * 60 * 24 * 7); // 7 days expiry
         
         if (urlError) {
-          console.error("Error generating URL:", urlError);
+          console.error("[URL GENERATION ERROR]:", urlError);
           throw urlError;
         }
         
         const fileUrl = urlData?.signedUrl || '';
         
+        // Validate the document data with Zod
+        const documentData = {
+          part_id: partId,
+          name: sanitizedName,
+          url: fileUrl,
+          type: fileType,
+          storagePath: storagePath,
+          uploaded_at: new Date().toISOString(),
+          uploaded_by: user?.id || null
+        };
+
         // Store document reference in database
-        const { error: docError } = await supabase
+        const { data: docData, error: docError } = await supabase
           .from('part_documents')
-          .insert({
-            part_id: partId,
-            name: sanitizedName,
-            url: fileUrl,
-            type: fileType
-          });
+          .insert(documentData)
+          .select();
         
         if (docError) {
-          console.error("Database error:", docError);
+          console.error("[DATABASE ERROR]:", docError);
           throw docError;
+        }
+        
+        // Validate the returned document data
+        try {
+          if (docData && docData[0]) {
+            const parsedDoc = PartDocumentSchema.parse({
+              id: docData[0].id,
+              name: docData[0].name,
+              url: docData[0].url,
+              uploadedAt: docData[0].uploaded_at,
+              type: docData[0].type,
+              size: file.size,
+              storagePath: storagePath
+            });
+            
+            console.log("[DOCUMENT VALIDATED]:", parsedDoc.id);
+          }
+        } catch (validationError) {
+          console.error("[VALIDATION ERROR]:", validationError);
+          // Continue with upload anyway, just log the validation error
         }
         
         completedFiles++;
@@ -124,7 +157,7 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
       setSelectedFiles([]);
       queryClient.invalidateQueries({ queryKey: ['part', partId] });
     } catch (error: any) {
-      console.error("Upload error:", error);
+      console.error("[UPLOAD ERROR]:", error);
       toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
     } finally {
       setUploading(false);

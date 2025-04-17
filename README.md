@@ -1,140 +1,114 @@
 
-# MRP System - Development Guidelines
+# Manufacturing Resource Planning System
 
-## Core Principles
+## Features
 
-### Production-First Approach
-- 🚨 **No Mock Data**: This application is built on real, actionable data from Supabase.
-- 🔍 **Workflow Integrity**: Every feature directly supports machine shop operational efficiency.
-- 📊 Real-time data and clear user interactions are our priority.
+- Part Management: Create, edit, and archive parts with operation templates
+- Work Order Management: Create and track work orders through the manufacturing process
+- Customer Management: Track customer information and orders
+- Document Storage: Upload and view PDF drawings and specifications  
+- User Management: Control access with roles and permissions
+- Responsive Design: Works on desktop, tablet, and mobile devices
 
-## Recent Changes
+## Technology Stack
 
-### User Management & PDF Viewer Enhancements (2025-04-19)
-- Added comprehensive user management system with roles and permissions
-- Implemented PDF viewer integration with Supabase Storage
-- Improved document handling with signed URLs for secure access
-- Added roles-based access controls for system features
-- Created admin interface for managing users, roles, and permissions
+- Frontend: React, TypeScript, Tailwind CSS, shadcn/ui
+- Backend: Supabase (PostgreSQL, Auth, Storage)
+- State Management: TanStack Query, Zustand
+- Routing: React Router
 
-### Schema Fixes (2025-04-18)
-- Added `customer_id` column to the `parts` table to link parts to preferred customers
-- Fixed the Dashboard TypeScript errors with proper typing and null handling
-- Enhanced error handling for undefined data from Supabase
-- Updated Build process to properly validate TypeScript types
+## PDF Document Storage and Viewing
 
-### Development Focus Reset (2025-04-17)
-- Removed all references to mock data
-- Committed to production-ready, Supabase-driven workflows
-- Emphasized error handling that preserves user experience
+Documents are stored securely in Supabase Storage. The system:
 
-### Previous Updates
-### Icon Fix (2025-04-17)
-- Fixed invalid lucide-react icon import in part-detail-tabs.tsx
-- Replaced non-existent `FilePdf` with valid `File` icon
-- Ensured consistent icon usage across the document viewer
+1. Uploads files to a structured path: `documents/{part_id}/{timestamp}-{filename}`
+2. Generates signed URLs for secure access
+3. Validates document structure via Zod
+4. Enforces proper permissions through Supabase RLS
+5. Tracks document access attempts in logs
+6. Shows error messaging when access is denied
 
-### Material Input Update (2025-04-17)
-- Simplified Material input from multi-select to text field
-- Fixed "undefined is not iterable" error in the material selection component
-- Materials are still stored as an array in the database (comma-separated input gets converted)
-- Enhanced validation and error handling
+### Document Naming Convention
 
-### Document Storage Enhancement (2025-04-17)
-- Integrated Supabase Storage for document management
-- Documents uploaded to Supabase with proper URLs
-- Improved document list UI with document type icons
-- Added file preview capability for PDFs and images
-
-### Mock Data Removal (2025-04-17)
-- Completely removed all mock data from the system
-- Dashboard now uses real Supabase queries for KPI metrics and recent work orders
-- Improved performance and reliability by connecting directly to Supabase
-
-### Part Library Schema Updates (2025-04-17)
-- Added customer_id column to parts table to link parts to preferred customers
-- Improved Part form with simplified material input
-- Fixed database schema to match frontend expectations
-
-### Part Library Cleanup (2025-04-16)
-- Removed deprecated "Setup Instructions" and "Machining Methods" fields from Part Detail/Edit views
-- These fields have been replaced by the Operation Templates system which provides better workflow management
-- Database columns are maintained but marked as deprecated for backward compatibility
-
-### Work Order Usability Improvements (2025-04-18)
-- Enhanced work order creation with operation template integration
-- Added explicit "useOperationTemplates" flag for better control
-- Implemented searchable Part selection for improved user experience with large catalogs
-- Fixed data issues to ensure consistent development and testing experience
-
-## PDF Viewer Integration
-The MRP system now includes a fully integrated PDF viewer that connects directly to Supabase Storage. Key features include:
-
-- Secure document storage in Supabase buckets
-- Automatic generation of signed URLs for document access
-- Support for PDF, image, DXF, and STP file formats
-- Comprehensive error handling and logging
-- Touch-friendly document controls for shop floor use
-
-To view documents:
-1. Navigate to the Parts detail page
-2. Click the "Documents" tab
-3. Select "View" on any document to open it in a new tab
+Documents follow this naming pattern:
+- Storage path: `documents/{part_id}/{timestamp}-{filename}`  
+- Database records include metadata like type, size, and upload date
 
 ## User Management System
 
 ### Database Schema
-The user management system uses the following database structure:
 
-- **profiles**: Stores user profile information linked to Supabase Auth
-- **roles**: Defines system roles (Admin, Manager, Machinist)
-- **permissions**: Granular permissions for system resources
-- **user_roles**: Maps users to roles
-- **role_permissions**: Maps roles to permissions
-- **user_groups**: Logical groupings of users
-- **user_group_members**: Maps users to groups
-- **group_roles**: Maps groups to roles
+The user system uses the following tables:
 
-### Permission Model
-The system implements a comprehensive permission model:
+- `profiles`: Extends Supabase Auth with user profile information
+- `roles`: Defines user roles (Admin, Manager, Machinist, etc.)
+- `permissions`: Individual access permissions for system resources
+- `user_roles`: Maps users to their assigned roles
+- `role_permissions`: Maps roles to their permissions
+- `user_groups`: Groups of users for organizational purposes
+- `user_group_members`: Maps users to groups
+- `group_roles`: Maps groups to roles for group-based permissions
 
-- **Resource-based**: Permissions are tied to specific resources (parts, work orders, etc.)
-- **Action-based**: Each resource has read/write permissions
-- **Role-based**: Users inherit permissions from assigned roles
-- **Group-based**: Users can inherit permissions from group memberships
-- **Hierarchical**: Managers can manage permissions for their direct reports
+### Role-Based Access Control
 
-### Admin Interface
-The settings page provides administrators with:
+The system implements RBAC with:
 
-- User management (create, edit, delete users)
-- Role configuration (create, edit roles and assign permissions)
-- Group management (create groups, assign users and roles)
-- System settings (configure application-wide settings)
+- **Admin Role**: Full system access
+- **Manager Role**: Can manage their team and create/edit work orders
+- **Machinist Role**: Can view work orders and track operation time
 
-## Error Handling Philosophy
-- Gracefully handle undefined or missing Supabase data
-- Log meaningful context without breaking user experience
-- Prioritize real-time, actionable information
+### Row-Level Security Policies
+
+Supabase RLS policies enforce:
+
+1. Users can only see resources they have permission to access
+2. Managers can only manage users in their team
+3. Role permissions control read/write access to system tables
+4. Most sensitive operations require Admin role
+
+## Debugging and Logging
+
+The system implements comprehensive logging:
+
+1. Debug mode toggle in settings (Admin only)
+2. Consistent console logging format: `[AREA] Message`
+3. Document access attempts are tracked
+4. User management actions are logged
+5. Logs can be cleared from settings
+6. Errors are consistently formatted and displayed to users
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Configure Supabase connection in `.env` file
+4. Start the development server: `npm run dev`
+5. Login with credentials:
+   - Admin: admin@example.com / admin
+   - Manager: manager@example.com / manager
+   - Machinist: machinist@example.com / machinist
 
 ## Testing
-To run tests for the PDF viewer and user management system:
 
-```bash
-npm run test:pdf
-npm run test:users
+Run tests:
 ```
-
-For comprehensive system tests:
-```bash
 npm test
 ```
 
-## Logging
-The system implements extensive logging for critical operations:
+The test suite includes:
+- PDF access validation across roles
+- User management workflow tests
+- Permission enforcement tests
 
-- Document access logs: `console.log("[DOCUMENT] Accessing document: <filename>")`
-- Permission checks: `console.log("[PERMISSION] Checking <permission> for user <id>")`
-- User management events: `console.log("[USER] <action> for user <id>")`
+## Error Handling
 
-Logs can be viewed in the browser console or collected by your logging service.
+The application implements consistent error handling:
+1. Client validation with Zod
+2. Detailed server-side error messages
+3. Error boundary for UI component failures
+4. Console logging for debugging
+5. User-friendly error messages
+
+## License
+
+This project is proprietary and confidential.

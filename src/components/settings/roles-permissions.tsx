@@ -1,33 +1,35 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { z } from "zod";
 
-interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  permissions: Permission[];
-}
+const PermissionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().nullable(),
+  resource: z.string().min(1, "Resource is required"),
+  action: z.string().min(1, "Action is required"),
+  assigned: z.boolean()
+});
 
-interface Permission {
-  id: string;
-  name: string;
-  description: string | null;
-  resource: string;
-  action: string;
-  assigned: boolean;
-}
+const RoleSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().nullable(),
+  permissions: z.array(PermissionSchema)
+});
+
+type Permission = z.infer<typeof PermissionSchema>;
+type Role = z.infer<typeof RoleSchema>;
 
 export function RolesPermissions() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -50,49 +52,78 @@ export function RolesPermissions() {
   async function fetchRolesAndPermissions() {
     try {
       setLoading(true);
+      console.log("[ROLES] Fetching roles and permissions");
       
-      // Fetch all roles
       const { data: rolesData, error: rolesError } = await supabase
         .from("roles")
-        .select("*");
+        .select("id, name, description");
         
-      if (rolesError) throw rolesError;
+      if (rolesError) {
+        console.error("[ROLES ERROR]", rolesError);
+        throw rolesError;
+      }
       
-      // Fetch all permissions
+      console.log("[ROLES] Roles data:", rolesData);
+      
       const { data: permissionsData, error: permissionsError } = await supabase
         .from("permissions")
-        .select("*");
+        .select("id, name, description, resource, action");
         
-      if (permissionsError) throw permissionsError;
+      if (permissionsError) {
+        console.error("[PERMISSIONS ERROR]", permissionsError);
+        throw permissionsError;
+      }
       
-      // Fetch role-permissions mapping
+      console.log("[PERMISSIONS] Permissions data:", permissionsData);
+      
       const { data: rolePermissionsData, error: rolePermissionsError } = await supabase
         .from("role_permissions")
-        .select("*");
+        .select("role_id, permission_id");
         
-      if (rolePermissionsError) throw rolePermissionsError;
+      if (rolePermissionsError) {
+        console.error("[ROLE PERMISSIONS ERROR]", rolePermissionsError);
+        throw rolePermissionsError;
+      }
       
-      // Format data
-      const formattedRoles = rolesData.map((role: any) => {
-        const rolePermissions = rolePermissionsData
-          .filter((rp: any) => rp.role_id === role.id)
-          .map((rp: any) => rp.permission_id);
+      console.log("[ROLE PERMISSIONS] Role-Permissions data:", rolePermissionsData);
+      
+      try {
+        const validatedPermissions = permissionsData.map((permission: any) => 
+          PermissionSchema.parse({
+            ...permission,
+            assigned: false
+          })
+        );
+        
+        setPermissions(validatedPermissions);
+        
+        const formattedRoles = rolesData.map((role: any) => {
+          const rolePermissions = rolePermissionsData
+            .filter((rp: any) => rp.role_id === role.id)
+            .map((rp: any) => rp.permission_id);
+            
+          const assignedPermissions = permissionsData.map((permission: any) => ({
+            ...permission,
+            assigned: rolePermissions.includes(permission.id)
+          }));
           
-        const assignedPermissions = permissionsData.map((permission: any) => ({
-          ...permission,
-          assigned: rolePermissions.includes(permission.id)
-        }));
+          return {
+            ...role,
+            permissions: assignedPermissions
+          };
+        });
         
-        return {
-          ...role,
-          permissions: assignedPermissions
-        };
-      });
-      
-      setRoles(formattedRoles);
-      setPermissions(permissionsData);
+        const validatedRoles = formattedRoles.map((role: any) => 
+          RoleSchema.parse(role)
+        );
+        
+        setRoles(validatedRoles);
+      } catch (validationError) {
+        console.error("[VALIDATION ERROR]", validationError);
+        toast.error("Failed to validate roles/permissions data");
+      }
     } catch (error: any) {
-      console.error("Error fetching roles and permissions:", error);
+      console.error("[ROLES AND PERMISSIONS ERROR]", error);
       toast.error(`Failed to load roles and permissions: ${error.message}`);
     } finally {
       setLoading(false);
@@ -103,22 +134,30 @@ export function RolesPermissions() {
     try {
       setSubmitting(true);
       
+      const roleData = {
+        name: formState.name,
+        description: formState.description || null
+      };
+      
+      console.log("[ROLES ADD] Creating new role:", roleData);
+      
       const { data, error } = await supabase
         .from("roles")
-        .insert({
-          name: formState.name,
-          description: formState.description || null
-        })
+        .insert(roleData)
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("[ROLES ADD ERROR]", error);
+        throw error;
+      }
       
+      console.log("[ROLES ADD] Role created:", data);
       toast.success("Role created successfully");
       setNewRoleDialogOpen(false);
       setFormState({ name: "", description: "" });
       fetchRolesAndPermissions();
     } catch (error: any) {
-      console.error("Error creating role:", error);
+      console.error("[ROLES ADD ERROR]", error);
       toast.error(`Failed to create role: ${error.message}`);
     } finally {
       setSubmitting(false);
@@ -131,21 +170,29 @@ export function RolesPermissions() {
     try {
       setSubmitting(true);
       
+      const roleData = {
+        name: formState.name,
+        description: formState.description || null
+      };
+      
+      console.log("[ROLES EDIT] Updating role:", selectedRole.id, roleData);
+      
       const { error } = await supabase
         .from("roles")
-        .update({
-          name: formState.name,
-          description: formState.description || null
-        })
+        .update(roleData)
         .eq("id", selectedRole.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error("[ROLES EDIT ERROR]", error);
+        throw error;
+      }
       
+      console.log("[ROLES EDIT] Role updated successfully");
       toast.success("Role updated successfully");
       setEditRoleDialogOpen(false);
       fetchRolesAndPermissions();
     } catch (error: any) {
-      console.error("Error updating role:", error);
+      console.error("[ROLES EDIT ERROR]", error);
       toast.error(`Failed to update role: ${error.message}`);
     } finally {
       setSubmitting(false);
@@ -157,19 +204,24 @@ export function RolesPermissions() {
     
     try {
       setSubmitting(true);
+      console.log("[ROLES DELETE] Deleting role:", selectedRole.id);
       
       const { error } = await supabase
         .from("roles")
         .delete()
         .eq("id", selectedRole.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error("[ROLES DELETE ERROR]", error);
+        throw error;
+      }
       
+      console.log("[ROLES DELETE] Role deleted successfully");
       toast.success("Role deleted successfully");
       setDeleteRoleDialogOpen(false);
       fetchRolesAndPermissions();
     } catch (error: any) {
-      console.error("Error deleting role:", error);
+      console.error("[ROLES DELETE ERROR]", error);
       toast.error(`Failed to delete role: ${error.message}`);
     } finally {
       setSubmitting(false);
@@ -178,24 +230,38 @@ export function RolesPermissions() {
 
   const handlePermissionToggle = async (roleId: string, permissionId: string, isAssigned: boolean) => {
     try {
+      console.log("[PERMISSION TOGGLE]", {
+        roleId,
+        permissionId,
+        currentlyAssigned: isAssigned,
+        action: isAssigned ? "remove" : "add"
+      });
+      
       if (isAssigned) {
-        // Remove permission from role
         const { error } = await supabase
           .from("role_permissions")
           .delete()
           .match({ role_id: roleId, permission_id: permissionId });
           
-        if (error) throw error;
+        if (error) {
+          console.error("[PERMISSION REMOVE ERROR]", error);
+          throw error;
+        }
+        
+        console.log("[PERMISSION REMOVE] Permission removed successfully");
       } else {
-        // Add permission to role
         const { error } = await supabase
           .from("role_permissions")
           .insert({ role_id: roleId, permission_id: permissionId });
           
-        if (error) throw error;
+        if (error) {
+          console.error("[PERMISSION ADD ERROR]", error);
+          throw error;
+        }
+        
+        console.log("[PERMISSION ADD] Permission added successfully");
       }
       
-      // Update local state
       setRoles(roles.map(role => {
         if (role.id === roleId) {
           return {
@@ -213,14 +279,12 @@ export function RolesPermissions() {
       
       toast.success(`Permission ${isAssigned ? "removed from" : "added to"} role`);
     } catch (error: any) {
-      console.error("Error toggling permission:", error);
+      console.error("[PERMISSION TOGGLE ERROR]", error);
       toast.error(`Failed to update permission: ${error.message}`);
-      // Refresh data to ensure consistent state
       fetchRolesAndPermissions();
     }
   };
 
-  // Group permissions by resource for better organization
   const groupedPermissions = permissions.reduce((acc: Record<string, Permission[]>, permission) => {
     if (!acc[permission.resource]) {
       acc[permission.resource] = [];
@@ -280,7 +344,7 @@ export function RolesPermissions() {
                       setSelectedRole(role);
                       setDeleteRoleDialogOpen(true);
                     }}
-                    disabled={role.name === "Admin"} // Prevent deleting Admin role
+                    disabled={role.name === "Admin"}
                   >
                     <TrashIcon className="h-4 w-4 mr-2" />
                     Delete
@@ -321,7 +385,7 @@ export function RolesPermissions() {
                                 id={`${role.id}-${permission.id}`}
                                 checked={isAssigned}
                                 onCheckedChange={() => handlePermissionToggle(role.id, permission.id, isAssigned)}
-                                disabled={role.name === "Admin"} // Admin always has all permissions
+                                disabled={role.name === "Admin"}
                               />
                             </div>
                           );
@@ -336,7 +400,6 @@ export function RolesPermissions() {
         </div>
       )}
 
-      {/* Add Role Dialog */}
       <Dialog open={newRoleDialogOpen} onOpenChange={setNewRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -383,7 +446,6 @@ export function RolesPermissions() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Dialog */}
       <Dialog open={editRoleDialogOpen} onOpenChange={setEditRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -400,7 +462,7 @@ export function RolesPermissions() {
                 placeholder="Enter role name"
                 value={formState.name}
                 onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                disabled={selectedRole?.name === "Admin"} // Prevent editing Admin role name
+                disabled={selectedRole?.name === "Admin"}
               />
             </div>
             <div className="space-y-2">
@@ -431,7 +493,6 @@ export function RolesPermissions() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Role Confirmation */}
       <Dialog open={deleteRoleDialogOpen} onOpenChange={setDeleteRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
