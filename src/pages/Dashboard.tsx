@@ -86,11 +86,11 @@ export default function Dashboard() {
         dueDate: order.due_date,
         part: {
           id: order.part_id,
-          name: order.parts?.name || 'Unknown Part'
+          name: order.parts && typeof order.parts === 'object' ? order.parts.name : 'Unknown Part'
         },
         customer: {
           id: order.customer_id,
-          name: order.customers?.name || 'Unknown Customer'
+          name: order.customers && typeof order.customers === 'object' ? order.customers.name : 'Unknown Customer'
         } as Customer
       })) as WorkOrder[];
     },
