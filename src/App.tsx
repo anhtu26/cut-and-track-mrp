@@ -27,6 +27,7 @@ import AddPart from "./pages/AddPart";
 import EditPart from "./pages/EditPart";
 import AddCustomer from "./pages/AddCustomer";
 import EditCustomer from "./pages/EditCustomer";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +81,9 @@ const App = () => (
               <Route path="/customers/new" element={<AddCustomer />} />
               <Route path="/customers/:customerId" element={<CustomerDetail />} />
               <Route path="/customers/:customerId/edit" element={<EditCustomer />} />
+              
+              {/* Settings Routes */}
+              <Route path="/settings" element={<Settings />} />
             </Route>
             
             <Route path="/" element={<Login />} />

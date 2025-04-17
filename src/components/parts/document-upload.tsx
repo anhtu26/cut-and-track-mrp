@@ -84,12 +84,22 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
           .from('documents')
           .upload(storagePath, file);
         
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          throw uploadError;
+        }
         
-        // Get the public URL
-        const { data: urlData } = supabase.storage
+        // Generate either a signed URL (for private files) or a public URL
+        const { data: urlData, error: urlError } = await supabase.storage
           .from('documents')
-          .getPublicUrl(storagePath);
+          .createSignedUrl(storagePath, 60 * 60 * 24 * 7); // 7 days expiry
+        
+        if (urlError) {
+          console.error("Error generating URL:", urlError);
+          throw urlError;
+        }
+        
+        const fileUrl = urlData?.signedUrl || '';
         
         // Store document reference in database
         const { error: docError } = await supabase
@@ -97,11 +107,14 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
           .insert({
             part_id: partId,
             name: sanitizedName,
-            url: urlData.publicUrl,
+            url: fileUrl,
             type: fileType
           });
         
-        if (docError) throw docError;
+        if (docError) {
+          console.error("Database error:", docError);
+          throw docError;
+        }
         
         completedFiles++;
         setProgress(Math.round((completedFiles / totalFiles) * 100));

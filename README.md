@@ -10,6 +10,13 @@
 
 ## Recent Changes
 
+### User Management & PDF Viewer Enhancements (2025-04-19)
+- Added comprehensive user management system with roles and permissions
+- Implemented PDF viewer integration with Supabase Storage
+- Improved document handling with signed URLs for secure access
+- Added roles-based access controls for system features
+- Created admin interface for managing users, roles, and permissions
+
 ### Schema Fixes (2025-04-18)
 - Added `customer_id` column to the `parts` table to link parts to preferred customers
 - Fixed the Dashboard TypeScript errors with proper typing and null handling
@@ -60,7 +67,74 @@
 - Implemented searchable Part selection for improved user experience with large catalogs
 - Fixed data issues to ensure consistent development and testing experience
 
+## PDF Viewer Integration
+The MRP system now includes a fully integrated PDF viewer that connects directly to Supabase Storage. Key features include:
+
+- Secure document storage in Supabase buckets
+- Automatic generation of signed URLs for document access
+- Support for PDF, image, DXF, and STP file formats
+- Comprehensive error handling and logging
+- Touch-friendly document controls for shop floor use
+
+To view documents:
+1. Navigate to the Parts detail page
+2. Click the "Documents" tab
+3. Select "View" on any document to open it in a new tab
+
+## User Management System
+
+### Database Schema
+The user management system uses the following database structure:
+
+- **profiles**: Stores user profile information linked to Supabase Auth
+- **roles**: Defines system roles (Admin, Manager, Machinist)
+- **permissions**: Granular permissions for system resources
+- **user_roles**: Maps users to roles
+- **role_permissions**: Maps roles to permissions
+- **user_groups**: Logical groupings of users
+- **user_group_members**: Maps users to groups
+- **group_roles**: Maps groups to roles
+
+### Permission Model
+The system implements a comprehensive permission model:
+
+- **Resource-based**: Permissions are tied to specific resources (parts, work orders, etc.)
+- **Action-based**: Each resource has read/write permissions
+- **Role-based**: Users inherit permissions from assigned roles
+- **Group-based**: Users can inherit permissions from group memberships
+- **Hierarchical**: Managers can manage permissions for their direct reports
+
+### Admin Interface
+The settings page provides administrators with:
+
+- User management (create, edit, delete users)
+- Role configuration (create, edit roles and assign permissions)
+- Group management (create groups, assign users and roles)
+- System settings (configure application-wide settings)
+
 ## Error Handling Philosophy
 - Gracefully handle undefined or missing Supabase data
 - Log meaningful context without breaking user experience
 - Prioritize real-time, actionable information
+
+## Testing
+To run tests for the PDF viewer and user management system:
+
+```bash
+npm run test:pdf
+npm run test:users
+```
+
+For comprehensive system tests:
+```bash
+npm test
+```
+
+## Logging
+The system implements extensive logging for critical operations:
+
+- Document access logs: `console.log("[DOCUMENT] Accessing document: <filename>")`
+- Permission checks: `console.log("[PERMISSION] Checking <permission> for user <id>")`
+- User management events: `console.log("[USER] <action> for user <id>")`
+
+Logs can be viewed in the browser console or collected by your logging service.

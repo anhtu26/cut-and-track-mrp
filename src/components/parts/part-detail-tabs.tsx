@@ -6,6 +6,9 @@ import { OperationTemplatesList } from "./operation-templates-list";
 import { Link } from "react-router-dom";
 import { DocumentUpload } from "./document-upload";
 import { FileText, File, Image } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -24,6 +27,7 @@ export function PartDetailTabs({
   operationTemplates = [],
   workOrders = []
 }: PartDetailTabsProps) {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Helper function to get appropriate icon for document type
   const getDocumentIcon = (type: string) => {
@@ -38,6 +42,40 @@ export function PartDetailTabs({
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Function to get a fresh URL for a document
+  const handleDocumentClick = async (document: PartDocument) => {
+    try {
+      // Extract the file path from the URL or use document path
+      const pathMatch = document.url.match(/\/documents\/([^?]+)/);
+      
+      if (!pathMatch) {
+        // If we can't extract path, just open the existing URL
+        window.open(document.url, '_blank');
+        return;
+      }
+      
+      const filePath = pathMatch[1];
+      
+      // Get fresh signed URL
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 60 * 60); // 1 hour
+      
+      if (error) {
+        console.error("Error getting document URL:", error);
+        toast.error("Failed to access document. Please try again.");
+        return;
+      }
+      
+      // Open document in new tab
+      window.open(data.signedUrl, '_blank');
+      
+    } catch (error) {
+      console.error("Error opening document:", error);
+      toast.error("Failed to open document. Please try again.");
+    }
   };
 
   return (
@@ -166,17 +204,13 @@ export function PartDetailTabs({
                         </div>
                       </div>
                     </div>
-                    {doc.url && (
-                      <a 
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
-                        onClick={() => console.log(`Opening document: ${doc.name}`)}
-                      >
-                        View
-                      </a>
-                    )}
+                    <button 
+                      onClick={() => handleDocumentClick(doc)}
+                      className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
+                      aria-label={`View ${doc.name}`}
+                    >
+                      View
+                    </button>
                   </li>
                 ))}
               </ul>
