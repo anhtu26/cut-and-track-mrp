@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -126,20 +127,34 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
+// FIXED: Initialize state outside component to prevent SSR issues
+const defaultState: State = { toasts: [] }
+let memoryState: State = defaultState
+
 const listeners: Array<(state: State) => void> = []
 
-let memoryState: State = { toasts: [] }
+// Guard for SSR
+const isClient = typeof window !== 'undefined'
 
 function dispatch(action: Action) {
+  if (!isClient) return defaultState
+
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
     listener(memoryState)
   })
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.debug("Toast state updated", { action, stateToastCount: memoryState.toasts.length });
+  }
 }
 
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  // Guard for SSR
+  if (!isClient) return { id: '', dismiss: () => {}, update: () => {} }
+  
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -169,18 +184,24 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
+  // FIXED: Always initialize the state hook even if we're in SSR
+  // Then populate with correct data when appropriate
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
+    // Only attempt to use listeners on the client
+    if (isClient) {
+      listeners.push(setState)
+      return () => {
+        const index = listeners.indexOf(setState)
+        if (index > -1) {
+          listeners.splice(index, 1)
+        }
       }
     }
   }, [state])
 
+  // Return consistent API regardless of environment
   return {
     ...state,
     toast,

@@ -11,24 +11,38 @@ import {
 import { useEffect, useState } from "react";
 
 export function Toaster() {
-  // Use client-side only rendering to avoid Zustand SSR issues
+  // FIXED: Ensure hooks are called in the same order every render
+  // Always initialize state variables first, then use them conditionally
   const [mounted, setMounted] = useState(false);
+  // Create a state to hold the toast data once we're mounted
+  const [toastState, setToastState] = useState<{ toasts: any[] }>({ toasts: [] });
   
   useEffect(() => {
-    setMounted(true);
+    // Only access useToast hook on the client side
+    if (typeof window !== 'undefined') {
+      setMounted(true);
+      try {
+        // Get toasts once we're mounted
+        const { toasts } = useToast();
+        setToastState({ toasts });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.debug("Toaster mounted successfully, hooks intact");
+        }
+      } catch (error) {
+        console.error("Error initializing toast system:", error);
+      }
+    }
   }, []);
   
-  // Don't render anything during SSR
+  // Don't render anything during SSR or before mounting
   if (!mounted) {
     return null;
   }
-  
-  // Now that we're client-side, it's safe to use the hook
-  const { toasts } = useToast();
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toastState.toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
