@@ -5,7 +5,7 @@ import { PartDocument, OperationTemplate } from "@/types/part";
 import { OperationTemplatesList } from "./operation-templates-list";
 import { Link } from "react-router-dom";
 import { DocumentUpload } from "./document-upload";
-import { FileText, FilePdf, FileImage } from "lucide-react";
+import { FileText, File, Image } from "lucide-react";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -27,8 +27,8 @@ export function PartDetailTabs({
   
   // Helper function to get appropriate icon for document type
   const getDocumentIcon = (type: string) => {
-    if (type.includes('pdf')) return <FilePdf className="h-4 w-4" />;
-    if (type.includes('image')) return <FileImage className="h-4 w-4" />;
+    if (type.includes('pdf')) return <File className="h-4 w-4" />;
+    if (type.includes('image')) return <Image className="h-4 w-4" />;
     return <FileText className="h-4 w-4" />;
   };
   

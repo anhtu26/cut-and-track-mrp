@@ -3,6 +3,11 @@
 
 ## Recent Changes
 
+### Icon Fix (2025-04-17)
+- Fixed invalid lucide-react icon import in part-detail-tabs.tsx
+- Replaced non-existent `FilePdf` with valid `File` icon
+- Ensured consistent icon usage across the document viewer
+
 ### Material Input Update (2025-04-17)
 - Simplified Material input from multi-select to text field
 - Fixed "undefined is not iterable" error in the material selection component
