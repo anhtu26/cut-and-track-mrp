@@ -1,4 +1,3 @@
-
 import { Customer } from "./customer";
 import { Part } from "./part";
 import { Operation } from "./operation";
@@ -32,7 +31,7 @@ export interface WorkOrder {
   archived: boolean;
   archivedAt?: string;
   archiveReason?: string;
-  useOperationTemplates: boolean; // Field is now explicitly typed
+  useOperationTemplates?: boolean; // This field is now explicitly typed
 }
 
 export interface CreateWorkOrderInput {
