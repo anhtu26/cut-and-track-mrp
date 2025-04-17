@@ -89,7 +89,9 @@ export function UsersManagement() {
           last_name: item.last_name,
           department: item.department,
           job_title: item.job_title,
-          roles: item.roles.map((role: any) => ({ name: role.roles.name }))
+          roles: Array.isArray(item.roles) ? item.roles.map((role: any) => ({ 
+            name: role.roles?.name || 'Unknown role' 
+          })) : []
         };
         
         console.log('[USERS] Processing user:', userData);
