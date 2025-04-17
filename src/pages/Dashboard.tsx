@@ -78,7 +78,7 @@ export default function Dashboard() {
         return [];
       }
 
-      // Properly map the data to match the WorkOrder type
+      // Fixed: Properly map the data to match the WorkOrder type
       return data.map(order => ({
         id: order.id,
         workOrderNumber: order.work_order_number,

@@ -1,3 +1,4 @@
+
 # MRP System - Development Guidelines
 
 ## Core Principles
@@ -8,6 +9,12 @@
 - 📊 Real-time data and clear user interactions are our priority.
 
 ## Recent Changes
+
+### Schema Fixes (2025-04-18)
+- Added `customer_id` column to the `parts` table to link parts to preferred customers
+- Fixed the Dashboard TypeScript errors with proper typing and null handling
+- Enhanced error handling for undefined data from Supabase
+- Updated Build process to properly validate TypeScript types
 
 ### Development Focus Reset (2025-04-17)
 - Removed all references to mock data
