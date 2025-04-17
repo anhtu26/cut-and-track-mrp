@@ -1,4 +1,3 @@
-
 import { Customer } from "@/types/customer";
 import { Operation } from "@/types/operation";
 import { Part } from "@/types/part";
@@ -10,33 +9,27 @@ export const mockCustomers: Customer[] = [
     id: "cust1",
     name: "Acme Corp",
     company: "Acme Corporation",
-    contactEmail: "john.doe@acme.com",
-    contactPhone: "555-123-4567",
+    email: "john.doe@acme.com",
+    phone: "555-123-4567",
     address: "123 Main St",
-    city: "Anytown",
-    state: "CA",
-    zip: "91234",
-    country: "USA",
+    active: true,
     notes: "Preferred customer",
     createdAt: "2023-05-01",
     updatedAt: "2023-05-01",
-    archived: false,
+    orderCount: 0,
   },
   {
     id: "cust2",
     name: "Beta Industries",
     company: "Beta Industries",
-    contactEmail: "jane.smith@beta.com",
-    contactPhone: "555-987-6543",
+    email: "jane.smith@beta.com",
+    phone: "555-987-6543",
     address: "456 Elm St",
-    city: "Springfield",
-    state: "IL",
-    zip: "62704",
-    country: "USA",
+    active: true,
     notes: "New customer",
     createdAt: "2023-05-05",
     updatedAt: "2023-05-05",
-    archived: false,
+    orderCount: 0,
   },
 ];
 
