@@ -18,6 +18,11 @@ const RoleSchema = z.object({
   assigned: z.boolean()
 });
 
+const UserRoleSchema = z.object({
+  user_id: z.string().uuid(),
+  role_id: z.string().uuid()
+});
+
 const UserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email("Invalid email"),
@@ -68,8 +73,8 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
       // Fetch user's current roles with explicit table aliases
       const { data: userRolesData, error: userRolesError } = await supabase
         .from("user_roles")
-        .select("user_roles.role_id")
-        .eq("user_roles.user_id", user.id);
+        .select("role_id")
+        .eq("user_id", user.id);
         
       if (userRolesError) {
         console.error("[USER PERMISSIONS ERROR] Failed to fetch user roles:", userRolesError);
@@ -78,16 +83,28 @@ export function UserPermissionsDialog({ open, onOpenChange, user, onSuccess }: U
       
       console.log("[USER PERMISSIONS] User roles data:", userRolesData);
       
-      // Extract role IDs assigned to the user
-      const assignedRoleIds = userRolesData.map(ur => ur.role_id);
-      setUserRoles(assignedRoleIds);
+      // Type-safe extraction of role IDs
+      // Parse the data through Zod schema to ensure type safety
+      const validUserRoles = userRolesData.map(role => {
+        try {
+          // Validate the data format first
+          const validRole = { user_id: user.id, role_id: role.role_id };
+          // Now parse it with Zod
+          return UserRoleSchema.parse(validRole).role_id;
+        } catch (validationError) {
+          console.error("[USER ROLES VALIDATION ERROR]", validationError);
+          return null; // Skip invalid entries
+        }
+      }).filter(Boolean) as string[]; // Filter out nulls and assert type
+      
+      setUserRoles(validUserRoles);
       
       // Format roles with assignment status
       const formattedRoles = rolesData.map((role: any) => ({
         id: role.id,
         name: role.name,
         description: role.description,
-        assigned: assignedRoleIds.includes(role.id)
+        assigned: validUserRoles.includes(role.id)
       }));
       
       // Validate roles with Zod

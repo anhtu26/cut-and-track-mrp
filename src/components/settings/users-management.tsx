@@ -28,6 +28,17 @@ const UserSchema = z.object({
 
 type User = z.infer<typeof UserSchema>;
 
+// Define a separate type for partial user data that may be coming from forms or API responses
+type PartialUserData = {
+  id: string; // Make id required to match User type
+  email: string; // Make email required as it's a core identifier
+  first_name: string | null;
+  last_name: string | null;
+  department: string | null;
+  job_title: string | null;
+  roles: { name: string }[];
+};
+
 export function UsersManagement() {
   const { user: currentUser } = useUserStore();
   const [users, setUsers] = useState<User[]>([]);
@@ -69,23 +80,30 @@ export function UsersManagement() {
       console.log('[USERS] Raw data:', data);
 
       // Format the data to match our User interface
-      const formattedUsers = data.map((item: any) => ({
-        id: item.id,
-        email: item.auth_users?.email || 'Unknown email',
-        first_name: item.first_name,
-        last_name: item.last_name,
-        department: item.department,
-        job_title: item.job_title,
-        roles: item.roles.map((role: any) => ({ name: role.roles.name }))
-      }));
+      const formattedUsers = data.map((item: any) => {
+        // Create a properly structured user object that satisfies the PartialUserData type
+        const userData: PartialUserData = {
+          id: item.id,
+          email: item.auth_users?.email || 'Unknown email',
+          first_name: item.first_name,
+          last_name: item.last_name,
+          department: item.department,
+          job_title: item.job_title,
+          roles: item.roles.map((role: any) => ({ name: role.roles.name }))
+        };
+        
+        console.log('[USERS] Processing user:', userData);
+        return userData;
+      });
 
       console.log('[USERS] Formatted users:', formattedUsers);
 
       // Validate users with Zod
       const validatedUsers: User[] = [];
-      for (const user of formattedUsers) {
+      for (const userData of formattedUsers) {
         try {
-          const validUser = UserSchema.parse(user);
+          // Explicitly pass to Zod for validation
+          const validUser = UserSchema.parse(userData);
           validatedUsers.push(validUser);
         } catch (validationError) {
           console.error('[USERS VALIDATION ERROR]', validationError);
