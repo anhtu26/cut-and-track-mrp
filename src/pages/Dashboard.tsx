@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserStore } from "@/stores/user-store";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KPIMetrics } from "@/components/dashboard/kpi-metrics";
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
 import { WorkOrder } from "@/types/work-order";
+import { Customer } from "@/types/customer";  // Add this import
 
 export default function Dashboard() {
   const { user } = useUserStore();
