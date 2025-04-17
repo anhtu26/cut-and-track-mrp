@@ -3,13 +3,24 @@
 
 ## Recent Changes
 
-### Part Library Cleanup (2025-04-17)
+### Mock Data Removal (2025-04-17)
+- Completely removed all mock data from the system
+- Dashboard now uses real Supabase queries for KPI metrics and recent work orders
+- Improved performance and reliability by connecting directly to Supabase
+
+### Part Library Schema Updates (2025-04-17)
+- Added customer_id column to parts table to link parts to preferred customers
+- Improved Part form with fully functional material selection
+- Fixed database schema to match frontend expectations
+
+### Part Library Cleanup (2025-04-16)
 - Removed deprecated "Setup Instructions" and "Machining Methods" fields from Part Detail/Edit views
 - These fields have been replaced by the Operation Templates system which provides better workflow management
 - Database columns are maintained but marked as deprecated for backward compatibility
 
 ### Material Selection Fix
 - Fixed an issue with Material dropdown not working in the Part form
+- Added multi-select capability for materials with improved UX
 - Ensured proper data binding and validation
 
 ### Document Upload Feature Added
@@ -21,9 +32,14 @@
 - Enhanced work order creation with operation template integration
 - Added explicit "useOperationTemplates" flag for better control
 - Implemented searchable Part selection for improved user experience with large catalogs
-- Fixed mock data issues to ensure consistent development and testing experience
+- Fixed data issues to ensure consistent development and testing experience
 
 ## Usage Notes
+
+### Material Selection
+1. When creating or editing a part, you can now select multiple materials from the dropdown
+2. Type to search for materials or click to select from the list
+3. Selected materials appear as badges that can be removed individually
 
 ### Document Upload
 1. Navigate to a Part Detail page
@@ -51,15 +67,15 @@ This component allows users to:
 ## Technical Notes
 
 ### Database Schema Updates
+- Added customer_id column to parts table
 - Deprecated fields are maintained for backward compatibility
-- New part_documents table for storing document metadata
+- Part documents are stored in the part_documents table
 
 ### Security Measures
 - Document upload includes ITAR-compliant validation
 - Access control ensures proper user permissions for document management
 
-### Dev Mode Mock Data
-- Fixed missing mockKpiData to ensure dashboard renders correctly in dev mode
-- Updated mock data structure to match WorkOrder type requirements
-- Cast mock data to ensure type safety across the application
-
+### UX Improvements
+- Increased button sizes and text for better usability on touch screens
+- Added more contrast for better visibility in shop environments
+- Simplified navigation and workflows for non-technical users

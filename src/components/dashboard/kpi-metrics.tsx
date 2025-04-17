@@ -16,6 +16,9 @@ export function KPIMetrics({
   utilization,
   monthlyRevenue,
 }: KPIMetricsProps) {
+  // Get current month name
+  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <CardStats
@@ -44,7 +47,7 @@ export function KPIMetrics({
       <CardStats
         title="Monthly Revenue"
         value={`$${monthlyRevenue.toLocaleString()}`}
-        description="April 2025"
+        description={currentMonth}
         icon={<DollarSign className="h-5 w-5" />}
       />
     </div>

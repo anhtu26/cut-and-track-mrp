@@ -69,9 +69,9 @@ export default function AddPart() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="outline" asChild size="sm">
+        <Button variant="outline" asChild size="sm" className="h-10 px-4 text-base">
           <Link to="/parts">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="mr-2 h-5 w-5" />
             Back to Parts
           </Link>
         </Button>
@@ -79,7 +79,7 @@ export default function AddPart() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Part</CardTitle>
+          <CardTitle className="text-2xl">Add New Part</CardTitle>
         </CardHeader>
         <CardContent>
           <PartForm onSubmit={handleSubmit} isSubmitting={isPending} />

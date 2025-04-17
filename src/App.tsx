@@ -28,7 +28,15 @@ import EditPart from "./pages/EditPart";
 import AddCustomer from "./pages/AddCustomer";
 import EditCustomer from "./pages/EditCustomer";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
