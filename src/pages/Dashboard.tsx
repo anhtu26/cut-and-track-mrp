@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserStore } from "@/stores/user-store";
@@ -85,11 +86,13 @@ export default function Dashboard() {
         dueDate: order.due_date,
         part: {
           id: order.part_id,
-          name: order.part && typeof order.part === 'object' ? order.part.name : 'Unknown Part'
+          // Fixed: Access the name property correctly if part is an object
+          name: order.part?.name || 'Unknown Part'
         },
         customer: {
           id: order.customer_id,
-          name: order.customer && typeof order.customer === 'object' ? order.customer.name : 'Unknown Customer'
+          // Fixed: Access the name property correctly if customer is an object
+          name: order.customer?.name || 'Unknown Customer'
         } as Customer
       })) as WorkOrder[];
     },
