@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserStore } from "@/stores/user-store";
@@ -67,8 +66,8 @@ export default function Dashboard() {
           due_date,
           part_id,
           customer_id,
-          parts:part_id(name),
-          customers:customer_id(name)
+          part:part_id(name),
+          customer:customer_id(name)
         `)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -86,11 +85,15 @@ export default function Dashboard() {
         dueDate: order.due_date,
         part: {
           id: order.part_id,
-          name: order.parts && typeof order.parts === 'object' ? order.parts.name : 'Unknown Part'
+          name: Array.isArray(order.part) && order.part.length > 0 && order.part[0]?.name
+    ? order.part[0].name
+    : 'Unknown Part'
         },
         customer: {
           id: order.customer_id,
-          name: order.customers && typeof order.customers === 'object' ? order.customers.name : 'Unknown Customer'
+          name: Array.isArray(order.customer) && order.customer.length > 0 && order.customer[0]?.name
+    ? order.customer[0].name
+    : 'Unknown Customer'
         } as Customer
       })) as WorkOrder[];
     },

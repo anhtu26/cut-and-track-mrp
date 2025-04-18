@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,20 +46,12 @@ export default function UserManagement() {
 
   const handleAddUser = async (email: string, password: string, role: UserRole) => {
     try {
-      // Use the Edge Function to create the user
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/create-user`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${session?.access_token}`,
-          "Content-Type": "application/json",
-        },
+      // Use Supabase Functions to create the user
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
         body: JSON.stringify({ email, password, role }),
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to create user");
+      if (error) {
+        throw error;
       }
 
       toast.success(`User ${email} created successfully with role ${role}`);
