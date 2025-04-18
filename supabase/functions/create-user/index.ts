@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the Auth context of the logged-in user
+    // Create a Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -148,8 +148,7 @@ serve(async (req) => {
       .insert({
         id: newUser.user.id,
         email: email,
-        role: role,
-        created_at: new Date().toISOString()
+        role: role
       })
 
     if (roleInsertError) {

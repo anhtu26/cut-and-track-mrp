@@ -17,6 +17,7 @@ import { AddUserDialog } from "@/components/user-management/add-user-dialog";
 import { EditUserDialog } from "@/components/user-management/edit-user-dialog";
 import { DeleteUserDialog } from "@/components/user-management/delete-user-dialog";
 import { useAuthContext } from "@/providers/auth-provider";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface User {
   id: string;
@@ -30,7 +31,7 @@ export default function UserManagement() {
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { session } = useAuthContext();
+  const { session, user: currentUser } = useAuthContext();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, refetch } = useQuery({
@@ -47,9 +48,13 @@ export default function UserManagement() {
         return [];
       }
 
+      console.log("Fetched users:", data);
       return data as User[];
     },
   });
+
+  // Filter out the current Administrator user from the display list
+  const filteredUsers = users.filter(u => u.id !== currentUser?.id);
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -174,7 +179,7 @@ export default function UserManagement() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading users...</div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No users found</p>
               <Button 
@@ -188,20 +193,20 @@ export default function UserManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Email</th>
-                    <th className="text-left py-3 px-4">Role</th>
-                    <th className="text-left py-3 px-4">Created</th>
-                    <th className="text-left py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b">
-                      <td className="py-3 px-4">{user.email}</td>
-                      <td className="py-3 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
                         <span className={`inline-block px-2 py-1 text-xs rounded ${
                           user.role === 'Administrator' 
                             ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
@@ -213,15 +218,14 @@ export default function UserManagement() {
                         }`}>
                           {user.role}
                         </span>
-                      </td>
-                      <td className="py-3 px-4">{new Date(user.created_at).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">
+                      </TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
                         <div className="flex space-x-2">
                           <Button 
                             variant="outline" 
                             size="sm" 
                             onClick={() => handleEditUser(user)}
-                            disabled={user.role === 'Administrator' && users.filter(u => u.role === 'Administrator').length <= 1}
                           >
                             <Edit2 className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
@@ -231,17 +235,16 @@ export default function UserManagement() {
                             size="sm" 
                             className="text-red-500 hover:text-red-600"
                             onClick={() => handleDeleteUser(user)}
-                            disabled={user.role === 'Administrator' && users.filter(u => u.role === 'Administrator').length <= 1}
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
                           </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
