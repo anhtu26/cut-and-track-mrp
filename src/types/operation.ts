@@ -1,4 +1,3 @@
-
 import { Part } from "./part";
 
 export type OperationStatus = "Not Started" | "In Progress" | "QC" | "Complete";
@@ -33,8 +32,8 @@ export interface OperationDocument {
   id: string;
   name: string;
   url: string;
-  uploadedAt: string;
   type: string;
+  uploadedAt: string;
 }
 
 export interface CreateOperationInput {

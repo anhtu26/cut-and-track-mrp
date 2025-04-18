@@ -98,6 +98,51 @@ export type Database = {
           },
         ]
       }
+      operation_documents: {
+        Row: {
+          id: string
+          name: string
+          operation_id: string
+          size: number | null
+          type: string
+          uploaded_at: string | null
+          url: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          operation_id: string
+          size?: number | null
+          type: string
+          uploaded_at?: string | null
+          url: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          operation_id?: string
+          size?: number | null
+          type?: string
+          uploaded_at?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_operation"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_documents_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_templates: {
         Row: {
           created_at: string
