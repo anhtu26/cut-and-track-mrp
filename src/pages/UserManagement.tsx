@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Card, 
@@ -10,10 +10,12 @@ import {
   CardContent 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Trash2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { UserRole } from "@/hooks/use-auth";
 import { AddUserDialog } from "@/components/user-management/add-user-dialog";
+import { EditUserDialog } from "@/components/user-management/edit-user-dialog";
+import { DeleteUserDialog } from "@/components/user-management/delete-user-dialog";
 import { useAuthContext } from "@/providers/auth-provider";
 
 interface User {
@@ -25,7 +27,11 @@ interface User {
 
 export default function UserManagement() {
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { session } = useAuthContext();
+  const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ["users"],
@@ -42,6 +48,54 @@ export default function UserManagement() {
       }
 
       return data as User[];
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      try {
+        const { error } = await supabase.functions.invoke('delete-user', {
+          body: JSON.stringify({ userId }),
+        });
+
+        if (error) throw error;
+        
+        return userId;
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(`User deleted successfully`);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to delete user");
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string, role: UserRole }) => {
+      try {
+        const { error } = await supabase.functions.invoke('update-user', {
+          body: JSON.stringify({ userId, role }),
+        });
+
+        if (error) throw error;
+        
+        return { userId, role };
+      } catch (error) {
+        console.error("Error updating user:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(`User updated successfully`);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update user");
     },
   });
 
@@ -62,6 +116,40 @@ export default function UserManagement() {
     } catch (error) {
       console.error("Error creating user:", error);
       toast.error(error instanceof Error ? error.message : "Failed to create user");
+      return false;
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditUserDialogOpen(true);
+  };
+
+  const handleUpdateUser = async (role: UserRole) => {
+    if (!selectedUser) return false;
+    
+    try {
+      await updateUserMutation.mutateAsync({ userId: selectedUser.id, role });
+      setEditUserDialogOpen(false);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user);
+    setDeleteUserDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return false;
+    
+    try {
+      await deleteUserMutation.mutateAsync(selectedUser.id);
+      setDeleteUserDialogOpen(false);
+      return true;
+    } catch (error) {
       return false;
     }
   };
@@ -106,6 +194,7 @@ export default function UserManagement() {
                     <th className="text-left py-3 px-4">Email</th>
                     <th className="text-left py-3 px-4">Role</th>
                     <th className="text-left py-3 px-4">Created</th>
+                    <th className="text-left py-3 px-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -126,6 +215,29 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="py-3 px-4">{new Date(user.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditUser(user)}
+                            disabled={user.role === 'Administrator' && users.filter(u => u.role === 'Administrator').length <= 1}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => handleDeleteUser(user)}
+                            disabled={user.role === 'Administrator' && users.filter(u => u.role === 'Administrator').length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -140,6 +252,24 @@ export default function UserManagement() {
         onOpenChange={setAddUserDialogOpen}
         onSubmit={handleAddUser}
       />
+      
+      {selectedUser && (
+        <>
+          <EditUserDialog
+            open={editUserDialogOpen}
+            onOpenChange={setEditUserDialogOpen}
+            user={selectedUser}
+            onSubmit={handleUpdateUser}
+          />
+          
+          <DeleteUserDialog
+            open={deleteUserDialogOpen}
+            onOpenChange={setDeleteUserDialogOpen}
+            user={selectedUser}
+            onConfirm={handleConfirmDelete}
+          />
+        </>
+      )}
     </div>
   );
 }

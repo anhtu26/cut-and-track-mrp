@@ -78,7 +78,7 @@ export default function Dashboard() {
         return [];
       }
 
-      // Fixed: Correctly map the data to match the WorkOrder type
+      // Corrected: Fix the type handling for nested part and customer objects
       return data.map(order => ({
         id: order.id,
         workOrderNumber: order.work_order_number,
@@ -86,13 +86,17 @@ export default function Dashboard() {
         dueDate: order.due_date,
         part: {
           id: order.part_id,
-          // Fixed: Access the name property correctly if part is an object
-          name: order.part?.name || 'Unknown Part'
+          // The part property might be an array or an object, handle both cases
+          name: Array.isArray(order.part) 
+            ? order.part[0]?.name || 'Unknown Part'
+            : (order.part?.name || 'Unknown Part')
         },
         customer: {
           id: order.customer_id,
-          // Fixed: Access the name property correctly if customer is an object
-          name: order.customer?.name || 'Unknown Customer'
+          // The customer property might be an array or an object, handle both cases
+          name: Array.isArray(order.customer)
+            ? order.customer[0]?.name || 'Unknown Customer'
+            : (order.customer?.name || 'Unknown Customer')
         } as Customer
       })) as WorkOrder[];
     },

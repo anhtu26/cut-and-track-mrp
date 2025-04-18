@@ -2,9 +2,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-interface CreateUserRequest {
-  email: string;
-  password: string;
+interface UpdateUserRequest {
+  userId: string;
   role: 'Administrator' | 'Manager' | 'Staff' | 'Operator';
 }
 
@@ -21,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the Auth context of the logged-in user
+    // Create a Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -89,26 +88,89 @@ serve(async (req) => {
 
     if (userData.role !== 'Administrator') {
       console.log('User is not an administrator');
-      return new Response(JSON.stringify({ error: 'Unauthorized. Only administrators can create users.' }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized. Only administrators can update users.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     // Parse request body
-    let email, password, role;
+    let userId, role;
     try {
-      const requestBody = await req.json() as CreateUserRequest;
-      email = requestBody.email;
-      password = requestBody.password;
+      const requestBody = await req.json() as UpdateUserRequest;
+      userId = requestBody.userId;
       role = requestBody.role;
-      console.log('Creating user with email:', email, 'and role:', role);
+      console.log('Updating user with ID:', userId, 'to role:', role);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Check if the user is trying to update themselves
+    if (userId === callerUser.id) {
+      // If the admin is trying to remove their own admin role, check if they are the last admin
+      if (role !== 'Administrator') {
+        const { count: adminCount, error: countError } = await supabaseClient
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'Administrator');
+          
+        if (countError) {
+          console.error('Error counting administrators:', countError);
+          return new Response(JSON.stringify({ error: 'Failed to verify administrator count', details: countError }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+          
+        if (adminCount <= 1) {
+          return new Response(JSON.stringify({ error: 'Cannot remove admin role from the only administrator' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
+    // Get the user's current role
+    const { data: targetUserData, error: targetRoleError } = await supabaseClient
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single()
+
+    if (targetRoleError) {
+      console.error('Target role check error:', targetRoleError);
+      return new Response(JSON.stringify({ error: 'Failed to verify target user role', details: targetRoleError }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Count administrators if we're changing an admin to a non-admin role
+    if (targetUserData.role === 'Administrator' && role !== 'Administrator') {
+      const { count: adminCount, error: countError } = await supabaseClient
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'Administrator');
+        
+      if (countError) {
+        console.error('Error counting administrators:', countError);
+        return new Response(JSON.stringify({ error: 'Failed to verify administrator count', details: countError }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+        
+      if (adminCount <= 1) {
+        return new Response(JSON.stringify({ error: 'Cannot remove admin role from the only administrator' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     // Use service_role key to bypass RLS
@@ -124,46 +186,29 @@ serve(async (req) => {
       }
     )
 
-    // Create the new user
-    console.log('Creating user in Auth system');
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
-
-    if (createError) {
-      console.error('User creation error:', createError);
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    console.log('User created successfully, setting role:', role);
-
-    // Set the user's role - Note: removed the created_by field since it doesn't exist
-    const { error: roleUpdateError } = await supabaseAdmin
+    // Update the user's role
+    console.log('Updating user role');
+    const { error: updateError } = await supabaseAdmin
       .from('users')
       .update({ role })
-      .eq('id', newUser.user.id)
+      .eq('id', userId)
 
-    if (roleUpdateError) {
-      console.error('Role update error:', roleUpdateError);
-      return new Response(JSON.stringify({ error: roleUpdateError.message }), {
+    if (updateError) {
+      console.error('Role update error:', updateError);
+      return new Response(JSON.stringify({ error: updateError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      });
     }
 
-    return new Response(JSON.stringify({ user: newUser.user }), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    });
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    });
   }
 })
