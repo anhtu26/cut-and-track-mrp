@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,7 @@ export default function UserManagement() {
       const { data: result, error } = await supabase.functions.invoke('create-user', {
         body: JSON.stringify({ email, password, role }),
       });
+      
       if (error) {
         throw error;
       }

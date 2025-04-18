@@ -77,7 +77,7 @@ export default function Dashboard() {
         return [];
       }
 
-      // Fixed: Properly map the data to match the WorkOrder type
+      // Fixed: Correctly map the data to match the WorkOrder type
       return data.map(order => ({
         id: order.id,
         workOrderNumber: order.work_order_number,
@@ -85,15 +85,11 @@ export default function Dashboard() {
         dueDate: order.due_date,
         part: {
           id: order.part_id,
-          name: Array.isArray(order.part) && order.part.length > 0 && order.part[0]?.name
-    ? order.part[0].name
-    : 'Unknown Part'
+          name: order.part && typeof order.part === 'object' ? order.part.name : 'Unknown Part'
         },
         customer: {
           id: order.customer_id,
-          name: Array.isArray(order.customer) && order.customer.length > 0 && order.customer[0]?.name
-    ? order.customer[0].name
-    : 'Unknown Customer'
+          name: order.customer && typeof order.customer === 'object' ? order.customer.name : 'Unknown Customer'
         } as Customer
       })) as WorkOrder[];
     },
