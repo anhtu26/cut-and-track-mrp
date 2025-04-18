@@ -125,46 +125,63 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         // Create storage path with partId as folder
         const storagePath = `parts/${partId}/${fileName}`;
         
-        // Upload to Supabase Storage with content type
-        const { error: uploadError, data: uploadData } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file, {
-            contentType: fileType,
-            cacheControl: '3600',
-            upsert: false
-          });
-        
-        if (uploadError) {
-          console.error("Storage upload error:", uploadError);
-          throw uploadError;
-        }
-        
-        // Get the public URL
-        const { data: urlData } = supabase.storage
-          .from('documents')
-          .getPublicUrl(storagePath);
-        
-        if (!urlData?.publicUrl) {
-          throw new Error("Failed to get public URL for uploaded file");
-        }
-        
-        console.log(`File uploaded successfully. Public URL: ${urlData.publicUrl}`);
-        
-        // Store document reference in database with metadata
-        const { error: docError } = await supabase
-          .from('part_documents')
-          .insert({
-            part_id: partId,
-            name: sanitizedName,
-            url: urlData.publicUrl,
-            type: fileType,
-            size: file.size,
-            uploaded_at: new Date().toISOString()
-          });
-        
-        if (docError) {
-          console.error("Database insert error:", docError);
-          throw docError;
+        // We'll use a simpler direct approach to avoid RLS issues
+        try {
+          console.log(`Attempting direct upload for: ${fileName}`);
+          
+          // Upload directly to Supabase Storage
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(storagePath, file, {
+              contentType: fileType,
+              cacheControl: '3600',
+              upsert: true // Allow overwriting in case of name conflict
+            });
+          
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            // Provide a more helpful error message
+            if (uploadError.message.includes('policy')) {
+              throw new Error("Permission denied. Storage bucket may have Row Level Security enabled that prevents uploads.");
+            }
+            throw uploadError;
+          }
+          
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(storagePath);
+          
+          if (!urlData?.publicUrl) {
+            throw new Error("Failed to generate public URL for the uploaded file");
+          }
+          
+          console.log(`File uploaded successfully. Public URL: ${urlData.publicUrl}`);
+          
+          // Store document reference in database with metadata
+          const { error: insertError } = await supabase
+            .from('part_documents')
+            .insert({
+              part_id: partId,
+              name: sanitizedName,
+              url: urlData.publicUrl,
+              type: fileType,
+              size: file.size,
+              uploaded_at: new Date().toISOString()
+            });
+          
+          if (insertError) {
+            console.error("Database insert error:", insertError);
+            
+            // Provide clearer error message for policy violations
+            if (insertError.message.includes('policy')) {
+              throw new Error("Permission denied. Database has Row Level Security that prevents inserting document records.");
+            }
+            throw insertError;
+          }
+        } catch (error: any) {
+          console.error("Upload processing error:", error);
+          throw error;
         }
         
         completedFiles++;

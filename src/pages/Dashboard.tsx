@@ -7,34 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "@/providers/auth-provider";
 
-interface DashboardStats {
-  totalWorkOrders: number;
-  completedWorkOrders: number;
-  inProgressWorkOrders: number;
-  averageCompletionDays: number;
-}
-
 export default function Dashboard() {
   const { user } = useAuthContext();
-  
-  const { data: stats = {
-    totalWorkOrders: 0,
-    completedWorkOrders: 0,
-    inProgressWorkOrders: 0,
-    averageCompletionDays: 0
-  }, isLoading: isStatsLoading } = useQuery({
-    queryKey: ["dashboardStats"],
-    queryFn: async () => {
-      // In a real app, this would fetch from an API
-      // For now, we'll use mock data
-      return {
-        totalWorkOrders: 58,
-        completedWorkOrders: 32,
-        inProgressWorkOrders: 18,
-        averageCompletionDays: 4.2
-      };
-    },
-  });
 
   const { data: workOrders = [], isLoading: isWorkOrdersLoading } = useQuery({
     queryKey: ["recentWorkOrders"],
@@ -88,13 +62,8 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       
-      <KPIMetrics 
-        totalWorkOrders={stats.totalWorkOrders}
-        completedWorkOrders={stats.completedWorkOrders}
-        inProgressWorkOrders={stats.inProgressWorkOrders}
-        averageCompletionDays={stats.averageCompletionDays}
-        isLoading={isStatsLoading}
-      />
+      {/* Static KPI metrics component - no props needed */}
+      <KPIMetrics />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6">
@@ -130,7 +99,7 @@ export default function Dashboard() {
               {topCustomers.map((customer, index) => (
                 <div key={index} className="flex justify-between py-2 border-b last:border-0">
                   <span>{customer.name}</span>
-                  <span className="font-medium">${customer.orderValue.toLocaleString()}</span>
+                  <span className="font-medium">${typeof customer.orderValue === 'number' ? customer.orderValue.toLocaleString() : customer.orderValue}</span>
                 </div>
               ))}
             </div>
