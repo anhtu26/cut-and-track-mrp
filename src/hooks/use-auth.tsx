@@ -99,7 +99,7 @@ export const useAuth = () => {
 
       if (error) throw error;
 
-      // Check if user is an Administrator (requirement for phase 1)
+      // Fetch user's role
       const { data: userData, error: roleError } = await supabase
         .from('users')
         .select('role')
@@ -107,12 +107,8 @@ export const useAuth = () => {
         .single();
 
       if (roleError) throw roleError;
-
-      // For now, only allow login if role is Administrator
-      if (userData.role !== 'Administrator') {
-        await supabase.auth.signOut();
-        throw new Error('Only administrators can log in at this time.');
-      }
+      
+      // All roles are now allowed to log in
 
       return data;
     } catch (err) {

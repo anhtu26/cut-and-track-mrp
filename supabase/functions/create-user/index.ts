@@ -142,15 +142,19 @@ serve(async (req) => {
 
     console.log('User created successfully, setting role:', role);
 
-    // Set the user's role - Note: removed the created_by field since it doesn't exist
-    const { error: roleUpdateError } = await supabaseAdmin
+    // Insert the user's record with role into the users table
+    const { error: roleInsertError } = await supabaseAdmin
       .from('users')
-      .update({ role })
-      .eq('id', newUser.user.id)
+      .insert({
+        id: newUser.user.id,
+        email: email,
+        role: role,
+        created_at: new Date().toISOString()
+      })
 
-    if (roleUpdateError) {
-      console.error('Role update error:', roleUpdateError);
-      return new Response(JSON.stringify({ error: roleUpdateError.message }), {
+    if (roleInsertError) {
+      console.error('Role insert error:', roleInsertError);
+      return new Response(JSON.stringify({ error: roleInsertError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
