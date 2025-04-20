@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,36 +17,41 @@ export default function OperationDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Fetch operation data
   const { data: operation, isLoading, error } = useQuery({
     queryKey: ["operation", operationId],
     queryFn: async () => {
-      if (!operationId) throw new Error("Operation ID is required");
+      if (!operationId) {
+        console.error("[OPERATION DETAIL] Missing operation ID");
+        throw new Error("Operation ID is required");
+      }
       
       try {
-        console.log(`[OPERATION DETAIL] Fetching operation with ID: ${operationId}`);
+        console.log("[OPERATION DETAIL] Fetching operation:", operationId);
         
         const { data, error } = await supabase
-          .from('operations')
+          .from("operations")
           .select(`
             *,
             documents:operation_documents(*)
           `)
-          .eq('id', operationId)
-          .single();
-
+          .eq("id", operationId)
+          .maybeSingle();
+        
         if (error) {
-          console.error("[OPERATION DETAIL] Error fetching operation:", error);
+          console.error("[OPERATION DETAIL ERROR]", error);
+          setLoadError(error.message);
           throw error;
         }
         
         if (!data) {
-          console.error("[OPERATION DETAIL] Operation not found");
+          console.error("[OPERATION DETAIL] Operation not found:", operationId);
+          setLoadError("Operation not found");
           throw new Error("Operation not found");
         }
         
-        console.log("[OPERATION DETAIL] Fetched operation data:", data);
+        console.log("[OPERATION DETAIL] Fetched operation:", data);
         
         return {
           id: data.id,
@@ -58,6 +62,7 @@ export default function OperationDetail() {
           machiningMethods: data.machining_methods || "",
           setupInstructions: data.setup_instructions || "",
           sequence: data.sequence || 0,
+          isCustom: data.is_custom || false,
           estimatedStartTime: data.estimated_start_time,
           estimatedEndTime: data.estimated_end_time,
           actualStartTime: data.actual_start_time,
@@ -66,7 +71,7 @@ export default function OperationDetail() {
           assignedToId: data.assigned_to_id,
           assignedTo: data.assigned_to_id ? {
             id: data.assigned_to_id,
-            name: "Unknown" // We would need to fetch operator names separately
+            name: "Unknown"
           } : undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
@@ -77,30 +82,32 @@ export default function OperationDetail() {
             type: doc.type,
             uploadedAt: doc.uploaded_at,
             size: doc.size
-          })),
-          isCustom: data.is_custom || false
+          }))
         } as Operation;
       } catch (error) {
-        console.error("[OPERATION DETAIL] Error in queryFn:", error);
+        console.error("[OPERATION DETAIL] Error fetching operation:", error);
+        if (error instanceof Error) {
+          setLoadError(error.message);
+        } else {
+          setLoadError("Unknown error occurred");
+        }
         throw error;
       }
     },
+    retry: 1,
     enabled: !!operationId,
   });
 
-  // Update operation status mutation
   const { mutateAsync: updateOperationStatus, isPending: isUpdatingStatus } = useMutation({
     mutationFn: async (status: OperationStatus) => {
       if (!operationId) throw new Error("Operation ID is required");
       
       let updateData: any = { status };
       
-      // If changing to In Progress and no actual start time, set it
       if (status === "In Progress" && !operation?.actualStartTime) {
         updateData.actual_start_time = new Date().toISOString();
       }
       
-      // If changing to Complete and no actual end time, set it
       if (status === "Complete") {
         updateData.actual_end_time = new Date().toISOString();
       }
@@ -142,23 +149,18 @@ export default function OperationDetail() {
     );
   }
 
-  if (error || !operation) {
-    console.error("[OPERATION DETAIL] Rendering error state:", error);
+  if (error || loadError || !operation) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="space-y-4">
-          <p className="text-destructive text-center">
-            Error loading operation: {error instanceof Error ? error.message : "Unknown error"}
-          </p>
-          <div className="flex justify-center">
-            <Button variant="outline" asChild>
-              <Link to={`/work-orders/${workOrderId}`}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Work Order
-              </Link>
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-col justify-center items-center h-96 space-y-4">
+        <p className="text-destructive">
+          Error loading operation: {(error instanceof Error ? error.message : loadError) || "Unknown error"}
+        </p>
+        <Button variant="outline" asChild>
+          <Link to={`/work-orders/${workOrderId}`}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Work Order
+          </Link>
+        </Button>
       </div>
     );
   }
