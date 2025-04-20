@@ -66,6 +66,7 @@ export default function EditOperation() {
           actualStartTime: data.actual_start_time,
           actualEndTime: data.actual_end_time,
           comments: data.comments,
+          assignedToId: data.assigned_to_id,
           assignedTo: data.assigned_to_id ? {
             id: data.assigned_to_id,
             name: "Unknown" // In a real app, we'd fetch the operator's name
@@ -77,7 +78,8 @@ export default function EditOperation() {
             name: doc.name,
             url: doc.url,
             type: doc.type,
-            uploadedAt: doc.uploaded_at
+            uploadedAt: doc.uploaded_at,
+            size: doc.size
           }))
         };
       } catch (error) {

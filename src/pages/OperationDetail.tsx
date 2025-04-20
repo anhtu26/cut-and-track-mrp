@@ -25,47 +25,65 @@ export default function OperationDetail() {
     queryFn: async () => {
       if (!operationId) throw new Error("Operation ID is required");
       
-      const { data, error } = await supabase
-        .from('operations')
-        .select(`
-          *,
-          documents:operation_documents(*)
-        `)
-        .eq('id', operationId)
-        .single();
+      try {
+        console.log(`[OPERATION DETAIL] Fetching operation with ID: ${operationId}`);
+        
+        const { data, error } = await supabase
+          .from('operations')
+          .select(`
+            *,
+            documents:operation_documents(*)
+          `)
+          .eq('id', operationId)
+          .single();
 
-      if (error) throw error;
-      if (!data) throw new Error("Operation not found");
-      
-      return {
-        id: data.id,
-        workOrderId: data.work_order_id,
-        name: data.name,
-        description: data.description || "",
-        status: data.status as OperationStatus,
-        machiningMethods: data.machining_methods || "",
-        setupInstructions: data.setup_instructions || "",
-        sequence: data.sequence || 0,
-        estimatedStartTime: data.estimated_start_time,
-        estimatedEndTime: data.estimated_end_time,
-        actualStartTime: data.actual_start_time,
-        actualEndTime: data.actual_end_time,
-        comments: data.comments,
-        assignedTo: data.assigned_to_id ? {
-          id: data.assigned_to_id,
-          name: "Unknown" // We would need to fetch operator names separately
-        } : undefined,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        documents: (data.documents || []).map(doc => ({
-          id: doc.id,
-          name: doc.name,
-          url: doc.url,
-          type: doc.type,
-          uploadedAt: doc.uploaded_at
-        })),
-        isCustom: data.is_custom || false
-      } as Operation;
+        if (error) {
+          console.error("[OPERATION DETAIL] Error fetching operation:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.error("[OPERATION DETAIL] Operation not found");
+          throw new Error("Operation not found");
+        }
+        
+        console.log("[OPERATION DETAIL] Fetched operation data:", data);
+        
+        return {
+          id: data.id,
+          workOrderId: data.work_order_id,
+          name: data.name,
+          description: data.description || "",
+          status: data.status as OperationStatus,
+          machiningMethods: data.machining_methods || "",
+          setupInstructions: data.setup_instructions || "",
+          sequence: data.sequence || 0,
+          estimatedStartTime: data.estimated_start_time,
+          estimatedEndTime: data.estimated_end_time,
+          actualStartTime: data.actual_start_time,
+          actualEndTime: data.actual_end_time,
+          comments: data.comments,
+          assignedToId: data.assigned_to_id,
+          assignedTo: data.assigned_to_id ? {
+            id: data.assigned_to_id,
+            name: "Unknown" // We would need to fetch operator names separately
+          } : undefined,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+          documents: (data.documents || []).map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            url: doc.url,
+            type: doc.type,
+            uploadedAt: doc.uploaded_at,
+            size: doc.size
+          })),
+          isCustom: data.is_custom || false
+        } as Operation;
+      } catch (error) {
+        console.error("[OPERATION DETAIL] Error in queryFn:", error);
+        throw error;
+      }
     },
     enabled: !!operationId,
   });
@@ -125,11 +143,22 @@ export default function OperationDetail() {
   }
 
   if (error || !operation) {
+    console.error("[OPERATION DETAIL] Rendering error state:", error);
     return (
       <div className="flex justify-center items-center h-96">
-        <p className="text-destructive">
-          Error loading operation: {error instanceof Error ? error.message : "Unknown error"}
-        </p>
+        <div className="space-y-4">
+          <p className="text-destructive text-center">
+            Error loading operation: {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+          <div className="flex justify-center">
+            <Button variant="outline" asChild>
+              <Link to={`/work-orders/${workOrderId}`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Work Order
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
