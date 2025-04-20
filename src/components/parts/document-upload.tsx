@@ -1,12 +1,13 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, File, X } from "lucide-react";
+import { Upload, File, X, FileText, Image } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { DropzoneOptions, useDropzone } from "react-dropzone";
 
 interface DocumentUploadProps {
   partId: string;
@@ -18,33 +19,63 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
 
+  // Get file icon based on file type
+  const getFileIcon = (file: File) => {
+    if (file.type.includes('pdf')) return <FileText className="h-4 w-4" />;
+    if (file.type.includes('image')) return <Image className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  // File validation and processing
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    // Basic validation
+    const validFiles = acceptedFiles.filter(file => {
+      // Check file type (adjust according to your ITAR compliance needs)
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'application/dxf', 'application/step', 'model/step+xml'];
+      const maxSize = 10 * 1024 * 1024; // 10MB limit
+      
+      // Check by extension for files that might not have proper MIME type
+      const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.dxf', '.stp', '.step'];
+      const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+      
+      const isValidType = validTypes.includes(file.type) || 
+                         validExtensions.includes(fileExtension);
+      const isValidSize = file.size <= maxSize;
+      
+      if (!isValidType) {
+        toast.error(`Invalid file type: ${file.name}`);
+        return false;
+      }
+      
+      if (!isValidSize) {
+        toast.error(`File too large: ${file.name} (max 10MB)`);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+  }, []);
+
+  // Setup dropzone
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'application/dxf': ['.dxf'],
+      'application/step': ['.stp', '.step'],
+      'model/step+xml': ['.stp', '.step']
+    },
+    maxSize: 10 * 1024 * 1024, // 10MB
+    multiple: true
+  } as DropzoneOptions);
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      
-      // Basic validation
-      const validFiles = newFiles.filter(file => {
-        // Check file type (adjust according to your ITAR compliance needs)
-        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'application/dxf', 'application/step'];
-        const maxSize = 10 * 1024 * 1024; // 10MB limit
-        
-        const isValidType = validTypes.includes(file.type) || file.name.endsWith('.dxf') || file.name.endsWith('.stp');
-        const isValidSize = file.size <= maxSize;
-        
-        if (!isValidType) {
-          toast.error(`Invalid file type: ${file.name}`);
-          return false;
-        }
-        
-        if (!isValidSize) {
-          toast.error(`File too large: ${file.name} (max 10MB)`);
-          return false;
-        }
-        
-        return true;
-      });
-      
-      setSelectedFiles(validFiles);
+      onDrop(Array.from(e.target.files));
     }
   };
 
@@ -71,37 +102,87 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         const sanitizedName = file.name.replace(/[^\w\s.-]/g, '');
         const fileName = `${timestamp}-${sanitizedName}`;
         
-        // Determine file type
+        // Determine file type based on extension if needed
         let fileType = file.type;
-        if (file.name.endsWith('.dxf')) fileType = 'application/dxf';
-        if (file.name.endsWith('.stp')) fileType = 'application/step';
+        const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
         
-        // Create storage path
+        // Handle common edge cases with file types
+        if (fileExtension === '.pdf' && !fileType.includes('pdf')) {
+          fileType = 'application/pdf';
+        } else if ((fileExtension === '.jpg' || fileExtension === '.jpeg') && !fileType.includes('image')) {
+          fileType = 'image/jpeg';
+        } else if (fileExtension === '.png' && !fileType.includes('image')) {
+          fileType = 'image/png';
+        } else if (fileExtension === '.dxf') {
+          fileType = 'application/dxf';
+        } else if (['.stp', '.step'].includes(fileExtension)) {
+          fileType = 'application/step';
+        }
+        
+        // Log upload details for debugging
+        console.log(`Uploading file: ${fileName}, type: ${fileType}`);
+        
+        // Create storage path with partId as folder
         const storagePath = `parts/${partId}/${fileName}`;
         
-        // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file);
-        
-        if (uploadError) throw uploadError;
-        
-        // Get the public URL
-        const { data: urlData } = supabase.storage
-          .from('documents')
-          .getPublicUrl(storagePath);
-        
-        // Store document reference in database
-        const { error: docError } = await supabase
-          .from('part_documents')
-          .insert({
-            part_id: partId,
-            name: sanitizedName,
-            url: urlData.publicUrl,
-            type: fileType
-          });
-        
-        if (docError) throw docError;
+        // We'll use a simpler direct approach to avoid RLS issues
+        try {
+          console.log(`Attempting direct upload for: ${fileName}`);
+          
+          // Upload directly to Supabase Storage
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(storagePath, file, {
+              contentType: fileType,
+              cacheControl: '3600',
+              upsert: true // Allow overwriting in case of name conflict
+            });
+          
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            // Provide a more helpful error message
+            if (uploadError.message.includes('policy')) {
+              throw new Error("Permission denied. Storage bucket may have Row Level Security enabled that prevents uploads.");
+            }
+            throw uploadError;
+          }
+          
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(storagePath);
+          
+          if (!urlData?.publicUrl) {
+            throw new Error("Failed to generate public URL for the uploaded file");
+          }
+          
+          console.log(`File uploaded successfully. Public URL: ${urlData.publicUrl}`);
+          
+          // Store document reference in database with metadata
+          const { error: insertError } = await supabase
+            .from('part_documents')
+            .insert({
+              part_id: partId,
+              name: sanitizedName,
+              url: urlData.publicUrl,
+              type: fileType,
+              size: file.size,
+              uploaded_at: new Date().toISOString()
+            });
+          
+          if (insertError) {
+            console.error("Database insert error:", insertError);
+            
+            // Provide clearer error message for policy violations
+            if (insertError.message.includes('policy')) {
+              throw new Error("Permission denied. Database has Row Level Security that prevents inserting document records.");
+            }
+            throw insertError;
+          }
+        } catch (error: any) {
+          console.error("Upload processing error:", error);
+          throw error;
+        }
         
         completedFiles++;
         setProgress(Math.round((completedFiles / totalFiles) * 100));
@@ -120,47 +201,63 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Input
-          type="file"
-          multiple
-          onChange={handleFileChange}
-          disabled={uploading}
-          className="flex-1"
-          accept=".pdf,.jpg,.jpeg,.png,.dxf,.stp"
-        />
-        <Button 
-          onClick={handleUpload} 
-          disabled={uploading || selectedFiles.length === 0}
-          className="h-12 px-4 text-base"
-        >
-          <Upload className="mr-2 h-5 w-5" />
-          Upload
-        </Button>
+      <div 
+        {...getRootProps()} 
+        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}`}
+      >
+        <input {...getInputProps()} accept=".pdf,.jpg,.jpeg,.png,.dxf,.stp,.step" disabled={uploading} />
+        <div className="flex flex-col items-center justify-center text-center">
+          <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+          <p className="text-sm font-medium">
+            {isDragActive ? "Drop files here..." : "Drag & drop files here, or click to select files"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Supported formats: PDF, JPG, PNG, DXF, STP
+          </p>
+        </div>
       </div>
       
-      {uploading && <Progress value={progress} className="h-2" />}
+      {uploading && (
+        <div className="space-y-2">
+          <Progress value={progress} className="h-2" />
+          <p className="text-xs text-center text-muted-foreground">Uploading... {progress}%</p>
+        </div>
+      )}
       
       {selectedFiles.length > 0 && (
-        <ul className="space-y-2 border rounded-md p-2">
-          {selectedFiles.map((file, index) => (
-            <li key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
-              <div className="flex items-center">
-                <File className="h-4 w-4 mr-2" />
-                <span>{file.name}</span>
-                <span className="ml-2 text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                disabled={uploading}
-                onClick={() => removeFile(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium">Files to upload ({selectedFiles.length})</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleUpload} 
+              disabled={uploading || selectedFiles.length === 0}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload All
+            </Button>
+          </div>
+          <ul className="space-y-2 border rounded-md p-2">
+            {selectedFiles.map((file, index) => (
+              <li key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
+                <div className="flex items-center">
+                  {getFileIcon(file)}
+                  <span className="ml-2 truncate max-w-[200px]">{file.name}</span>
+                  <span className="ml-2 text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => removeFile(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       
       <div className="text-sm text-muted-foreground">

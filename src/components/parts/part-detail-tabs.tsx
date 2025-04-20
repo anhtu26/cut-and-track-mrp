@@ -6,6 +6,7 @@ import { OperationTemplatesList } from "./operation-templates-list";
 import { Link } from "react-router-dom";
 import { DocumentUpload } from "./document-upload";
 import { FileText, File, Image } from "lucide-react";
+import { DocumentViewer } from "./document-viewer";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -166,17 +167,7 @@ export function PartDetailTabs({
                         </div>
                       </div>
                     </div>
-                    {doc.url && (
-                      <a 
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1 rounded-md transition-colors"
-                        onClick={() => console.log(`Opening document: ${doc.name}`)}
-                      >
-                        View
-                      </a>
-                    )}
+                    {doc.url && <DocumentViewer document={doc} />}
                   </li>
                 ))}
               </ul>

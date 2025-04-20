@@ -1,14 +1,15 @@
 
 import { cn } from "@/lib/utils";
-import { useUserStore } from "@/stores/user-store";
+import { useAuthContext } from "@/providers/auth-provider";
 import { BarChart2, FileText, Home, Package2, Settings, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { UserRole } from "@/hooks/use-auth";
 
 type NavItem = {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  allowedRoles?: string[];
+  allowedRoles?: UserRole[];
 };
 
 const navItems: NavItem[] = [
@@ -36,13 +37,19 @@ const navItems: NavItem[] = [
     title: "Reports",
     href: "/reports",
     icon: BarChart2,
-    allowedRoles: ["Admin", "Management"],
+    allowedRoles: ["Administrator", "Manager"],
+  },
+  {
+    title: "User Management",
+    href: "/users",
+    icon: Users,
+    allowedRoles: ["Administrator"],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    allowedRoles: ["Admin"],
+    allowedRoles: ["Administrator"],
   },
 ];
 
@@ -50,10 +57,10 @@ export function SidebarNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { user } = useUserStore();
+  const { user } = useAuthContext();
   
   const filteredNavItems = navItems.filter(
-    (item) => !item.allowedRoles || item.allowedRoles.includes(user?.role || "")
+    (item) => !item.allowedRoles || (user && item.allowedRoles.includes(user.role))
   );
 
   return (

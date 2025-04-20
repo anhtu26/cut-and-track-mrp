@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
+import { OperationDocumentManager } from "@/components/operations/operation-document-manager";
 
 export default function OperationDetail() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
@@ -26,7 +27,10 @@ export default function OperationDetail() {
       
       const { data, error } = await supabase
         .from('operations')
-        .select('*')
+        .select(`
+          *,
+          documents:operation_documents(*)
+        `)
         .eq('id', operationId)
         .single();
 
@@ -41,6 +45,7 @@ export default function OperationDetail() {
         status: data.status as OperationStatus,
         machiningMethods: data.machining_methods || "",
         setupInstructions: data.setup_instructions || "",
+        sequence: data.sequence || 0,
         estimatedStartTime: data.estimated_start_time,
         estimatedEndTime: data.estimated_end_time,
         actualStartTime: data.actual_start_time,
@@ -52,7 +57,14 @@ export default function OperationDetail() {
         } : undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        documents: []
+        documents: (data.documents || []).map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          url: doc.url,
+          type: doc.type,
+          uploadedAt: doc.uploaded_at
+        })),
+        isCustom: data.is_custom || false
       } as Operation;
     },
     enabled: !!operationId,
@@ -95,6 +107,14 @@ export default function OperationDetail() {
       toast.error(error.message || "Failed to update operation status");
     },
   });
+
+  const handleDocumentAdded = () => {
+    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
+  };
+
+  const handleDocumentRemoved = () => {
+    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
+  };
 
   if (isLoading) {
     return (
@@ -231,6 +251,20 @@ export default function OperationDetail() {
                   </div>
                 </div>
               )}
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Documentation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <OperationDocumentManager 
+                    operationId={operation.id}
+                    documents={operation.documents || []}
+                    onDocumentAdded={handleDocumentAdded}
+                    onDocumentRemoved={handleDocumentRemoved}
+                  />
+                </CardContent>
+              </Card>
             </div>
             
             <div className="space-y-4">

@@ -33,8 +33,8 @@ export interface OperationDocument {
   id: string;
   name: string;
   url: string;
-  uploadedAt: string;
   type: string;
+  uploadedAt: string;
 }
 
 export interface CreateOperationInput {

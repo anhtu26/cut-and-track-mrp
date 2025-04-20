@@ -8,12 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUserStore } from "@/stores/user-store";
+import { useAuthContext } from "@/providers/auth-provider";
 import { Moon, Sun, User } from "lucide-react";
 import { useTheme } from "@/providers/theme-provider";
 
 export function AppHeader() {
-  const { user, logout } = useUserStore();
+  const { user, logout } = useAuthContext();
   const { theme, setTheme } = useTheme();
   
   return (
@@ -47,7 +47,7 @@ export function AppHeader() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
-                    <span>{user.name}</span>
+                    <span>{user.email}</span>
                     <span className="text-xs text-muted-foreground">
                       {user.role}
                     </span>

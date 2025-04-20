@@ -2,17 +2,25 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthForm } from "@/components/auth/auth-form";
-import { useUserStore } from "@/stores/user-store";
+import { useAuthContext } from "@/providers/auth-provider";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Login() {
-  const { user, login, isLoading, error } = useUserStore();
+  const { user, login, loading, error } = useAuthContext();
+  const [showAdminDialog, setShowAdminDialog] = useState(false);
 
-  const handleLogin = (email: string, password: string) => {
-    login(email, password);
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      await login(email, password);
+      // Show Administrator dialog upon successful login
+      setShowAdminDialog(true);
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
   };
 
   // If user is already logged in, redirect to dashboard
-  if (user) {
+  if (user && !showAdminDialog) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -26,21 +34,38 @@ export default function Login() {
           </p>
           
           <div className="mt-6 p-4 bg-muted rounded-lg text-sm">
-            <p className="font-medium mb-2">Available test accounts:</p>
-            <ul className="space-y-1 text-xs text-left">
-              <li>Admin: admin@example.com / admin</li>
-              <li>Manager: manager@example.com / manager</li>
-              <li>Machinist: machinist@example.com / machinist</li>
-              <li>Sales: sales@example.com / sales</li>
-            </ul>
+            <p className="font-medium mb-2">Enter Administrator credentials to log in</p>
+            <p className="text-xs text-muted-foreground">
+              Only Administrator accounts can log in during this phase
+            </p>
           </div>
         </div>
 
         <AuthForm 
           onLogin={handleLogin} 
           error={error}
-          isLoading={isLoading}
+          isLoading={loading}
         />
+
+        {/* Administrator confirmation dialog */}
+        <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Administrator Access</DialogTitle>
+              <DialogDescription>
+                You have successfully logged in as an Administrator.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowAdminDialog(false)}
+                className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90"
+              >
+                Continue to Dashboard
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { ArrowLeft } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { OperationForm } from "@/components/operations/operation-form";
 
 export default function EditOperation() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
@@ -29,7 +30,10 @@ export default function EditOperation() {
         
         const { data, error } = await supabase
           .from("operations")
-          .select("*")
+          .select(`
+            *,
+            documents:operation_documents(*)
+          `)
           .eq("id", operationId)
           .maybeSingle();
         
@@ -62,9 +66,19 @@ export default function EditOperation() {
           actualStartTime: data.actual_start_time,
           actualEndTime: data.actual_end_time,
           comments: data.comments,
-          assignedToId: data.assigned_to_id,
+          assignedTo: data.assigned_to_id ? {
+            id: data.assigned_to_id,
+            name: "Unknown" // In a real app, we'd fetch the operator's name
+          } : undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
+          documents: (data.documents || []).map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            url: doc.url,
+            type: doc.type,
+            uploadedAt: doc.uploaded_at
+          }))
         };
       } catch (error) {
         console.error("[EDIT OPERATION] Error fetching operation:", error);
@@ -188,31 +202,12 @@ export default function EditOperation() {
               </Button>
             </div>
           }>
-            {/* We'll import the operation form component here */}
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-              <h3 className="text-lg font-medium">Edit Operation: {operation.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Sequence: {operation.sequence} | Status: {operation.status}
-              </p>
-              
-              {/* Placeholder for the actual form */}
-              <div className="space-y-4 mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Form will be implemented here using the OperationForm component.
-                </p>
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate(`/work-orders/${workOrderId}`)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={() => navigate(`/work-orders/${workOrderId}`)}>
-                    Update Operation
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <OperationForm
+              workOrderId={workOrderId || ''}
+              operation={operation}
+              onSubmit={handleSubmit}
+              isSubmitting={updateMutation.isPending}
+            />
           </ErrorBoundary>
         </CardContent>
       </Card>

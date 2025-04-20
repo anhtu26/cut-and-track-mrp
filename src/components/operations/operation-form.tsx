@@ -7,7 +7,10 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { OperationStatus } from "@/types/operation";
+import { Operation, OperationStatus } from "@/types/operation";
+import { Card } from "@/components/ui/card";
+import { OperationDocumentManager } from "./operation-document-manager";
+import { formatDateForInput } from "@/lib/date-utils";
 
 // Define the schema for the operation form
 const operationFormSchema = z.object({
@@ -16,52 +19,23 @@ const operationFormSchema = z.object({
   status: z.enum(["Not Started", "In Progress", "QC", "Complete"] as const),
   machiningMethods: z.string().optional(),
   setupInstructions: z.string().optional(),
-  sequence: z.number().min(0, "Sequence must be a positive number"), // Add sequence validation
+  sequence: z.number().min(0, "Sequence must be a positive number"),
   estimatedStartTime: z.string().optional().nullable(),
   estimatedEndTime: z.string().optional().nullable(),
   assignedToId: z.string().optional().nullable(),
   comments: z.string().optional().nullable(),
-  isCustom: z.boolean().optional().default(true), // Default to true for manually added operations
+  isCustom: z.boolean().optional().default(true),
 });
 
-// Define the props for the operation form component
 interface OperationFormProps {
   workOrderId: string;
-  operation?: {
-    id: string;
-    name: string;
-    description?: string;
-    status: OperationStatus;
-    machiningMethods?: string;
-    setupInstructions?: string;
-    sequence: number; // Add sequence field
-    isCustom?: boolean;
-    estimatedStartTime?: string;
-    estimatedEndTime?: string;
-    assignedToId?: string;
-    comments?: string;
-  };
-  onSubmit: (data: any) => Promise<void>; // Using any to match various operation types
+  operation?: Operation;
+  onSubmit: (data: any) => Promise<void>;
   isSubmitting: boolean;
-  suggestedSequence?: number; // Add suggested sequence prop
+  suggestedSequence?: number;
 }
 
-// Function to format a date for input[type=datetime-local]
-const formatDateForInput = (dateString: string | undefined): string => {
-  if (!dateString) return "";
-  // Format the date to match the format expected by input[type=datetime-local]
-  try {
-    const date = new Date(dateString);
-    return date.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "";
-  }
-};
-
-// Main Operation Form component
 export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, suggestedSequence = 10 }: OperationFormProps) {
-  // Get default values from the operation, if provided
   const defaultValues = operation
     ? {
         name: operation.name,
@@ -69,10 +43,10 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
         status: operation.status,
         machiningMethods: operation.machiningMethods || "",
         setupInstructions: operation.setupInstructions || "",
-        sequence: operation.sequence, // Use the operation sequence
+        sequence: operation.sequence,
         estimatedStartTime: formatDateForInput(operation.estimatedStartTime),
         estimatedEndTime: formatDateForInput(operation.estimatedEndTime),
-        assignedToId: operation.assignedToId || undefined,
+        assignedToId: operation.assignedTo?.id || undefined,
         comments: operation.comments || "",
         isCustom: operation.isCustom || true,
       }
@@ -82,24 +56,21 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
         status: "Not Started" as const,
         machiningMethods: "",
         setupInstructions: "",
-        sequence: suggestedSequence, // Use suggested sequence for new operations
+        sequence: suggestedSequence,
         estimatedStartTime: "",
         estimatedEndTime: "",
         assignedToId: undefined,
         comments: "",
-        isCustom: true, // Default to custom for manually added operations
+        isCustom: true,
       };
 
-  // Create the form with the schema and default values
   const form = useForm<z.infer<typeof operationFormSchema>>({
     resolver: zodResolver(operationFormSchema),
     defaultValues,
   });
 
-  // Handle form submission
   const handleSubmit = async (values: z.infer<typeof operationFormSchema>) => {
     try {
-      // Include workOrderId and the operation id if editing
       const submitData = {
         ...values,
         workOrderId,
@@ -108,7 +79,6 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
       await onSubmit(submitData);
     } catch (error) {
       console.error("Error submitting form:", error);
-      // Form errors will be handled by the parent component
     }
   };
 
@@ -213,7 +183,6 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
           />
         </div>
 
-        {/* Add Sequence Number Field */}
         <FormField
           control={form.control}
           name="sequence"
@@ -285,6 +254,22 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
             </FormItem>
           )}
         />
+
+        {operation?.id && (
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Operation Documents</h3>
+            <OperationDocumentManager
+              operationId={operation.id}
+              documents={operation.documents}
+              onDocumentAdded={() => {
+                // Refresh operation data if needed
+              }}
+              onDocumentRemoved={() => {
+                // Refresh operation data if needed
+              }}
+            />
+          </Card>
+        )}
 
         <div className="flex justify-end space-x-2">
           <Button
