@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { CustomerCard } from "@/components/customers/customer-card";
 import { Button } from "@/components/ui/button";
@@ -23,25 +24,25 @@ export default function Customers() {
       
       return data.map((item: any) => ({
         id: item.id,
-        name: item.name,
-        company: item.company,
-        email: item.email,
-        phone: item.phone,
-        address: item.address,
-        active: item.active,
-        notes: item.notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        orderCount: item.order_count
+        name: item.name || "",
+        company: item.company || "",
+        email: item.email || "",
+        phone: item.phone || "",
+        address: item.address || "",
+        active: item.active || false,
+        notes: item.notes || "",
+        createdAt: item.created_at || "",
+        updatedAt: item.updated_at || "",
+        orderCount: item.order_count || 0
       })) as Customer[];
     },
   });
   
   const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+    (customer.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (customer.company?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (customer.email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+    (customer.phone?.toLowerCase() || "").includes(searchTerm.toLowerCase())
   );
 
   return (

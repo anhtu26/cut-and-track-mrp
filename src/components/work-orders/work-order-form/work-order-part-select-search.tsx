@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Part } from "@/types/part";
@@ -72,9 +72,11 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
   const filteredParts = Array.isArray(parts) 
     ? parts.filter(part => {
         const query = (searchQuery || '').toLowerCase();
+        // Add null/undefined guards for all properties
         return (
           (part.name && part.name.toLowerCase().includes(query)) || 
-          (part.partNumber && part.partNumber.toLowerCase().includes(query))
+          (part.partNumber && part.partNumber.toLowerCase().includes(query)) ||
+          (part.description && part.description.toLowerCase().includes(query))
         );
       })
     : [];
@@ -128,7 +130,7 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                 />
                 <CommandEmpty>No parts found.</CommandEmpty>
                 <CommandGroup className="max-h-[300px] overflow-auto">
-                  {filteredParts.map(part => (
+                  {filteredParts && filteredParts.length > 0 ? filteredParts.map(part => (
                     <CommandItem
                       key={part.id}
                       value={part.id}
@@ -152,7 +154,11 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                         </span>
                       )}
                     </CommandItem>
-                  ))}
+                  )) : (
+                    <div className="py-2 px-4 text-sm text-muted-foreground">
+                      Loading parts...
+                    </div>
+                  )}
                 </CommandGroup>
               </Command>
             </PopoverContent>

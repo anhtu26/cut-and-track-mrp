@@ -114,24 +114,31 @@ export default function EditPart() {
         updated_at: new Date().toISOString()
       };
       
-      // Only include customer_id if it exists in the data
-      if ('customerId' in data) {
-        updateData.customer_id = data.customerId || null;
+      // Handle customer_id field specifically to avoid schema cache issues
+      if (data.customerId) {
+        updateData.customer_id = data.customerId;
+      } else {
+        updateData.customer_id = null; // Explicitly set to null if not provided
       }
       
-      const { data: updateResult, error } = await supabase
-        .from("parts")
-        .update(updateData)
-        .eq("id", partId)
-        .select();
-
-      if (error) {
-        console.error("[UPDATE ERROR] Supabase update error:", error);
+      try {
+        const { data: updateResult, error } = await supabase
+          .from("parts")
+          .update(updateData)
+          .eq("id", partId)
+          .select();
+  
+        if (error) {
+          console.error("[UPDATE ERROR] Supabase update error:", error);
+          throw error;
+        }
+        
+        console.log("[UPDATE SUCCESS] Update response:", updateResult);
+        return updateResult;
+      } catch (error) {
+        console.error("Error during update part operation:", error);
         throw error;
       }
-      
-      console.log("[UPDATE SUCCESS] Update response:", updateResult);
-      return updateResult;
     },
     onSuccess: (data) => {
       console.log("[UPDATE SUCCESS] Part updated successfully:", data);

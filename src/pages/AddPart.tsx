@@ -37,18 +37,23 @@ export default function AddPart() {
 
       console.log("Final part data:", partData);
       
-      const { data: insertData, error } = await supabase
-        .from("parts")
-        .insert([partData])
-        .select();
-
-      if (error) {
-        console.error("Supabase error:", error);
+      try {
+        const { data: insertData, error } = await supabase
+          .from("parts")
+          .insert([partData])
+          .select();
+  
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+        
+        console.log("Insert response:", insertData);
+        return insertData;
+      } catch (error) {
+        console.error("Error during create part operation:", error);
         throw error;
       }
-      
-      console.log("Insert response:", insertData);
-      return insertData;
     },
     onSuccess: (data) => {
       console.log("Part created successfully:", data);
