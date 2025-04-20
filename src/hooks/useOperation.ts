@@ -22,6 +22,30 @@ export function useOperation(operationId: string | undefined) {
       
       if (error) throw error;
       if (!data) throw new Error("Operation not found");
+
+      // Get operator information if assigned
+      let assignedTo = undefined;
+      
+      if (data.assigned_to_id) {
+        const { data: userData, error: userError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name")
+          .eq("id", data.assigned_to_id)
+          .maybeSingle();
+          
+        if (!userError && userData) {
+          assignedTo = {
+            id: userData.id,
+            name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || "Unknown"
+          };
+        } else {
+          // Fallback if profile isn't found
+          assignedTo = {
+            id: data.assigned_to_id,
+            name: "Unknown"
+          };
+        }
+      }
       
       return {
         id: data.id,
@@ -37,12 +61,9 @@ export function useOperation(operationId: string | undefined) {
         estimatedEndTime: data.estimated_end_time,
         actualStartTime: data.actual_start_time,
         actualEndTime: data.actual_end_time,
-        comments: data.comments,
+        comments: data.comments || "",
         assignedToId: data.assigned_to_id,
-        assignedTo: data.assigned_to_id ? {
-          id: data.assigned_to_id,
-          name: "Unknown"
-        } : undefined,
+        assignedTo: assignedTo,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         documents: (data.documents || []).map(doc => ({

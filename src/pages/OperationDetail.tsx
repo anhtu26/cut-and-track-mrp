@@ -87,6 +87,7 @@ export default function OperationDetail() {
   }
 
   if (error || !operation) {
+    console.error("Operation detail error:", error);
     return (
       <div className="flex flex-col justify-center items-center h-96 space-y-4">
         <p className="text-destructive">
