@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Operation, OperationStatus } from "@/types/operation";
 import { Card } from "@/components/ui/card";
 import { OperationDocumentManager } from "./operation-document-manager";
+import { formatDateForInput } from "@/lib/date-utils";
 
 // Define the schema for the operation form
 const operationFormSchema = z.object({
@@ -44,7 +46,7 @@ export function OperationForm({ workOrderId, operation, onSubmit, isSubmitting, 
         sequence: operation.sequence,
         estimatedStartTime: formatDateForInput(operation.estimatedStartTime),
         estimatedEndTime: formatDateForInput(operation.estimatedEndTime),
-        assignedToId: operation.assignedToId || undefined,
+        assignedToId: operation.assignedTo?.id || undefined,
         comments: operation.comments || "",
         isCustom: operation.isCustom || true,
       }
