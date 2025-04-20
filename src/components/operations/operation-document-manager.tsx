@@ -2,13 +2,12 @@
 import { useState, useCallback } from "react";
 import { DocumentViewer } from "@/components/parts/document-viewer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, File, X, FileText, Image } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { DropzoneOptions, useDropzone } from "react-dropzone";
+import { documentService } from "@/lib/document-service";
 
 interface OperationDocumentManagerProps {
   operationId: string;
@@ -18,6 +17,7 @@ interface OperationDocumentManagerProps {
     url: string;
     type: string;
     uploadedAt: string;
+    size?: number;
   }>;
   onDocumentAdded?: () => void;
   onDocumentRemoved?: () => void;
@@ -96,43 +96,23 @@ export function OperationDocumentManager({
       let completedFiles = 0;
       
       for (const file of selectedFiles) {
-        const timestamp = Date.now();
-        const sanitizedName = file.name.replace(/[^\w\s.-]/g, '');
-        const fileName = `${timestamp}-${sanitizedName}`;
-        const storagePath = `operations/${operationId}/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(storagePath, file, {
-            contentType: file.type,
-            cacheControl: '3600',
-            upsert: true
+        try {
+          await documentService.uploadDocument({
+            file,
+            entityId: operationId,
+            documentType: "operation",
+            onProgress: (fileProgress) => {
+              // Calculate overall progress
+              const overallProgress = ((completedFiles + (fileProgress / 100)) / totalFiles) * 100;
+              setProgress(Math.round(overallProgress));
+            }
           });
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabase.storage
-          .from('documents')
-          .getPublicUrl(storagePath);
-        
-        if (!urlData?.publicUrl) {
-          throw new Error("Failed to generate public URL");
+          
+          completedFiles++;
+        } catch (error: any) {
+          console.error(`Error uploading ${file.name}:`, error);
+          toast.error(`Error uploading ${file.name}: ${error.message || "Unknown error"}`);
         }
-        
-        const { error: insertError } = await supabase
-          .from('operation_documents')
-          .insert({
-            operation_id: operationId,
-            name: sanitizedName,
-            url: urlData.publicUrl,
-            type: file.type,
-            size: file.size
-          });
-        
-        if (insertError) throw insertError;
-        
-        completedFiles++;
-        setProgress(Math.round((completedFiles / totalFiles) * 100));
       }
       
       toast.success("Documents uploaded successfully");
@@ -141,27 +121,15 @@ export function OperationDocumentManager({
       onDocumentAdded?.();
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = async (documentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('operation_documents')
-        .delete()
-        .eq('id', documentId);
-
-      if (error) throw error;
-      
-      toast.success("Document deleted successfully");
-      onDocumentRemoved?.();
-    } catch (error: any) {
-      console.error("Delete error:", error);
-      toast.error(`Failed to delete document: ${error.message}`);
-    }
+  const handleDocumentDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ['operation', operationId] });
+    onDocumentRemoved?.();
   };
 
   return (
@@ -228,37 +196,28 @@ export function OperationDocumentManager({
       )}
 
       {documents.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Uploaded Documents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {documents.map((doc) => (
-                <li key={doc.id} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <div className="flex items-center">
-                    {doc.type.includes('pdf') ? (
-                      <FileText className="h-4 w-4" />
-                    ) : (
-                      <Image className="h-4 w-4" />
-                    )}
-                    <span className="ml-2">{doc.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <DocumentViewer document={doc} />
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDelete(doc.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="mt-4">
+          <h3 className="text-sm font-medium mb-2">Uploaded Documents</h3>
+          <ul className="space-y-2 border rounded-md p-2">
+            {documents.map((doc) => (
+              <li key={doc.id} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                <div className="flex items-center">
+                  {doc.type.includes('pdf') ? (
+                    <FileText className="h-4 w-4" />
+                  ) : (
+                    <Image className="h-4 w-4" />
+                  )}
+                  <span className="ml-2 text-sm">{doc.name}</span>
+                </div>
+                <DocumentViewer 
+                  document={doc}
+                  documentType="operation"
+                  onDelete={handleDocumentDeleted}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
