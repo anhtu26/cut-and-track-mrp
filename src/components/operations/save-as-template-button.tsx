@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Operation } from "@/types/operation";
@@ -29,19 +28,25 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   // Fetch work order to get part ID
-  const { data: workOrder } = useQuery({
+  const { data: workOrder, isLoading: isLoadingWorkOrder } = useQuery({
     queryKey: ["work-order", workOrderId],
     queryFn: async () => {
+      if (!workOrderId) return null;
+      
       const { data, error } = await supabase
         .from("work_orders")
         .select("part_id")
         .eq("id", workOrderId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching work order:", error);
+        throw error;
+      }
+      
+      console.log("Found work order with part_id:", data?.part_id);
       return data;
     },
     enabled: !!workOrderId,
@@ -53,6 +58,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
     queryFn: async () => {
       if (!workOrder?.part_id) return null;
       
+      console.log("Checking for existing template:", workOrder.part_id, operation.name);
       const { data, error } = await supabase
         .from("operation_templates")
         .select("*")
@@ -60,7 +66,12 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
         .eq("name", operation.name)
         .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error checking template:", error);
+        throw error;
+      }
+      
+      console.log("Template check result:", data);
       return data;
     },
     enabled: !!workOrder?.part_id && !!operation.name,
@@ -68,7 +79,10 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
 
   const { mutateAsync: saveAsTemplate, isPending: isSaving } = useMutation({
     mutationFn: async () => {
-      if (!workOrder?.part_id) throw new Error("Part ID is required");
+      if (!workOrder?.part_id) {
+        console.error("Cannot save template: Part ID is missing");
+        throw new Error("Part ID is required");
+      }
       
       // Prepare template data
       const templateData = {
@@ -95,7 +109,11 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           .eq("id", existingTemplate.id)
           .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating template:", error);
+          throw error;
+        }
+        
         result = { data, updated: true };
       } else {
         // Create new template
@@ -104,7 +122,11 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           .insert(templateData)
           .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating template:", error);
+          throw error;
+        }
+        
         result = { data, updated: false };
       }
       
@@ -128,7 +150,23 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
   });
 
   // Don't show if we can't determine the part ID
-  if (!workOrder?.part_id) return null;
+  if (isLoadingWorkOrder) {
+    return (
+      <Card className="border-dashed border-yellow-500">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <SaveAll className="mr-2 h-5 w-5 text-yellow-500" />
+            Loading...
+          </CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+  
+  if (!workOrder?.part_id) {
+    console.warn("Cannot display save template button: Missing part ID");
+    return null;
+  }
   
   return (
     <Card className="border-dashed border-yellow-500">

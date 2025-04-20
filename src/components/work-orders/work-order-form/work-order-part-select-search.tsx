@@ -62,21 +62,25 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
         documents: [],
         archived: item.archived || false,
         archivedAt: item.archived_at,
-        archiveReason: item.archive_reason
+        archiveReason: item.archive_reason,
+        customerId: item.customer_id
       })) as Part[];
     },
   });
 
-  // Make sure we have a valid parts array to filter
-  const filteredParts = (parts && Array.isArray(parts)) 
-    ? parts.filter(part => 
-        part.name.toLowerCase().includes((searchQuery || '').toLowerCase()) || 
-        part.partNumber.toLowerCase().includes((searchQuery || '').toLowerCase())
-      )
+  // Ensure we have a valid array to filter, and handle the case where parts might be undefined
+  const filteredParts = Array.isArray(parts) 
+    ? parts.filter(part => {
+        const query = (searchQuery || '').toLowerCase();
+        return (
+          (part.name && part.name.toLowerCase().includes(query)) || 
+          (part.partNumber && part.partNumber.toLowerCase().includes(query))
+        );
+      })
     : [];
 
   // Find the currently selected part name for display
-  const selectedPart = parts && Array.isArray(parts) 
+  const selectedPart = Array.isArray(parts) 
     ? parts.find(part => part.id === field.value) 
     : undefined;
 

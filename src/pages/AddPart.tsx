@@ -20,17 +20,20 @@ export default function AddPart() {
       // Convert materials string to array if provided
       const materials = data.materials ? data.materials.split(',').map((m: string) => m.trim()) : [];
       
-      // Create the part object with all fields including customerId
-      const partData = {
+      // Create the part object with all fields
+      const partData: Record<string, any> = {
         name: data.name || "",
         part_number: data.partNumber || "",
         description: data.description || "",
         materials: materials,
         revision_number: data.revisionNumber || "",
-        active: typeof data.active === 'boolean' ? data.active : true,
-        // Only include customer_id if it's provided and not empty
-        ...(data.customerId ? { customer_id: data.customerId } : {})
+        active: typeof data.active === 'boolean' ? data.active : true
       };
+      
+      // Only include customer_id if it's provided and not empty
+      if (data.customerId) {
+        partData.customer_id = data.customerId;
+      }
 
       console.log("Final part data:", partData);
       

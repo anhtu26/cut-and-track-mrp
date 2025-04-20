@@ -8,9 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
-import { 
-  ArrowLeft
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,7 +16,6 @@ import {
   DialogFooter, 
   DialogHeader, 
   DialogTitle,
-  DialogTrigger
 } from "@/components/ui/dialog";
 import { OperationDocumentManager } from "@/components/operations/operation-document-manager";
 import { useOperation } from "@/hooks/useOperation";
@@ -174,10 +171,13 @@ export default function OperationDetail() {
                 <OperationCommentsCard comments={operation.comments} />
               )}
               
-              <SaveAsTemplateButton 
-                operation={operation} 
-                workOrderId={workOrderId || ""}
-              />
+              {/* Always show the Save as Template button, if workOrderId exists */}
+              {workOrderId && (
+                <SaveAsTemplateButton 
+                  operation={operation}
+                  workOrderId={workOrderId}
+                />
+              )}
             </div>
           </div>
         </CardContent>
