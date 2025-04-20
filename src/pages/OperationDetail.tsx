@@ -1,102 +1,25 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Operation, OperationStatus } from "@/types/operation";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationStatus } from "@/types/operation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Clock, CalendarClock, User, ListChecks } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { format } from "date-fns";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OperationDocumentManager } from "@/components/operations/operation-document-manager";
+import { useOperation } from "@/hooks/useOperation";
+import { OperationHeader } from "@/components/operations/operation-header";
 
 export default function OperationDetail() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const { data: operation, isLoading, error } = useQuery({
-    queryKey: ["operation", operationId],
-    queryFn: async () => {
-      if (!operationId) {
-        console.error("[OPERATION DETAIL] Missing operation ID");
-        throw new Error("Operation ID is required");
-      }
-      
-      try {
-        console.log("[OPERATION DETAIL] Fetching operation:", operationId);
-        
-        const { data, error } = await supabase
-          .from("operations")
-          .select(`
-            *,
-            documents:operation_documents(*)
-          `)
-          .eq("id", operationId)
-          .maybeSingle();
-        
-        if (error) {
-          console.error("[OPERATION DETAIL ERROR]", error);
-          setLoadError(error.message);
-          throw error;
-        }
-        
-        if (!data) {
-          console.error("[OPERATION DETAIL] Operation not found:", operationId);
-          setLoadError("Operation not found");
-          throw new Error("Operation not found");
-        }
-        
-        console.log("[OPERATION DETAIL] Fetched operation:", data);
-        
-        return {
-          id: data.id,
-          workOrderId: data.work_order_id,
-          name: data.name,
-          description: data.description || "",
-          status: data.status as OperationStatus,
-          machiningMethods: data.machining_methods || "",
-          setupInstructions: data.setup_instructions || "",
-          sequence: data.sequence || 0,
-          isCustom: data.is_custom || false,
-          estimatedStartTime: data.estimated_start_time,
-          estimatedEndTime: data.estimated_end_time,
-          actualStartTime: data.actual_start_time,
-          actualEndTime: data.actual_end_time,
-          comments: data.comments,
-          assignedToId: data.assigned_to_id,
-          assignedTo: data.assigned_to_id ? {
-            id: data.assigned_to_id,
-            name: "Unknown"
-          } : undefined,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          documents: (data.documents || []).map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            url: doc.url,
-            type: doc.type,
-            uploadedAt: doc.uploaded_at,
-            size: doc.size
-          }))
-        } as Operation;
-      } catch (error) {
-        console.error("[OPERATION DETAIL] Error fetching operation:", error);
-        if (error instanceof Error) {
-          setLoadError(error.message);
-        } else {
-          setLoadError("Unknown error occurred");
-        }
-        throw error;
-      }
-    },
-    retry: 1,
-    enabled: !!operationId,
-  });
+  const { data: operation, isLoading, error } = useOperation(operationId);
 
   const { mutateAsync: updateOperationStatus, isPending: isUpdatingStatus } = useMutation({
     mutationFn: async (status: OperationStatus) => {
@@ -133,12 +56,8 @@ export default function OperationDetail() {
     },
   });
 
-  const handleDocumentAdded = () => {
-    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
-  };
-
-  const handleDocumentRemoved = () => {
-    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
+  const handleStatusUpdate = (status: OperationStatus) => {
+    updateOperationStatus(status);
   };
 
   if (isLoading) {
@@ -149,11 +68,11 @@ export default function OperationDetail() {
     );
   }
 
-  if (error || loadError || !operation) {
+  if (error || !operation) {
     return (
       <div className="flex flex-col justify-center items-center h-96 space-y-4">
         <p className="text-destructive">
-          Error loading operation: {(error instanceof Error ? error.message : loadError) || "Unknown error"}
+          Error loading operation: {error instanceof Error ? error.message : "Unknown error"}
         </p>
         <Button variant="outline" asChild>
           <Link to={`/work-orders/${workOrderId}`}>
@@ -165,80 +84,26 @@ export default function OperationDetail() {
     );
   }
 
-  const handleStatusUpdate = (status: OperationStatus) => {
-    updateOperationStatus(status);
+  const handleDocumentAdded = () => {
+    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
+  };
+
+  const handleDocumentRemoved = () => {
+    queryClient.invalidateQueries({ queryKey: ["operation", operationId] });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" asChild size="sm">
-          <Link to={`/work-orders/${workOrderId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Work Order
-          </Link>
-        </Button>
-        
-        <div className="flex space-x-2">
-          <Dialog open={isUpdateStatusDialogOpen} onOpenChange={setIsUpdateStatusDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ListChecks className="mr-2 h-4 w-4" />
-                Update Status
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Update Operation Status</DialogTitle>
-                <DialogDescription>
-                  Change the status of operation {operation.name}.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid grid-cols-2 gap-4 py-4">
-                {["Not Started", "In Progress", "QC", "Complete"].map((status) => (
-                  <Button
-                    key={status}
-                    variant={operation.status === status ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => handleStatusUpdate(status as OperationStatus)}
-                    disabled={isUpdatingStatus}
-                  >
-                    <Badge variant={
-                      status === "Complete" ? "secondary" : 
-                      status === "In Progress" ? "default" : 
-                      "outline"
-                    } className="mr-2">
-                      {status}
-                    </Badge>
-                  </Button>
-                ))}
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsUpdateStatusDialogOpen(false)}>
-                  Cancel
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
-          <Button asChild size="sm">
-            <Link to={`/work-orders/${workOrderId}/operations/${operationId}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <OperationHeader 
+        operation={operation}
+        onUpdateStatusClick={() => setIsUpdateStatusDialogOpen(true)}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">
-                {operation.name}
-              </CardTitle>
+              <CardTitle className="text-2xl">{operation.name}</CardTitle>
               <CardDescription className="text-lg mt-1">
                 Operation for Work Order #{workOrderId}
               </CardDescription>
@@ -371,6 +236,49 @@ export default function OperationDetail() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isUpdateStatusDialogOpen} onOpenChange={setIsUpdateStatusDialogOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <ListChecks className="mr-2 h-4 w-4" />
+            Update Status
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Operation Status</DialogTitle>
+            <DialogDescription>
+              Change the status of operation {operation.name}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 py-4">
+            {["Not Started", "In Progress", "QC", "Complete"].map((status) => (
+              <Button
+                key={status}
+                variant={operation.status === status ? "default" : "outline"}
+                className="justify-start"
+                onClick={() => handleStatusUpdate(status as OperationStatus)}
+                disabled={isUpdatingStatus}
+              >
+                <Badge variant={
+                  status === "Complete" ? "secondary" : 
+                  status === "In Progress" ? "default" : 
+                  "outline"
+                } className="mr-2">
+                  {status}
+                </Badge>
+              </Button>
+            ))}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUpdateStatusDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

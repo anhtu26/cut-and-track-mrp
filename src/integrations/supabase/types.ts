@@ -263,6 +263,7 @@ export type Database = {
           id: string
           name: string
           part_id: string
+          size: number | null
           type: string
           uploaded_at: string
           url: string
@@ -271,6 +272,7 @@ export type Database = {
           id?: string
           name: string
           part_id: string
+          size?: number | null
           type: string
           uploaded_at?: string
           url: string
@@ -279,6 +281,7 @@ export type Database = {
           id?: string
           name?: string
           part_id?: string
+          size?: number | null
           type?: string
           uploaded_at?: string
           url?: string
