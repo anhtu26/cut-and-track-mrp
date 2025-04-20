@@ -11,11 +11,12 @@ export function useOperation(operationId: string | undefined) {
         throw new Error("Operation ID is required");
       }
       
+      // Use a specific relationship for operation_documents to avoid ambiguity
       const { data, error } = await supabase
         .from("operations")
         .select(`
           *,
-          documents:operation_documents(*)
+          documents:operation_documents!operation_documents_operation_id_fkey(*)
         `)
         .eq("id", operationId)
         .maybeSingle();

@@ -9,10 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import { 
-  Clock, 
-  CalendarClock, 
-  User, 
-  ListChecks,
   ArrowLeft
 } from "lucide-react";
 import { 
