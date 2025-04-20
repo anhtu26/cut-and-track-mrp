@@ -15,35 +15,47 @@ export default function Customers() {
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      
-      return data.map((item: any) => ({
-        id: item.id,
-        name: item.name || "",
-        company: item.company || "",
-        email: item.email || "",
-        phone: item.phone || "",
-        address: item.address || "",
-        active: item.active || false,
-        notes: item.notes || "",
-        createdAt: item.created_at || "",
-        updatedAt: item.updated_at || "",
-        orderCount: item.order_count || 0
-      })) as Customer[];
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('name');
+        
+        if (error) throw error;
+        
+        // Ensure we always return an array even if data is null
+        return (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || "",
+          company: item.company || "",
+          email: item.email || "",
+          phone: item.phone || "",
+          address: item.address || "",
+          active: item.active || false,
+          notes: item.notes || "",
+          createdAt: item.created_at || "",
+          updatedAt: item.updated_at || "",
+          orderCount: item.order_count || 0
+        })) as Customer[];
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        return []; // Return empty array on error
+      }
     },
   });
   
-  const filteredCustomers = customers.filter(customer => 
-    (customer.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (customer.company?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (customer.email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-    (customer.phone?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  );
+  // Apply filtering with null safety checks
+  const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => {
+    if (!customer) return false;
+    
+    const searchLower = (searchTerm || "").toLowerCase();
+    return (
+      ((customer.name || "").toLowerCase()).includes(searchLower) ||
+      ((customer.company || "").toLowerCase()).includes(searchLower) ||
+      ((customer.email || "").toLowerCase()).includes(searchLower) ||
+      ((customer.phone || "").toLowerCase()).includes(searchLower)
+    );
+  }) : [];
 
   return (
     <div className="space-y-6">

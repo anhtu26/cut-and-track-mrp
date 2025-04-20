@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Operation } from "@/types/operation";
@@ -28,59 +28,101 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const queryClient = useQueryClient();
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Fetch work order to get part ID
-  const { data: workOrder, isLoading: isLoadingWorkOrder } = useQuery({
+  const { data: workOrder, isLoading: isLoadingWorkOrder, error: workOrderError } = useQuery({
     queryKey: ["work-order", workOrderId],
     queryFn: async () => {
-      if (!workOrderId) return null;
-      
-      const { data, error } = await supabase
-        .from("work_orders")
-        .select("part_id")
-        .eq("id", workOrderId)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching work order:", error);
-        throw error;
+      if (!workOrderId) {
+        console.error("[SaveTemplate] Missing workOrderId");
+        return null;
       }
       
-      console.log("Found work order with part_id:", data?.part_id);
-      return data;
+      try {
+        console.log(`[SaveTemplate] Fetching work order: ${workOrderId}`);
+        const { data, error } = await supabase
+          .from("work_orders")
+          .select("part_id, id")
+          .eq("id", workOrderId)
+          .single();
+        
+        if (error) {
+          console.error("[SaveTemplate] Error fetching work order:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.error(`[SaveTemplate] No work order found with ID: ${workOrderId}`);
+          return null;
+        }
+        
+        console.log("[SaveTemplate] Found work order with part_id:", data?.part_id);
+        return data;
+      } catch (error) {
+        console.error("[SaveTemplate] Error in workOrder query:", error);
+        throw error;
+      }
     },
     enabled: !!workOrderId,
   });
 
+  // Log debugging information
+  useEffect(() => {
+    setDebugInfo({
+      workOrderId,
+      operationId: operation?.id,
+      workOrderLoaded: !!workOrder,
+      partId: workOrder?.part_id,
+      hasOperation: !!operation
+    });
+    
+    console.log("[SaveTemplate] Debug info:", {
+      workOrderId,
+      operationId: operation?.id,
+      workOrderLoaded: !!workOrder,
+      partId: workOrder?.part_id,
+      hasOperation: !!operation
+    });
+  }, [workOrderId, operation, workOrder]);
+
   // Check if template exists
   const { data: existingTemplate, isLoading: isCheckingTemplate } = useQuery({
-    queryKey: ["operation-template", workOrder?.part_id, operation.name],
+    queryKey: ["operation-template", workOrder?.part_id, operation?.name],
     queryFn: async () => {
-      if (!workOrder?.part_id) return null;
-      
-      console.log("Checking for existing template:", workOrder.part_id, operation.name);
-      const { data, error } = await supabase
-        .from("operation_templates")
-        .select("*")
-        .eq("part_id", workOrder.part_id)
-        .eq("name", operation.name)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Error checking template:", error);
-        throw error;
+      if (!workOrder?.part_id || !operation?.name) {
+        console.log("[SaveTemplate] Missing part_id or operation name, skipping template check");
+        return null;
       }
       
-      console.log("Template check result:", data);
-      return data;
+      try {
+        console.log("[SaveTemplate] Checking for existing template:", workOrder.part_id, operation.name);
+        const { data, error } = await supabase
+          .from("operation_templates")
+          .select("*")
+          .eq("part_id", workOrder.part_id)
+          .eq("name", operation.name)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("[SaveTemplate] Error checking template:", error);
+          throw error;
+        }
+        
+        console.log("[SaveTemplate] Template check result:", data);
+        return data;
+      } catch (error) {
+        console.error("[SaveTemplate] Error in template query:", error);
+        return null;
+      }
     },
-    enabled: !!workOrder?.part_id && !!operation.name,
+    enabled: !!workOrder?.part_id && !!operation?.name,
   });
 
   const { mutateAsync: saveAsTemplate, isPending: isSaving } = useMutation({
     mutationFn: async () => {
       if (!workOrder?.part_id) {
-        console.error("Cannot save template: Part ID is missing");
+        console.error("[SaveTemplate] Cannot save template: Part ID is missing");
         throw new Error("Part ID is required");
       }
       
@@ -97,7 +139,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
         part_id: workOrder.part_id,
       };
       
-      console.log("Saving operation as template:", templateData);
+      console.log("[SaveTemplate] Saving operation as template:", templateData);
       
       let result;
       
@@ -110,7 +152,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           .select();
         
         if (error) {
-          console.error("Error updating template:", error);
+          console.error("[SaveTemplate] Error updating template:", error);
           throw error;
         }
         
@@ -123,7 +165,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           .select();
         
         if (error) {
-          console.error("Error creating template:", error);
+          console.error("[SaveTemplate] Error creating template:", error);
           throw error;
         }
         
@@ -144,28 +186,61 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
       setIsConfirmed(false);
     },
     onError: (error: any) => {
-      console.error("Error saving operation as template:", error);
+      console.error("[SaveTemplate] Error saving operation as template:", error);
       toast.error(`Failed to save template: ${error.message || "Unknown error"}`);
     },
   });
 
-  // Don't show if we can't determine the part ID
+  // Don't show if we're still loading or don't have a work order
   if (isLoadingWorkOrder) {
     return (
       <Card className="border-dashed border-yellow-500">
         <CardHeader>
           <CardTitle className="text-lg flex items-center">
             <SaveAll className="mr-2 h-5 w-5 text-yellow-500" />
-            Loading...
+            Loading work order information...
           </CardTitle>
         </CardHeader>
       </Card>
     );
   }
   
-  if (!workOrder?.part_id) {
-    console.warn("Cannot display save template button: Missing part ID");
-    return null;
+  // Show error if work order not found
+  if (workOrderError || !workOrder) {
+    return (
+      <Card className="border-dashed border-red-500">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
+            Could not load work order
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Unable to find work order information. Template saving is disabled.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Don't show if we don't have a part ID
+  if (!workOrder.part_id) {
+    return (
+      <Card className="border-dashed border-yellow-500">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center">
+            <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
+            Cannot save template
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            This work order does not have a part associated with it. Operation templates must be linked to a part.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
   
   return (

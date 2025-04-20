@@ -31,8 +31,13 @@ export default function AddPart() {
       };
       
       // Only include customer_id if it's provided and not empty
-      if (data.customerId) {
+      if (data.customerId && data.customerId.trim() !== "") {
+        console.log("Setting customer_id:", data.customerId);
         partData.customer_id = data.customerId;
+      } else {
+        // Explicitly set to null to avoid schema cache issues
+        console.log("Setting customer_id to null");
+        partData.customer_id = null;
       }
 
       console.log("Final part data:", partData);

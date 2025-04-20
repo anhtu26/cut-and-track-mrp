@@ -2,184 +2,231 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Part } from "@/types/part";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
 
-// Define a more permissive schema that allows all characters
+// Define the form schema for part creation and editing
 const partSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  partNumber: z.string().min(1, "Part number is required"),
+  name: z.string().min(1, { message: "Part name is required" }),
+  partNumber: z.string().min(1, { message: "Part number is required" }),
   description: z.string().optional(),
-  materials: z.string().optional(), // Changed from array to string
-  revisionNumber: z.string().optional(),
   active: z.boolean().default(true),
+  materials: z.string().optional(),
+  revisionNumber: z.string().optional(),
   customerId: z.string().optional(),
 });
 
 type PartFormData = z.infer<typeof partSchema>;
 
 interface PartFormProps {
-  initialData?: Partial<Part>;
+  initialData?: Part;
   onSubmit: (data: PartFormData) => Promise<void>;
   isSubmitting: boolean;
 }
 
 export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps) {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  
-  // Query to fetch customers for dropdown
-  const { data: customers = [] } = useQuery({
-    queryKey: ["customers"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, name, company")
-        .eq("active", true)
-        .order("name");
-        
-      if (error) {
-        console.error("Error loading customers:", error);
-        return [];
-      }
-      
-      return data.map(customer => ({
-        value: customer.id,
-        label: `${customer.name} (${customer.company})`
-      }));
-    }
-  });
-  
-  // Convert materials array to string if needed for initialData
-  const initialMaterials = Array.isArray(initialData?.materials) 
-    ? initialData.materials.join(', ') 
-    : initialData?.materials || "";
+  const [hasInitialized, setHasInitialized] = useState(false);
 
+  // Convert materials array to comma-separated string for the form
+  const materialsString = initialData?.materials ? 
+    Array.isArray(initialData.materials) ? 
+      initialData.materials.join(", ") : 
+      initialData.materials.toString() :
+    "";
+  
+  console.log("[PartForm] Initial data:", initialData);
+  console.log("[PartForm] Materials:", initialData?.materials, "->", materialsString);
+  console.log("[PartForm] Customer ID:", initialData?.customerId);
+
+  // Set up form with default values
   const form = useForm<PartFormData>({
     resolver: zodResolver(partSchema),
     defaultValues: {
       name: initialData?.name || "",
       partNumber: initialData?.partNumber || "",
       description: initialData?.description || "",
-      materials: initialMaterials,
+      active: initialData?.active ?? true,
+      materials: materialsString,
       revisionNumber: initialData?.revisionNumber || "",
-      active: initialData?.active !== undefined ? initialData.active : true,
-      customerId: initialData?.customerId || undefined,
-    }
+      customerId: initialData?.customerId || "",
+    },
   });
 
+  // Fetch customers for dropdown
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id, name, company')
+          .eq('active', true)
+          .order('name');
+        
+        if (error) {
+          console.error("[PartForm] Error fetching customers:", error);
+          throw error;
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error("[PartForm] Error in customer query:", error);
+        return [];
+      }
+    },
+  });
+
+  // Update form values when initialData changes
+  useEffect(() => {
+    if (initialData && !hasInitialized) {
+      form.reset({
+        name: initialData.name || "",
+        partNumber: initialData.partNumber || "",
+        description: initialData.description || "",
+        active: initialData.active ?? true,
+        materials: materialsString,
+        revisionNumber: initialData.revisionNumber || "",
+        customerId: initialData.customerId || "",
+      });
+      setHasInitialized(true);
+    }
+  }, [initialData, form, materialsString, hasInitialized]);
+
   const handleSubmit = async (data: PartFormData) => {
-    setSubmitError(null);
+    // Log form submission data
+    console.log("[PartForm] Submitting form with data:", data);
+    
     try {
       await onSubmit(data);
-    } catch (error: any) {
-      console.error("Form submission error:", error);
-      setSubmitError(error.message || "Failed to submit form");
+    } catch (error) {
+      console.error("[PartForm] Form submission error:", error);
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Part Name</FormLabel>
-              <FormControl>
-                <Input {...field} className="text-base px-4 py-3 h-12" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Part Name</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="partNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Part Number</FormLabel>
-              <FormControl>
-                <Input {...field} className="text-base px-4 py-3 h-12" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="partNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Part Number</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
-                <Textarea {...field} className="min-h-32 text-base p-4" />
+                <Textarea rows={4} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="materials"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Materials</FormLabel>
-              <FormControl>
-                <Input 
-                  {...field} 
-                  className="text-base px-4 py-3 h-12"
-                  placeholder="Enter materials (e.g. Aluminum, Steel, Plastic)"
-                />
-              </FormControl>
-              <FormMessage />
-              <p className="text-sm text-muted-foreground">Comma-separated list of materials</p>
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="materials"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Materials (Optional)</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g. Aluminum, Steel, Plastic" />
+                </FormControl>
+                <FormDescription>
+                  Separate materials with commas
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="revisionNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Revision Number</FormLabel>
-              <FormControl>
-                <Input {...field} className="text-base px-4 py-3 h-12" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+          <FormField
+            control={form.control}
+            name="revisionNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Revision Number (Optional)</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <FormField
           control={form.control}
           name="customerId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Primary Customer (Optional)</FormLabel>
-              <select
-                value={field.value || ""}
-                onChange={(e) => field.onChange(e.target.value || undefined)}
-                className="w-full h-12 text-base px-4 py-2 rounded-md border border-input bg-background"
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || ""} // Ensure empty string for null/undefined
+                disabled={isLoadingCustomers || isSubmitting}
               >
-                <option value="">-- Select Customer --</option>
-                {customers.map((customer) => (
-                  <option key={customer.value} value={customer.value}>
-                    {customer.label}
-                  </option>
-                ))}
-              </select>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">None (No specific customer)</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name} - {customer.company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Associate this part with a primary customer (optional)
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -189,29 +236,26 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
           control={form.control}
           name="active"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Active</FormLabel>
+                <FormDescription>
+                  Inactive parts won't appear in part selection for new work orders
+                </FormDescription>
+              </div>
               <FormControl>
-                <Checkbox
+                <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Active</FormLabel>
-              </div>
             </FormItem>
           )}
         />
 
-        {submitError && (
-          <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
-            {submitError}
-          </div>
-        )}
-
-        <div className="flex justify-end gap-4">
-          <Button type="submit" disabled={isSubmitting} className="h-12 px-8 text-base">
-            {isSubmitting ? "Saving..." : "Save Part"}
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : initialData ? "Update Part" : "Create Part"}
           </Button>
         </div>
       </form>

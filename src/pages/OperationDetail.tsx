@@ -31,6 +31,9 @@ export default function OperationDetail() {
   const queryClient = useQueryClient();
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
 
+  // Explicitly log params to debug
+  console.log("[OperationDetail] Params:", { workOrderId, operationId });
+
   const { data: operation, isLoading, error } = useOperation(operationId);
 
   const { mutateAsync: updateOperationStatus, isPending: isUpdatingStatus } = useMutation({
@@ -171,8 +174,8 @@ export default function OperationDetail() {
                 <OperationCommentsCard comments={operation.comments} />
               )}
               
-              {/* Always show the Save as Template button, if workOrderId exists */}
-              {workOrderId && (
+              {/* Display the Save as Template button when we have both workOrderId and operationId */}
+              {workOrderId && operationId && (
                 <SaveAsTemplateButton 
                   operation={operation}
                   workOrderId={workOrderId}

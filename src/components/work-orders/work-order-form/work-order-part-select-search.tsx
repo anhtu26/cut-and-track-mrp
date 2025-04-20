@@ -38,39 +38,54 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
   const { data: parts = [], isLoading: isLoadingParts } = useQuery({
     queryKey: ["parts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('parts')
-        .select("*")
-        .eq('archived', false)
-        .eq('active', true)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
+      console.log("Fetching parts for dropdown");
       
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        partNumber: item.part_number,
-        description: item.description,
-        active: item.active,
-        materials: item.materials || [],
-        setupInstructions: item.setup_instructions,
-        machiningMethods: item.machining_methods,
-        revisionNumber: item.revision_number,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        documents: [],
-        archived: item.archived || false,
-        archivedAt: item.archived_at,
-        archiveReason: item.archive_reason,
-        customerId: item.customer_id
-      })) as Part[];
+      try {
+        const { data, error } = await supabase
+          .from('parts')
+          .select("*")
+          .eq('archived', false)
+          .eq('active', true)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error("Error fetching parts:", error);
+          throw error;
+        }
+        
+        console.log("Parts data received:", data);
+        
+        // Ensure we're returning an array even if data is null or undefined
+        return (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          partNumber: item.part_number,
+          description: item.description,
+          active: item.active,
+          materials: item.materials || [],
+          setupInstructions: item.setup_instructions,
+          machiningMethods: item.machining_methods,
+          revisionNumber: item.revision_number,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          documents: [],
+          archived: item.archived || false,
+          archivedAt: item.archived_at,
+          archiveReason: item.archive_reason,
+          customerId: item.customer_id
+        })) as Part[];
+      } catch (error) {
+        console.error("Failed to fetch parts:", error);
+        return []; // Return empty array on error
+      }
     },
   });
 
-  // Ensure we have a valid array to filter, and handle the case where parts might be undefined
+  // Ensure we're working with a valid array before filtering
   const filteredParts = Array.isArray(parts) 
     ? parts.filter(part => {
+        if (!part) return false; // Skip null/undefined parts
+        
         const query = (searchQuery || '').toLowerCase();
         // Add null/undefined guards for all properties
         return (
@@ -83,7 +98,7 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
 
   // Find the currently selected part name for display
   const selectedPart = Array.isArray(parts) 
-    ? parts.find(part => part.id === field.value) 
+    ? parts.find(part => part?.id === field.value) 
     : undefined;
 
   return (
@@ -128,38 +143,43 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                   placeholder="Search parts..." 
                   onValueChange={(value) => setSearchQuery(value)}
                 />
-                <CommandEmpty>No parts found.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  {filteredParts && filteredParts.length > 0 ? filteredParts.map(part => (
-                    <CommandItem
-                      key={part.id}
-                      value={part.id}
-                      onSelect={() => {
-                        field.onChange(part.id);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          field.value === part.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <span className="flex-1 truncate">
-                        {part.name} - {part.partNumber}
-                      </span>
-                      {part.description && (
-                        <span className="text-xs text-muted-foreground ml-2 truncate max-w-[150px]">
-                          {part.description}
+                {/* Defensive check: only render CommandEmpty when filteredParts is properly initialized */}
+                {Array.isArray(filteredParts) && <CommandEmpty>No parts found.</CommandEmpty>}
+                
+                {/* Only render CommandGroup when we have a valid array */}
+                {Array.isArray(filteredParts) && (
+                  <CommandGroup className="max-h-[300px] overflow-auto">
+                    {filteredParts.length > 0 ? filteredParts.map(part => (
+                      <CommandItem
+                        key={part.id}
+                        value={part.id}
+                        onSelect={() => {
+                          field.onChange(part.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            field.value === part.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span className="flex-1 truncate">
+                          {part.name} - {part.partNumber}
                         </span>
-                      )}
-                    </CommandItem>
-                  )) : (
-                    <div className="py-2 px-4 text-sm text-muted-foreground">
-                      Loading parts...
-                    </div>
-                  )}
-                </CommandGroup>
+                        {part.description && (
+                          <span className="text-xs text-muted-foreground ml-2 truncate max-w-[150px]">
+                            {part.description}
+                          </span>
+                        )}
+                      </CommandItem>
+                    )) : (
+                      <div className="py-2 px-4 text-sm text-muted-foreground">
+                        {isLoadingParts ? "Loading parts..." : "No parts found"}
+                      </div>
+                    )}
+                  </CommandGroup>
+                )}
               </Command>
             </PopoverContent>
           </Popover>
