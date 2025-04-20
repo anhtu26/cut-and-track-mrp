@@ -1,104 +1,26 @@
 
-import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { OperationStatus, UpdateOperationInput } from "@/types/operation";
+import { UpdateOperationInput } from "@/types/operation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { ArrowLeft } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { OperationForm } from "@/components/operations/operation-form";
+import { useOperation } from "@/hooks/useOperation";
 
 export default function EditOperation() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const { data: operation, isLoading, error } = useQuery({
-    queryKey: ["operation", operationId],
-    queryFn: async () => {
-      if (!operationId) {
-        console.error("[EDIT OPERATION] Missing operation ID");
-        throw new Error("Operation ID is required");
-      }
-      
-      try {
-        console.log("[EDIT OPERATION] Fetching operation:", operationId);
-        
-        const { data, error } = await supabase
-          .from("operations")
-          .select(`
-            *,
-            documents:operation_documents(*)
-          `)
-          .eq("id", operationId)
-          .maybeSingle();
-        
-        if (error) {
-          console.error("[EDIT OPERATION ERROR]", error);
-          setLoadError(error.message);
-          throw error;
-        }
-        
-        if (!data) {
-          console.error("[EDIT OPERATION] Operation not found:", operationId);
-          setLoadError("Operation not found");
-          throw new Error("Operation not found");
-        }
-        
-        console.log("[EDIT OPERATION] Fetched operation:", data);
-        
-        return {
-          id: data.id,
-          workOrderId: data.work_order_id,
-          name: data.name,
-          description: data.description || "",
-          status: data.status as OperationStatus,
-          machiningMethods: data.machining_methods || "",
-          setupInstructions: data.setup_instructions || "",
-          sequence: data.sequence || 0,
-          isCustom: data.is_custom || false,
-          estimatedStartTime: data.estimated_start_time,
-          estimatedEndTime: data.estimated_end_time,
-          actualStartTime: data.actual_start_time,
-          actualEndTime: data.actual_end_time,
-          comments: data.comments,
-          assignedTo: data.assigned_to_id ? {
-            id: data.assigned_to_id,
-            name: "Unknown" // In a real app, we'd fetch the operator's name
-          } : undefined,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          documents: (data.documents || []).map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            url: doc.url,
-            type: doc.type,
-            uploadedAt: doc.uploaded_at
-          }))
-        };
-      } catch (error) {
-        console.error("[EDIT OPERATION] Error fetching operation:", error);
-        if (error instanceof Error) {
-          setLoadError(error.message);
-        } else {
-          setLoadError("Unknown error occurred");
-        }
-        throw error;
-      }
-    },
-    retry: 1,
-    enabled: !!operationId,
-  });
+  const { data: operation, isLoading, error } = useOperation(operationId);
 
   const updateMutation = useMutation({
     mutationFn: async (updatedOperation: UpdateOperationInput) => {
       console.log("[UPDATE OPERATION] Updating with data:", updatedOperation);
       
-      // Format data for Supabase
       const operationData = {
         name: updatedOperation.name,
         description: updatedOperation.description || null,
@@ -121,12 +43,7 @@ export default function EditOperation() {
         .eq("id", operationId)
         .select();
       
-      if (error) {
-        console.error("[UPDATE OPERATION ERROR]", error);
-        throw error;
-      }
-      
-      console.log("[UPDATE OPERATION] Success:", data);
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
@@ -157,11 +74,11 @@ export default function EditOperation() {
     );
   }
 
-  if (error || loadError || !operation) {
+  if (error || !operation) {
     return (
       <div className="flex flex-col justify-center items-center h-96 space-y-4">
         <p className="text-destructive">
-          Error loading operation: {(error instanceof Error ? error.message : loadError) || "Unknown error"}
+          Error loading operation: {error instanceof Error ? error.message : "Unknown error"}
         </p>
         <Button variant="outline" asChild>
           <Link to={`/work-orders/${workOrderId}`}>

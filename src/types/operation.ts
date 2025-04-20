@@ -24,6 +24,7 @@ export interface Operation {
   actualEndTime?: string;
   comments?: string;
   assignedTo?: Operator;
+  assignedToId?: string; // Explicitly included to match database schema
   createdAt: string;
   updatedAt: string;
   documents: OperationDocument[];
@@ -35,6 +36,7 @@ export interface OperationDocument {
   url: string;
   type: string;
   uploadedAt: string;
+  size?: number; // Added size field to match database schema
 }
 
 export interface CreateOperationInput {
