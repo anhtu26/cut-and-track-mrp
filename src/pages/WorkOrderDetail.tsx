@@ -311,6 +311,95 @@ export default function WorkOrderDetail() {
     setIsEditing(!isEditing);
   };
 
+  const renderOperationTable = () => {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Sequence</TableHead>
+            <TableHead>Operation</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Assigned To</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {workOrder.operations.map((operation) => (
+            <TableRow key={operation.id}>
+              <TableCell>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    className="w-20"
+                    value={(editedOperations[operation.id]?.sequence !== undefined) 
+                      ? editedOperations[operation.id].sequence 
+                      : operation.sequence}
+                    onChange={(e) => handleSequenceChange(operation.id, e.target.value)}
+                  />
+                ) : (
+                  <span className="font-mono">{operation.sequence}</span>
+                )}
+              </TableCell>
+              <TableCell className="font-medium">
+                {operation.name}
+                {operation.isCustom && (
+                  <Badge variant="outline" className="ml-2">Custom</Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 py-0">
+                      <Badge variant={
+                        operation.status === "Complete" ? "secondary" : 
+                        operation.status === "In Progress" ? "default" : 
+                        operation.status === "QC" ? "outline" :
+                        "outline"
+                      }>
+                        {operation.status}
+                      </Badge>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {["Not Started", "In Progress", "QC", "Complete"].map((status) => (
+                      <DropdownMenuItem 
+                        key={status}
+                        onClick={() => handleOperationStatusChange(operation.id, status as OperationStatus)}
+                      >
+                        <Badge variant={
+                          status === "Complete" ? "secondary" : 
+                          status === "In Progress" ? "default" : 
+                          status === "QC" ? "outline" :
+                          "outline"
+                        } className="mr-2">
+                          {status}
+                        </Badge>
+                        {status}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+              <TableCell>{operation.description || "—"}</TableCell>
+              <TableCell>
+                {operation.assignedTo ? operation.assignedTo.name : "—"}
+              </TableCell>
+              <TableCell>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/work-orders/${workOrderId}/operations/${operation.id}`}>
+                    View Details
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -320,11 +409,18 @@ export default function WorkOrderDetail() {
   }
 
   if (error || !workOrder) {
+    console.error("Work order detail error:", error);
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex flex-col justify-center items-center h-96 space-y-4">
         <p className="text-destructive">
           Error loading work order: {error instanceof Error ? error.message : "Unknown error"}
         </p>
+        <Button variant="outline" asChild>
+          <Link to="/work-orders">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Work Orders
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -607,90 +703,7 @@ export default function WorkOrderDetail() {
               )}
             </div>
             {workOrder.operations.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sequence</TableHead>
-                    <TableHead>Operation</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Assigned To</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {workOrder.operations.map((operation) => (
-                    <TableRow key={operation.id}>
-                      <TableCell>
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            min="0"
-                            className="w-20"
-                            value={(editedOperations[operation.id]?.sequence !== undefined) 
-                              ? editedOperations[operation.id].sequence 
-                              : operation.sequence}
-                            onChange={(e) => handleSequenceChange(operation.id, e.target.value)}
-                          />
-                        ) : (
-                          <span className="font-mono">{operation.sequence}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {operation.name}
-                        {operation.isCustom && (
-                          <Badge variant="outline" className="ml-2">Custom</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 px-2 py-0">
-                              <Badge variant={
-                                operation.status === "Complete" ? "secondary" : 
-                                operation.status === "In Progress" ? "default" : 
-                                operation.status === "QC" ? "outline" :
-                                "outline"
-                              }>
-                                {operation.status}
-                              </Badge>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {["Not Started", "In Progress", "QC", "Complete"].map((status) => (
-                              <DropdownMenuItem 
-                                key={status}
-                                onClick={() => handleOperationStatusChange(operation.id, status as OperationStatus)}
-                              >
-                                <Badge variant={
-                                  status === "Complete" ? "secondary" : 
-                                  status === "In Progress" ? "default" : 
-                                  status === "QC" ? "outline" :
-                                  "outline"
-                                } className="mr-2">
-                                  {status}
-                                </Badge>
-                                {status}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                      <TableCell>{operation.description || "—"}</TableCell>
-                      <TableCell>
-                        {operation.assignedTo ? operation.assignedTo.name : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/work-orders/${workOrderId}/operations/${operation.id}`}>
-                            View Details
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              renderOperationTable()
             ) : (
               <Card>
                 <CardContent className="py-4 text-center">

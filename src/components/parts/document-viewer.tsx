@@ -27,6 +27,9 @@ interface DocumentViewerProps {
   showDeleteButton?: boolean;
 }
 
+/**
+ * DocumentViewer component for viewing and managing documents
+ */
 export function DocumentViewer({
   document,
   documentType = "part",
@@ -88,6 +91,11 @@ export function DocumentViewer({
   };
 
   const handleDelete = async () => {
+    if (!document.id) {
+      toast.error('Invalid document ID');
+      return;
+    }
+    
     try {
       setIsDeleting(true);
       await documentService.deleteDocument({

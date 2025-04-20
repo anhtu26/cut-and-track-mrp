@@ -1,8 +1,8 @@
 
 import { DocumentManager } from "@/components/shared/document-manager";
 
-interface OperationDocumentManagerProps {
-  operationId: string;
+interface PartDocumentManagerProps {
+  partId: string;
   documents: Array<{
     id: string;
     name: string;
@@ -16,24 +16,24 @@ interface OperationDocumentManagerProps {
 }
 
 /**
- * Document manager specifically for operations
+ * Document manager specifically for parts
  */
-export function OperationDocumentManager({ 
-  operationId, 
+export function PartDocumentManager({ 
+  partId, 
   documents = [], 
   onDocumentAdded,
   onDocumentRemoved 
-}: OperationDocumentManagerProps) {
+}: PartDocumentManagerProps) {
   return (
     <DocumentManager
-      entityId={operationId}
-      documentType="operation"
+      entityId={partId}
+      documentType="part"
       documents={documents}
       onDocumentAdded={onDocumentAdded}
       onDocumentRemoved={onDocumentRemoved}
-      queryKey={['operation', operationId]}
-      maxSize={10}
-      allowedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+      queryKey={['part', partId]}
+      maxSize={25} // Allow larger files for parts (CAD files, etc.)
+      allowedTypes={['application/pdf', 'image/jpeg', 'image/png', 'application/step', 'model/stl']}
     />
   );
 }

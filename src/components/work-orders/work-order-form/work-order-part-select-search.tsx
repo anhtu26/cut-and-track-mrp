@@ -67,13 +67,18 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
     },
   });
 
-  const filteredParts = parts.filter(part => 
-    part.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    part.partNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Make sure we have a valid parts array to filter
+  const filteredParts = (parts && Array.isArray(parts)) 
+    ? parts.filter(part => 
+        part.name.toLowerCase().includes((searchQuery || '').toLowerCase()) || 
+        part.partNumber.toLowerCase().includes((searchQuery || '').toLowerCase())
+      )
+    : [];
 
   // Find the currently selected part name for display
-  const selectedPart = parts.find(part => part.id === field.value);
+  const selectedPart = parts && Array.isArray(parts) 
+    ? parts.find(part => part.id === field.value) 
+    : undefined;
 
   return (
     <FormField

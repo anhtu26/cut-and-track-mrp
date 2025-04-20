@@ -27,9 +27,17 @@ interface DeleteDocumentOptions {
   documentType: DocumentType;
 }
 
+/**
+ * Document service for handling document operations across the application
+ */
 export const documentService = {
+  /**
+   * Upload a document to Supabase storage and create a database record
+   */
   async uploadDocument({ file, entityId, documentType, onProgress }: UploadDocumentOptions) {
     try {
+      console.log(`[Document Service] Uploading ${documentType} document:`, file.name);
+      
       // Create a sanitized filename
       const timestamp = Date.now();
       const sanitizedName = file.name.replace(/[^\w\s.-]/g, '');
@@ -79,6 +87,7 @@ export const documentService = {
       // Report progress
       if (onProgress) onProgress(100);
       
+      console.log(`[Document Service] Document uploaded successfully: ${sanitizedName}`);
       return {
         success: true,
         url: urlData.publicUrl,
@@ -90,8 +99,13 @@ export const documentService = {
     }
   },
   
+  /**
+   * Delete a document from Supabase storage and remove the database record
+   */
   async deleteDocument({ documentId, documentType }: DeleteDocumentOptions) {
     try {
+      console.log(`[Document Service] Deleting ${documentType} document with ID:`, documentId);
+      
       // First get the document to extract the URL
       const tableName = documentType === "part" ? 'part_documents' : 'operation_documents';
       const { data: document, error: fetchError } = await supabase
@@ -129,6 +143,7 @@ export const documentService = {
       
       if (deleteError) throw deleteError;
       
+      console.log(`[Document Service] Document deleted successfully`);
       return { success: true };
     } catch (error: any) {
       console.error(`[Document Delete Error]: ${error.message}`, error);
@@ -136,8 +151,13 @@ export const documentService = {
     }
   },
   
+  /**
+   * Get documents for an entity (part or operation)
+   */
   async getDocuments(entityId: string, documentType: DocumentType): Promise<DocumentBase[]> {
     try {
+      console.log(`[Document Service] Fetching ${documentType} documents for entity:`, entityId);
+      
       const tableName = documentType === "part" ? 'part_documents' : 'operation_documents';
       const idField = documentType === "part" ? 'part_id' : 'operation_id';
       
@@ -148,7 +168,7 @@ export const documentService = {
       
       if (error) throw error;
       
-      return data.map(doc => ({
+      const documents = data.map(doc => ({
         id: doc.id,
         name: doc.name,
         url: doc.url,
@@ -156,6 +176,9 @@ export const documentService = {
         uploadedAt: doc.uploaded_at,
         size: doc.size
       }));
+      
+      console.log(`[Document Service] Found ${documents.length} documents`);
+      return documents;
     } catch (error: any) {
       console.error(`[Document Fetch Error]: ${error.message}`, error);
       throw error;
