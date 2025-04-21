@@ -1,4 +1,3 @@
-
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +52,19 @@ export default function EditWorkOrder() {
           setLoadError("Work Order not found");
           throw new Error("Work Order not found");
         }
+
+        // Validate the required fields exist before attempting to transform
+        if (!data.customer) {
+          console.error("[EDIT LOAD ERROR] Work order missing customer data");
+          setLoadError("Work order data is incomplete: missing customer information");
+          throw new Error("Work order data is incomplete: missing customer information");
+        }
+
+        if (!data.part) {
+          console.error("[EDIT LOAD ERROR] Work order missing part data");
+          setLoadError("Work order data is incomplete: missing part information");
+          throw new Error("Work order data is incomplete: missing part information");
+        }
         
         // Transform the database response to match our WorkOrder interface
         return {
@@ -60,76 +72,77 @@ export default function EditWorkOrder() {
           workOrderNumber: data.work_order_number,
           purchaseOrderNumber: data.purchase_order_number,
           customer: {
-            id: data.customer.id,
-            name: data.customer.name,
-            company: data.customer.company,
-            email: data.customer.email,
-            phone: data.customer.phone,
-            address: data.customer.address,
-            active: data.customer.active,
-            notes: data.customer.notes,
-            createdAt: data.customer.created_at,
-            updatedAt: data.customer.updated_at,
-            orderCount: data.customer.order_count || 0
+            id: data.customer?.id || '',
+            name: data.customer?.name || 'Unknown',
+            company: data.customer?.company || '',
+            email: data.customer?.email || '',
+            phone: data.customer?.phone || '',
+            address: data.customer?.address || '',
+            active: data.customer?.active || false,
+            notes: data.customer?.notes || '',
+            createdAt: data.customer?.created_at || '',
+            updatedAt: data.customer?.updated_at || '',
+            orderCount: data.customer?.order_count || 0
           },
           customerId: data.customer_id,
           part: {
-            id: data.part.id,
-            name: data.part.name,
-            partNumber: data.part.part_number,
-            description: data.part.description,
-            active: data.part.active,
-            materials: data.part.materials || [],
-            setupInstructions: data.part.setup_instructions,
-            machiningMethods: data.part.machining_methods,
-            revisionNumber: data.part.revision_number,
-            createdAt: data.part.created_at,
-            updatedAt: data.part.updated_at,
+            id: data.part?.id || '',
+            name: data.part?.name || 'Unknown Part',
+            partNumber: data.part?.part_number || '',
+            description: data.part?.description || '',
+            active: data.part?.active || false,
+            materials: data.part?.materials || [],
+            setupInstructions: data.part?.setup_instructions || '',
+            machiningMethods: data.part?.machining_methods || '',
+            revisionNumber: data.part?.revision_number || '',
+            createdAt: data.part?.created_at || '',
+            updatedAt: data.part?.updated_at || '',
             documents: [],
-            archived: data.part.archived,
-            archivedAt: data.part.archived_at,
-            archiveReason: data.part.archive_reason
+            archived: data.part?.archived || false,
+            archivedAt: data.part?.archived_at || '',
+            archiveReason: data.part?.archive_reason || ''
           },
           partId: data.part_id,
-          quantity: data.quantity,
-          status: data.status,
-          priority: data.priority,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          startDate: data.start_date,
-          dueDate: data.due_date,
-          completedDate: data.completed_date,
+          quantity: data.quantity || 1,
+          status: data.status || 'Not Started',
+          priority: data.priority || 'Normal',
+          createdAt: data.created_at || '',
+          updatedAt: data.updated_at || '',
+          startDate: data.start_date || null,
+          dueDate: data.due_date || new Date().toISOString(),
+          completedDate: data.completed_date || null,
           assignedTo: data.assigned_to_id ? {
             id: data.assigned_to_id,
             name: data.assigned_to_name || "Unknown"
           } : undefined,
-          notes: data.notes,
-          operations: (data.operations || []).map((op: any) => ({
+          notes: data.notes || '',
+          operations: Array.isArray(data.operations) ? data.operations.map((op: any) => ({
             id: op.id,
             workOrderId: op.work_order_id,
-            name: op.name,
+            name: op.name || '',
             description: op.description || "",
-            status: op.status,
+            status: op.status || 'Not Started',
             machiningMethods: op.machining_methods || "",
             setupInstructions: op.setup_instructions || "",
             sequence: op.sequence || 0,
             isCustom: op.is_custom || false,
-            estimatedStartTime: op.estimated_start_time,
-            estimatedEndTime: op.estimated_end_time,
-            actualStartTime: op.actual_start_time,
-            actualEndTime: op.actual_end_time,
-            comments: op.comments,
+            estimatedStartTime: op.estimated_start_time || null,
+            estimatedEndTime: op.estimated_end_time || null,
+            actualStartTime: op.actual_start_time || null,
+            actualEndTime: op.actual_end_time || null,
+            comments: op.comments || '',
             assignedTo: op.assigned_to_id ? {
               id: op.assigned_to_id,
               name: "Unknown" // We would need to fetch operator names separately
             } : undefined,
-            createdAt: op.created_at,
-            updatedAt: op.updated_at,
+            createdAt: op.created_at || '',
+            updatedAt: op.updated_at || '',
             documents: []
-          })),
-          archived: data.archived,
-          archivedAt: data.archived_at,
-          archiveReason: data.archive_reason
+          })) : [],
+          archived: data.archived || false,
+          archivedAt: data.archived_at || null,
+          archiveReason: data.archive_reason || '',
+          useOperationTemplates: data.use_operation_templates !== undefined ? data.use_operation_templates : true,
         } as WorkOrder;
       } catch (error) {
         console.error("[EDIT LOAD ERROR]", error);

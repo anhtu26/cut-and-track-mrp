@@ -97,7 +97,7 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
   });
 
   // Find the currently selected part for display
-  const selectedPart = safePartsList.find(part => part.id === field.value);
+  const selectedPart = field.value ? safePartsList.find(part => part.id === field.value) : null;
 
   // Refetch when opened to ensure latest data
   useEffect(() => {
@@ -146,7 +146,7 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                       <span>Loading parts...</span>
                     </div>
                   ) : field.value && selectedPart ? (
-                    `${selectedPart.name} - ${selectedPart.partNumber}`
+                    `${selectedPart.name || 'Unknown'} - ${selectedPart.partNumber || 'No part number'}`
                   ) : (
                     "Select a part"
                   )}

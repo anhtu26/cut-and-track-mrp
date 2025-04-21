@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,9 +102,13 @@ export function CustomerSelect({ field, isLoading: formIsLoading }: CustomerSele
             <Skeleton className="h-10 w-full" />
           ) : (
             <Select 
-              onValueChange={field.onChange} 
-              defaultValue={field.value} 
-              value={field.value}
+              onValueChange={(value) => {
+                if (value && field.onChange) {
+                  field.onChange(value);
+                }
+              }} 
+              defaultValue={field.value || ""} 
+              value={field.value || ""}
               disabled={isDisabled}
               onOpenChange={() => refetch()} // Refetch customers when dropdown is opened
             >
@@ -115,14 +118,14 @@ export function CustomerSelect({ field, isLoading: formIsLoading }: CustomerSele
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {customers.length === 0 ? (
+                {Array.isArray(customers) && customers.length === 0 ? (
                   <SelectItem value="no-customers" disabled>
                     No customers found
                   </SelectItem>
                 ) : (
-                  customers.map(customer => (
+                  Array.isArray(customers) && customers.map(customer => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name} - {customer.company}
+                      {customer.name || 'Unknown'} - {customer.company || 'No company'}
                     </SelectItem>
                   ))
                 )}
