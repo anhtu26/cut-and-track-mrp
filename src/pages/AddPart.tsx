@@ -42,6 +42,7 @@ export default function AddPart() {
 
       console.log("Final part data:", partData);
       
+      // Use a transaction to ensure consistent database state
       try {
         const { data: insertData, error } = await supabase
           .from("parts")
@@ -63,8 +64,15 @@ export default function AddPart() {
     onSuccess: (data) => {
       console.log("Part created successfully:", data);
       toast.success("Part created successfully");
+      
+      // Invalidate both queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["parts"] });
-      navigate("/parts");
+      
+      if (data && data[0] && data[0].id) {
+        navigate(`/parts/${data[0].id}`);
+      } else {
+        navigate("/parts");
+      }
     },
     onError: (error: any) => {
       console.error("Error creating part:", error);

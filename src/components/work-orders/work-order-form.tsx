@@ -8,6 +8,7 @@ import { Form } from "@/components/ui/form";
 import { CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrder } from "@/types/work-order";
 import { workOrderSchema, WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
 import { WorkOrderFormContent } from "./work-order-form/work-order-form-content";
+import { toast } from "@/components/ui/sonner";
 
 interface WorkOrderFormProps {
   initialData?: Partial<WorkOrder>; // Allow partial work order for initialization
@@ -35,6 +36,9 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
     useOperationTemplates: initialData?.useOperationTemplates !== undefined ? initialData.useOperationTemplates : true,
   };
 
+  // Check if work order status allows changing the part
+  const canChangePartId = !isEditMode || initialData?.status === "Not Started";
+
   const form = useForm<WorkOrderFormValues>({
     resolver: zodResolver(workOrderSchema),
     defaultValues,
@@ -59,12 +63,19 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
   };
 
   const formValuesToUpdateWorkOrderInput = (data: WorkOrderFormValues, id: string): UpdateWorkOrderInput => {
+    // For work orders that are in progress or beyond, prevent changing the part
+    const partId = !canChangePartId ? initialData?.partId : data.partId;
+    
+    if (!canChangePartId && partId !== initialData?.partId) {
+      toast.warning("Cannot change part for work orders that are in progress");
+    }
+
     return {
       id,
       workOrderNumber: data.workOrderNumber,
       purchaseOrderNumber: data.purchaseOrderNumber,
       customerId: data.customerId,
-      partId: data.partId,
+      partId: partId,
       quantity: data.quantity,
       status: data.status,
       priority: data.priority,
@@ -105,6 +116,13 @@ export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrder
           isSubmitting={isSubmitting} 
           isEditMode={isEditMode}
         />
+
+        {!canChangePartId && (
+          <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 p-4 rounded-md text-sm">
+            <p className="font-medium">Note:</p>
+            <p>Once a work order is in progress, the part cannot be changed. To use a different part, please create a new work order.</p>
+          </div>
+        )}
 
         {submitError && (
           <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">

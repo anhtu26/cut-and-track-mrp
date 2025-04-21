@@ -47,7 +47,7 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
   const materialsString = initialData?.materials ? 
     Array.isArray(initialData.materials) ? 
       initialData.materials.join(", ") : 
-      String(initialData.materials) :
+      String(initialData.materials || "") :
     "";
   
   console.log("[PartForm] Initial data:", initialData);
@@ -207,7 +207,7 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
               <FormLabel>Primary Customer (Optional)</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value || ""} // Ensure empty string for null/undefined
+                value={field.value || ""} 
                 disabled={isLoadingCustomers || isSubmitting}
               >
                 <FormControl>
