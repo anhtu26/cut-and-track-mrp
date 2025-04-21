@@ -1,3 +1,4 @@
+
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,7 +75,7 @@ export default function EditPart() {
           archived: data.archived,
           archivedAt: data.archived_at,
           archiveReason: data.archive_reason,
-          customerId: data.customer_id || undefined,
+          customerId: data.customer_id || "",
           documents: (data.documents || []).map((doc: any) => ({
             id: doc.id,
             name: doc.name,
@@ -98,30 +99,46 @@ export default function EditPart() {
       console.log("[UPDATE] Updating part with data:", data);
       
       // Ensure materials is an array
-      const materials = Array.isArray(data.materials) ? data.materials : [];
+      const materials = Array.isArray(data.materials) 
+        ? data.materials 
+        : (data.materials ? data.materials.split(',').map((m: string) => m.trim()) : []);
       
-      const { data: updateData, error } = await supabase
-        .from("parts")
-        .update({
-          name: data.name || "",
-          part_number: data.partNumber || "",
-          description: data.description || "",
-          materials: materials,
-          revision_number: data.revisionNumber || "",
-          active: typeof data.active === 'boolean' ? data.active : true,
-          customer_id: data.customerId || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", partId)
-        .select();
-
-      if (error) {
-        console.error("[UPDATE ERROR] Supabase update error:", error);
-        throw error;
+      // Create update object
+      const updateData: Record<string, any> = {
+        name: data.name || "",
+        part_number: data.partNumber || "",
+        description: data.description || "",
+        materials: materials,
+        revision_number: data.revisionNumber || "",
+        active: typeof data.active === 'boolean' ? data.active : true,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Handle customer_id field specifically to avoid schema cache issues
+      if (data.customerId && data.customerId !== "none") {
+        updateData.customer_id = data.customerId;
+      } else {
+        updateData.customer_id = null; // Explicitly set to null if not provided
       }
       
-      console.log("[UPDATE SUCCESS] Update response:", updateData);
-      return updateData;
+      try {
+        const { data: updateResult, error } = await supabase
+          .from("parts")
+          .update(updateData)
+          .eq("id", partId)
+          .select();
+  
+        if (error) {
+          console.error("[UPDATE ERROR] Supabase update error:", error);
+          throw error;
+        }
+        
+        console.log("[UPDATE SUCCESS] Update response:", updateResult);
+        return updateResult;
+      } catch (error) {
+        console.error("Error during update part operation:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log("[UPDATE SUCCESS] Part updated successfully:", data);

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Part } from "@/types/part";
@@ -38,42 +38,68 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
   const { data: parts = [], isLoading: isLoadingParts } = useQuery({
     queryKey: ["parts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('parts')
-        .select("*")
-        .eq('archived', false)
-        .eq('active', true)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
+      console.log("Fetching parts for dropdown");
       
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        partNumber: item.part_number,
-        description: item.description,
-        active: item.active,
-        materials: item.materials || [],
-        setupInstructions: item.setup_instructions,
-        machiningMethods: item.machining_methods,
-        revisionNumber: item.revision_number,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        documents: [],
-        archived: item.archived || false,
-        archivedAt: item.archived_at,
-        archiveReason: item.archive_reason
-      })) as Part[];
+      try {
+        const { data, error } = await supabase
+          .from('parts')
+          .select("*")
+          .eq('archived', false)
+          .eq('active', true)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error("Error fetching parts:", error);
+          throw error;
+        }
+        
+        console.log("Parts data received:", data);
+        
+        // Ensure we're returning an array even if data is null or undefined
+        return (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || "",
+          partNumber: item.part_number || "",
+          description: item.description || "",
+          active: item.active || false,
+          materials: item.materials || [],
+          setupInstructions: item.setup_instructions || "",
+          machiningMethods: item.machining_methods || "",
+          revisionNumber: item.revision_number || "",
+          createdAt: item.created_at || "",
+          updatedAt: item.updated_at || "",
+          documents: [],
+          archived: item.archived || false,
+          archivedAt: item.archived_at || "",
+          archiveReason: item.archive_reason || "",
+          customerId: item.customer_id || ""
+        })) as Part[];
+      } catch (error) {
+        console.error("Failed to fetch parts:", error);
+        return []; // Return empty array on error
+      }
     },
   });
 
-  const filteredParts = parts.filter(part => 
-    part.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    part.partNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Explicit check for array and length before filtering
+  const filteredParts = Array.isArray(parts) && parts.length > 0 
+    ? parts.filter(part => {
+        if (!part) return false; // Skip null/undefined parts
+        
+        const query = (searchQuery || '').toLowerCase();
+        // Add null/undefined guards for all properties
+        const nameMatch = part.name ? part.name.toLowerCase().includes(query) : false;
+        const partNumberMatch = part.partNumber ? part.partNumber.toLowerCase().includes(query) : false;
+        const descriptionMatch = part.description ? part.description.toLowerCase().includes(query) : false;
+        
+        return nameMatch || partNumberMatch || descriptionMatch;
+      })
+    : [];
 
   // Find the currently selected part name for display
-  const selectedPart = parts.find(part => part.id === field.value);
+  const selectedPart = Array.isArray(parts) && parts.length > 0
+    ? parts.find(part => part?.id === field.value) 
+    : undefined;
 
   return (
     <FormField
@@ -118,8 +144,10 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                   onValueChange={(value) => setSearchQuery(value)}
                 />
                 <CommandEmpty>No parts found.</CommandEmpty>
+                
+                {/* Ensure filteredParts is always an array before mapping */}
                 <CommandGroup className="max-h-[300px] overflow-auto">
-                  {filteredParts.map(part => (
+                  {filteredParts.length > 0 ? filteredParts.map(part => (
                     <CommandItem
                       key={part.id}
                       value={part.id}
@@ -143,7 +171,11 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                         </span>
                       )}
                     </CommandItem>
-                  ))}
+                  )) : (
+                    <div className="py-2 px-4 text-sm text-muted-foreground">
+                      {isLoadingParts ? "Loading parts..." : "No parts found"}
+                    </div>
+                  )}
                 </CommandGroup>
               </Command>
             </PopoverContent>

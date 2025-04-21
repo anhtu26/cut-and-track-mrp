@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { CustomerCard } from "@/components/customers/customer-card";
 import { Button } from "@/components/ui/button";
@@ -14,35 +15,49 @@ export default function Customers() {
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      
-      return data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        company: item.company,
-        email: item.email,
-        phone: item.phone,
-        address: item.address,
-        active: item.active,
-        notes: item.notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        orderCount: item.order_count
-      })) as Customer[];
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('name');
+        
+        if (error) throw error;
+        
+        // Ensure we always return an array even if data is null
+        return (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || "",
+          company: item.company || "",
+          email: item.email || "",
+          phone: item.phone || "",
+          address: item.address || "",
+          active: item.active || false,
+          notes: item.notes || "",
+          createdAt: item.created_at || "",
+          updatedAt: item.updated_at || "",
+          orderCount: item.order_count || 0
+        })) as Customer[];
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        return []; // Return empty array on error
+      }
     },
   });
   
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Apply filtering with strict null/undefined checks
+  const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => {
+    if (!customer) return false;
+    
+    const searchLower = (searchTerm || "").toLowerCase();
+    
+    // Ensure each property exists before calling toLowerCase()
+    const nameMatch = customer.name ? customer.name.toLowerCase().includes(searchLower) : false;
+    const companyMatch = customer.company ? customer.company.toLowerCase().includes(searchLower) : false;
+    const emailMatch = customer.email ? customer.email.toLowerCase().includes(searchLower) : false;
+    const phoneMatch = customer.phone ? customer.phone.toLowerCase().includes(searchLower) : false;
+    
+    return nameMatch || companyMatch || emailMatch || phoneMatch;
+  }) : [];
 
   return (
     <div className="space-y-6">

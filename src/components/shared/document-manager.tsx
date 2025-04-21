@@ -1,54 +1,69 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Upload, File, X, FileText, Image } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { DropzoneOptions, useDropzone } from "react-dropzone";
-import { documentService } from "@/lib/document-service";
+import { documentService, DocumentType } from "@/lib/document-service";
+import { DocumentViewer } from "@/components/parts/document-viewer";
 
-interface DocumentUploadProps {
-  partId: string;
+interface DocumentItem {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  uploadedAt: string;
+  size?: number;
 }
 
-export function DocumentUpload({ partId }: DocumentUploadProps) {
+interface DocumentManagerProps {
+  entityId: string;
+  documentType: DocumentType;
+  documents: DocumentItem[];
+  onDocumentAdded?: () => void;
+  onDocumentRemoved?: () => void;
+  queryKey?: string[];
+  maxSize?: number; // In MB
+  allowedTypes?: string[];
+}
+
+/**
+ * Shared document manager component for handling document uploads and management
+ */
+export function DocumentManager({ 
+  entityId, 
+  documentType,
+  documents = [], 
+  onDocumentAdded,
+  onDocumentRemoved,
+  queryKey,
+  maxSize = 10,
+  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+}: DocumentManagerProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
 
-  // Get file icon based on file type
   const getFileIcon = (file: File) => {
     if (file.type.includes('pdf')) return <FileText className="h-4 w-4" />;
     if (file.type.includes('image')) return <Image className="h-4 w-4" />;
     return <File className="h-4 w-4" />;
   };
 
-  // File validation and processing
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    // Basic validation
+    const maxSizeBytes = maxSize * 1024 * 1024; // Convert MB to bytes
+    
     const validFiles = acceptedFiles.filter(file => {
-      // Check file type (adjust according to your ITAR compliance needs)
-      const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'application/dxf', 'application/step', 'model/step+xml'];
-      const maxSize = 10 * 1024 * 1024; // 10MB limit
-      
-      // Check by extension for files that might not have proper MIME type
-      const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.dxf', '.stp', '.step'];
-      const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
-      
-      const isValidType = validTypes.includes(file.type) || 
-                         validExtensions.includes(fileExtension);
-      const isValidSize = file.size <= maxSize;
-      
-      if (!isValidType) {
+      if (!allowedTypes.includes(file.type)) {
         toast.error(`Invalid file type: ${file.name}`);
         return false;
       }
       
-      if (!isValidSize) {
-        toast.error(`File too large: ${file.name} (max 10MB)`);
+      if (file.size > maxSizeBytes) {
+        toast.error(`File too large: ${file.name} (max ${maxSize}MB)`);
         return false;
       }
       
@@ -56,28 +71,18 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
     });
     
     setSelectedFiles(prev => [...prev, ...validFiles]);
-  }, []);
+  }, [maxSize, allowedTypes]);
 
-  // Setup dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
       'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'application/dxf': ['.dxf'],
-      'application/step': ['.stp', '.step'],
-      'model/step+xml': ['.stp', '.step']
+      'image/png': ['.png']
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: maxSize * 1024 * 1024,
     multiple: true
   } as DropzoneOptions);
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      onDrop(Array.from(e.target.files));
-    }
-  };
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
@@ -100,8 +105,8 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
         try {
           await documentService.uploadDocument({
             file,
-            entityId: partId,
-            documentType: "part",
+            entityId,
+            documentType,
             onProgress: (fileProgress) => {
               // Calculate overall progress
               const overallProgress = ((completedFiles + (fileProgress / 100)) / totalFiles) * 100;
@@ -118,7 +123,14 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
       
       toast.success("Documents uploaded successfully");
       setSelectedFiles([]);
-      queryClient.invalidateQueries({ queryKey: ['part', partId] });
+      
+      // Invalidate relevant queries
+      if (queryKey) {
+        queryClient.invalidateQueries({ queryKey });
+      }
+      
+      // Call the callback if provided
+      onDocumentAdded?.();
     } catch (error: any) {
       console.error("Upload error:", error);
       toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
@@ -127,20 +139,32 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
     }
   };
 
+  const handleDocumentDeleted = () => {
+    // Invalidate relevant queries
+    if (queryKey) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+    
+    // Call the callback if provided
+    onDocumentRemoved?.();
+  };
+
   return (
     <div className="space-y-4">
       <div 
         {...getRootProps()} 
-        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}`}
+        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+          isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+        }`}
       >
-        <input {...getInputProps()} accept=".pdf,.jpg,.jpeg,.png,.dxf,.stp,.step" disabled={uploading} />
+        <input {...getInputProps()} accept=".pdf,.jpg,.jpeg,.png" disabled={uploading} />
         <div className="flex flex-col items-center justify-center text-center">
           <Upload className="h-10 w-10 text-muted-foreground mb-2" />
           <p className="text-sm font-medium">
             {isDragActive ? "Drop files here..." : "Drag & drop files here, or click to select files"}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Supported formats: PDF, JPG, PNG, DXF, STP
+            Supported formats: PDF, JPG, PNG (max {maxSize}MB)
           </p>
         </div>
       </div>
@@ -166,7 +190,7 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
               Upload All
             </Button>
           </div>
-          <ul className="space-y-2 border rounded-md p-2">
+          <ul className="space-y-2">
             {selectedFiles.map((file, index) => (
               <li key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
                 <div className="flex items-center">
@@ -187,12 +211,31 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
           </ul>
         </div>
       )}
-      
-      <div className="text-sm text-muted-foreground">
-        <p>Supported formats: PDF, JPG, PNG, DXF, STP</p>
-        <p>Maximum file size: 10MB</p>
-        <p className="mt-2 text-xs">This system complies with ITAR requirements for document storage</p>
-      </div>
+
+      {documents.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-medium mb-2">Uploaded Documents</h3>
+          <ul className="space-y-2 border rounded-md p-2">
+            {documents.map((doc) => (
+              <li key={doc.id} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                <div className="flex items-center">
+                  {doc.type.includes('pdf') ? (
+                    <FileText className="h-4 w-4" />
+                  ) : (
+                    <Image className="h-4 w-4" />
+                  )}
+                  <span className="ml-2 text-sm">{doc.name}</span>
+                </div>
+                <DocumentViewer 
+                  document={doc}
+                  documentType={documentType}
+                  onDelete={handleDocumentDeleted}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,9 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
-import { 
-  ArrowLeft
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -18,7 +16,6 @@ import {
   DialogFooter, 
   DialogHeader, 
   DialogTitle,
-  DialogTrigger
 } from "@/components/ui/dialog";
 import { OperationDocumentManager } from "@/components/operations/operation-document-manager";
 import { useOperation } from "@/hooks/useOperation";
@@ -27,11 +24,15 @@ import { OperationDetailsCard } from "@/components/operations/operation-details-
 import { OperationTimelineCard } from "@/components/operations/operation-timeline-card";
 import { OperationAssignmentCard } from "@/components/operations/operation-assignment-card";
 import { OperationCommentsCard } from "@/components/operations/operation-comments-card";
+import { SaveAsTemplateButton } from "@/components/operations/save-as-template-button";
 
 export default function OperationDetail() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
   const queryClient = useQueryClient();
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
+
+  // Explicitly log params to debug
+  console.log("[OperationDetail] Params:", { workOrderId, operationId });
 
   const { data: operation, isLoading, error } = useOperation(operationId);
 
@@ -171,6 +172,14 @@ export default function OperationDetail() {
               
               {operation.comments && (
                 <OperationCommentsCard comments={operation.comments} />
+              )}
+              
+              {/* Display the Save as Template button when we have both workOrderId and operationId */}
+              {workOrderId && operationId && (
+                <SaveAsTemplateButton 
+                  operation={operation}
+                  workOrderId={workOrderId}
+                />
               )}
             </div>
           </div>
