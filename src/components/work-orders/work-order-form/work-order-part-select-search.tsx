@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,11 +158,17 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
               <Command>
                 <CommandInput 
                   placeholder="Search parts..." 
+                  value={searchQuery}
                   onValueChange={setSearchQuery}
                 />
                 <CommandEmpty>No parts found.</CommandEmpty>
                 <CommandGroup className="max-h-[300px] overflow-auto">
-                  {filteredParts.length > 0 ? (
+                  {isLoadingParts ? (
+                    <div className="py-6 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
+                    </div>
+                  ) : filteredParts.length > 0 ? (
                     filteredParts.map((part) => (
                       <CommandItem
                         key={part.id}
@@ -191,11 +196,6 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                         </div>
                       </CommandItem>
                     ))
-                  ) : isLoadingParts ? (
-                    <div className="py-6 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
-                    </div>
                   ) : (
                     <div className="py-6 text-center">
                       <p className="text-sm text-muted-foreground">No parts found</p>
