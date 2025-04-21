@@ -44,17 +44,19 @@ export default function Customers() {
     },
   });
   
-  // Apply filtering with null safety checks
+  // Apply filtering with strict null/undefined checks
   const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => {
     if (!customer) return false;
     
     const searchLower = (searchTerm || "").toLowerCase();
-    return (
-      ((customer.name || "").toLowerCase()).includes(searchLower) ||
-      ((customer.company || "").toLowerCase()).includes(searchLower) ||
-      ((customer.email || "").toLowerCase()).includes(searchLower) ||
-      ((customer.phone || "").toLowerCase()).includes(searchLower)
-    );
+    
+    // Ensure each property exists before calling toLowerCase()
+    const nameMatch = customer.name ? customer.name.toLowerCase().includes(searchLower) : false;
+    const companyMatch = customer.company ? customer.company.toLowerCase().includes(searchLower) : false;
+    const emailMatch = customer.email ? customer.email.toLowerCase().includes(searchLower) : false;
+    const phoneMatch = customer.phone ? customer.phone.toLowerCase().includes(searchLower) : false;
+    
+    return nameMatch || companyMatch || emailMatch || phoneMatch;
   }) : [];
 
   return (

@@ -75,7 +75,7 @@ export default function EditPart() {
           archived: data.archived,
           archivedAt: data.archived_at,
           archiveReason: data.archive_reason,
-          customerId: data.customer_id || undefined,
+          customerId: data.customer_id || "",
           documents: (data.documents || []).map((doc: any) => ({
             id: doc.id,
             name: doc.name,
@@ -115,7 +115,7 @@ export default function EditPart() {
       };
       
       // Handle customer_id field specifically to avoid schema cache issues
-      if (data.customerId) {
+      if (data.customerId && data.customerId !== "none") {
         updateData.customer_id = data.customerId;
       } else {
         updateData.customer_id = null; // Explicitly set to null if not provided

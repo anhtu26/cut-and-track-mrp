@@ -30,13 +30,13 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
   const queryClient = useQueryClient();
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  // Fetch work order to get part ID
+  // Fetch work order to get part ID - implementing better error handling and debug logging
   const { data: workOrder, isLoading: isLoadingWorkOrder, error: workOrderError } = useQuery({
-    queryKey: ["work-order", workOrderId],
+    queryKey: ["work-order-for-template", workOrderId],
     queryFn: async () => {
       if (!workOrderId) {
         console.error("[SaveTemplate] Missing workOrderId");
-        return null;
+        throw new Error("Work order ID is required");
       }
       
       try {
@@ -45,16 +45,22 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           .from("work_orders")
           .select("part_id, id")
           .eq("id", workOrderId)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("[SaveTemplate] Error fetching work order:", error);
           throw error;
         }
         
+        console.log("[SaveTemplate] Work order query result:", data);
+        
         if (!data) {
           console.error(`[SaveTemplate] No work order found with ID: ${workOrderId}`);
-          return null;
+          throw new Error(`Work order ${workOrderId} not found`);
+        }
+        
+        if (!data.part_id) {
+          console.error(`[SaveTemplate] Work order ${workOrderId} has no part_id`);
         }
         
         console.log("[SaveTemplate] Found work order with part_id:", data?.part_id);
@@ -65,26 +71,61 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
       }
     },
     enabled: !!workOrderId,
+    retry: 2, // Add retries for network issues
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  // Additional query to verify part exists
+  const { data: part, isLoading: isLoadingPart } = useQuery({
+    queryKey: ["part-for-template", workOrder?.part_id],
+    queryFn: async () => {
+      if (!workOrder?.part_id) {
+        console.error("[SaveTemplate] No part_id available");
+        return null;
+      }
+      
+      try {
+        console.log(`[SaveTemplate] Verifying part exists: ${workOrder.part_id}`);
+        const { data, error } = await supabase
+          .from("parts")
+          .select("id, name")
+          .eq("id", workOrder.part_id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error("[SaveTemplate] Error verifying part:", error);
+          return null;
+        }
+        
+        if (!data) {
+          console.error(`[SaveTemplate] Part not found: ${workOrder.part_id}`);
+          return null;
+        }
+        
+        console.log("[SaveTemplate] Part verified:", data);
+        return data;
+      } catch (error) {
+        console.error("[SaveTemplate] Error in part verification:", error);
+        return null;
+      }
+    },
+    enabled: !!workOrder?.part_id,
   });
 
   // Log debugging information
   useEffect(() => {
-    setDebugInfo({
+    const debug = {
       workOrderId,
       operationId: operation?.id,
       workOrderLoaded: !!workOrder,
       partId: workOrder?.part_id,
+      partVerified: !!part,
       hasOperation: !!operation
-    });
+    };
     
-    console.log("[SaveTemplate] Debug info:", {
-      workOrderId,
-      operationId: operation?.id,
-      workOrderLoaded: !!workOrder,
-      partId: workOrder?.part_id,
-      hasOperation: !!operation
-    });
-  }, [workOrderId, operation, workOrder]);
+    setDebugInfo(debug);
+    console.log("[SaveTemplate] Debug info:", debug);
+  }, [workOrderId, operation, workOrder, part]);
 
   // Check if template exists
   const { data: existingTemplate, isLoading: isCheckingTemplate } = useQuery({
@@ -106,7 +147,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
         
         if (error) {
           console.error("[SaveTemplate] Error checking template:", error);
-          throw error;
+          return null;
         }
         
         console.log("[SaveTemplate] Template check result:", data);
@@ -116,7 +157,8 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
         return null;
       }
     },
-    enabled: !!workOrder?.part_id && !!operation?.name,
+    enabled: !!workOrder?.part_id && !!operation?.name && !!part,
+    retry: 1,
   });
 
   const { mutateAsync: saveAsTemplate, isPending: isSaving } = useMutation({
@@ -124,6 +166,11 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
       if (!workOrder?.part_id) {
         console.error("[SaveTemplate] Cannot save template: Part ID is missing");
         throw new Error("Part ID is required");
+      }
+      
+      if (!part) {
+        console.error("[SaveTemplate] Cannot save template: Part not found");
+        throw new Error("Part not found");
       }
       
       // Prepare template data
@@ -182,6 +229,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
       }
       
       queryClient.invalidateQueries({ queryKey: ["part", workOrder?.part_id] });
+      queryClient.invalidateQueries({ queryKey: ["operation-templates"] });
       setIsDialogOpen(false);
       setIsConfirmed(false);
     },
@@ -191,8 +239,12 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
     },
   });
 
-  // Don't show if we're still loading or don't have a work order
-  if (isLoadingWorkOrder) {
+  // Handle potential loading conditions
+  const isLoading = isLoadingWorkOrder || isLoadingPart || isCheckingTemplate;
+  const isPending = isLoading || isSaving;
+  
+  // Don't show if we're still loading
+  if (isLoading) {
     return (
       <Card className="border-dashed border-yellow-500">
         <CardHeader>
@@ -219,13 +271,16 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           <p className="text-sm text-muted-foreground">
             Unable to find work order information. Template saving is disabled.
           </p>
+          <div className="mt-2 text-xs text-muted-foreground">
+            Error: {workOrderError instanceof Error ? workOrderError.message : "Unknown error"}
+          </div>
         </CardContent>
       </Card>
     );
   }
   
-  // Don't show if we don't have a part ID
-  if (!workOrder.part_id) {
+  // Show error if part not found
+  if (!workOrder.part_id || !part) {
     return (
       <Card className="border-dashed border-yellow-500">
         <CardHeader>
@@ -236,8 +291,11 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            This work order does not have a part associated with it. Operation templates must be linked to a part.
+            This work order does not have a valid part associated with it. Operation templates must be linked to a part.
           </p>
+          <div className="mt-2 text-xs text-gray-500">
+            Debug: Work Order #{workOrderId} // Part ID: {workOrder.part_id || "None"}
+          </div>
         </CardContent>
       </Card>
     );
@@ -269,7 +327,7 @@ export function SaveAsTemplateButton({ operation, workOrderId }: SaveAsTemplateB
           variant="outline" 
           className="w-full border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
           onClick={() => setIsDialogOpen(true)}
-          disabled={isSaving || isCheckingTemplate}
+          disabled={isPending}
         >
           <SaveAll className="mr-2 h-4 w-4" />
           Save as Template

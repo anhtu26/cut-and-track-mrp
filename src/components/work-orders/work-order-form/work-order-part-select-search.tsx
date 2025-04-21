@@ -58,21 +58,21 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
         // Ensure we're returning an array even if data is null or undefined
         return (data || []).map((item: any) => ({
           id: item.id,
-          name: item.name,
-          partNumber: item.part_number,
-          description: item.description,
-          active: item.active,
+          name: item.name || "",
+          partNumber: item.part_number || "",
+          description: item.description || "",
+          active: item.active || false,
           materials: item.materials || [],
-          setupInstructions: item.setup_instructions,
-          machiningMethods: item.machining_methods,
-          revisionNumber: item.revision_number,
-          createdAt: item.created_at,
-          updatedAt: item.updated_at,
+          setupInstructions: item.setup_instructions || "",
+          machiningMethods: item.machining_methods || "",
+          revisionNumber: item.revision_number || "",
+          createdAt: item.created_at || "",
+          updatedAt: item.updated_at || "",
           documents: [],
           archived: item.archived || false,
-          archivedAt: item.archived_at,
-          archiveReason: item.archive_reason,
-          customerId: item.customer_id
+          archivedAt: item.archived_at || "",
+          archiveReason: item.archive_reason || "",
+          customerId: item.customer_id || ""
         })) as Part[];
       } catch (error) {
         console.error("Failed to fetch parts:", error);
@@ -81,23 +81,23 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
     },
   });
 
-  // Ensure we're working with a valid array before filtering
-  const filteredParts = Array.isArray(parts) 
+  // Explicit check for array and length before filtering
+  const filteredParts = Array.isArray(parts) && parts.length > 0 
     ? parts.filter(part => {
         if (!part) return false; // Skip null/undefined parts
         
         const query = (searchQuery || '').toLowerCase();
         // Add null/undefined guards for all properties
-        return (
-          (part.name && part.name.toLowerCase().includes(query)) || 
-          (part.partNumber && part.partNumber.toLowerCase().includes(query)) ||
-          (part.description && part.description.toLowerCase().includes(query))
-        );
+        const nameMatch = part.name ? part.name.toLowerCase().includes(query) : false;
+        const partNumberMatch = part.partNumber ? part.partNumber.toLowerCase().includes(query) : false;
+        const descriptionMatch = part.description ? part.description.toLowerCase().includes(query) : false;
+        
+        return nameMatch || partNumberMatch || descriptionMatch;
       })
     : [];
 
   // Find the currently selected part name for display
-  const selectedPart = Array.isArray(parts) 
+  const selectedPart = Array.isArray(parts) && parts.length > 0
     ? parts.find(part => part?.id === field.value) 
     : undefined;
 
@@ -143,43 +143,40 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                   placeholder="Search parts..." 
                   onValueChange={(value) => setSearchQuery(value)}
                 />
-                {/* Defensive check: only render CommandEmpty when filteredParts is properly initialized */}
-                {Array.isArray(filteredParts) && <CommandEmpty>No parts found.</CommandEmpty>}
+                <CommandEmpty>No parts found.</CommandEmpty>
                 
-                {/* Only render CommandGroup when we have a valid array */}
-                {Array.isArray(filteredParts) && (
-                  <CommandGroup className="max-h-[300px] overflow-auto">
-                    {filteredParts.length > 0 ? filteredParts.map(part => (
-                      <CommandItem
-                        key={part.id}
-                        value={part.id}
-                        onSelect={() => {
-                          field.onChange(part.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            field.value === part.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <span className="flex-1 truncate">
-                          {part.name} - {part.partNumber}
-                        </span>
-                        {part.description && (
-                          <span className="text-xs text-muted-foreground ml-2 truncate max-w-[150px]">
-                            {part.description}
-                          </span>
+                {/* Ensure filteredParts is always an array before mapping */}
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {filteredParts.length > 0 ? filteredParts.map(part => (
+                    <CommandItem
+                      key={part.id}
+                      value={part.id}
+                      onSelect={() => {
+                        field.onChange(part.id);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          field.value === part.id ? "opacity-100" : "opacity-0"
                         )}
-                      </CommandItem>
-                    )) : (
-                      <div className="py-2 px-4 text-sm text-muted-foreground">
-                        {isLoadingParts ? "Loading parts..." : "No parts found"}
-                      </div>
-                    )}
-                  </CommandGroup>
-                )}
+                      />
+                      <span className="flex-1 truncate">
+                        {part.name} - {part.partNumber}
+                      </span>
+                      {part.description && (
+                        <span className="text-xs text-muted-foreground ml-2 truncate max-w-[150px]">
+                          {part.description}
+                        </span>
+                      )}
+                    </CommandItem>
+                  )) : (
+                    <div className="py-2 px-4 text-sm text-muted-foreground">
+                      {isLoadingParts ? "Loading parts..." : "No parts found"}
+                    </div>
+                  )}
+                </CommandGroup>
               </Command>
             </PopoverContent>
           </Popover>

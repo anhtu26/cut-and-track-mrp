@@ -47,7 +47,7 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
   const materialsString = initialData?.materials ? 
     Array.isArray(initialData.materials) ? 
       initialData.materials.join(", ") : 
-      initialData.materials.toString() :
+      String(initialData.materials) :
     "";
   
   console.log("[PartForm] Initial data:", initialData);
@@ -216,8 +216,8 @@ export function PartForm({ initialData, onSubmit, isSubmitting }: PartFormProps)
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None (No specific customer)</SelectItem>
-                  {customers.map((customer) => (
+                  <SelectItem value="none">None (No specific customer)</SelectItem>
+                  {customers && customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name} - {customer.company}
                     </SelectItem>

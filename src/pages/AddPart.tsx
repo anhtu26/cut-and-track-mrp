@@ -30,8 +30,8 @@ export default function AddPart() {
         active: typeof data.active === 'boolean' ? data.active : true
       };
       
-      // Only include customer_id if it's provided and not empty
-      if (data.customerId && data.customerId.trim() !== "") {
+      // Handle customerId - only include if it's a valid value (not empty and not "none")
+      if (data.customerId && data.customerId !== "none") {
         console.log("Setting customer_id:", data.customerId);
         partData.customer_id = data.customerId;
       } else {
