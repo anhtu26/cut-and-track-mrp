@@ -1,13 +1,12 @@
-
 import React, { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelect } from "./work-order-customer-select";
-import { PartSelectSearch } from "./work-order-part-select-search";
 import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WorkOrder } from "@/types/work-order";
+import { PartSelection } from "@/components/part-selection/part-selection";
 
 interface WorkOrderFormContentProps {
   form: any;
@@ -28,6 +27,9 @@ export function WorkOrderFormContent({
       ? !!initialData.useOperationTemplates 
       : true
   );
+
+  // Get the currently selected customer ID for filtering parts
+  const customerId = form.watch("customerId");
 
   return (
     <>
@@ -75,7 +77,12 @@ export function WorkOrderFormContent({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <CustomerSelect field={form} isLoading={isSubmitting} />
-        <PartSelectSearch field={form} isLoading={isSubmitting} />
+        <PartSelection 
+          field={form} 
+          disabled={isSubmitting}
+          customerId={customerId}
+          description="Select a part for this work order"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

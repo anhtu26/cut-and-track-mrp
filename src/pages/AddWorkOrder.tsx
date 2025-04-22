@@ -8,8 +8,8 @@ import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateWorkOrderInput } from "@/types/work-order";
-import { format } from "date-fns";
+import { z } from "zod";
+import { createWorkOrderSchema, CreateWorkOrderSchemaValues } from "@/components/work-orders/work-order-schema";
 
 export default function AddWorkOrder() {
   const navigate = useNavigate();
@@ -22,49 +22,62 @@ export default function AddWorkOrder() {
   });
 
   const { mutateAsync: createWorkOrderMutation, isPending } = useMutation({
-    mutationFn: async (formData: CreateWorkOrderInput) => {
+    mutationFn: async (formData: CreateWorkOrderSchemaValues) => {
       console.log("Creating work order with data:", formData);
       
       try {
+        // Validate the input data using Zod
+        const validated = createWorkOrderSchema.parse(formData);
+
+        // Map to database field names
         const workOrderData = {
-          work_order_number: formData.workOrderNumber || `WO-${Date.now().toString().substring(7)}`,
-          purchase_order_number: formData.purchaseOrderNumber || null,
-          customer_id: formData.customerId,
-          part_id: formData.partId,
-          quantity: formData.quantity,
-          status: formData.status || "Not Started",
-          priority: formData.priority || "Normal",
-          start_date: formData.startDate || null,
-          due_date: formData.dueDate,
-          assigned_to_id: formData.assignedToId || null,
-          notes: formData.notes || null,
-          use_operation_templates: formData.useOperationTemplates ?? true
+          work_order_number: validated.workOrderNumber || `WO-${Date.now().toString().substring(7)}`,
+          purchase_order_number: validated.purchaseOrderNumber || null,
+          customer_id: validated.customerId,
+          part_id: validated.partId,
+          quantity: validated.quantity,
+          status: validated.status || "Not Started",
+          priority: validated.priority || "Normal",
+          start_date: validated.startDate || null,
+          due_date: validated.dueDate,
+          assigned_to_id: validated.assignedToId || null,
+          notes: validated.notes || null,
+          use_operation_templates: validated.useOperationTemplates ?? true
         };
         
+        // Insert the work order
         const { data: workOrder, error: workOrderError } = await supabase
           .from('work_orders')
           .insert(workOrderData)
           .select()
           .single();
           
-        if (workOrderError) throw workOrderError;
+        if (workOrderError) {
+          console.error("Error creating work order:", workOrderError);
+          throw new Error(`Failed to create work order: ${workOrderError.message}`);
+        }
         
         console.log("Work order created:", workOrder);
         
-        if (formData.useOperationTemplates) {
-          console.log("Fetching operation templates for part:", formData.partId);
+        // If operation templates should be used, fetch and create them
+        if (validated.useOperationTemplates) {
+          console.log("Fetching operation templates for part:", validated.partId);
           
           const { data: templates, error: templatesError } = await supabase
             .from('operation_templates')
             .select('*')
-            .eq('part_id', formData.partId)
+            .eq('part_id', validated.partId)
             .order('sequence', { ascending: true });
             
-          if (templatesError) throw templatesError;
+          if (templatesError) {
+            console.error("Error fetching templates:", templatesError);
+            throw new Error(`Failed to fetch operation templates: ${templatesError.message}`);
+          }
           
           if (templates && templates.length > 0) {
             console.log("Found operation templates:", templates);
             
+            // Map to operations insert data
             const operations = templates.map((template) => ({
               work_order_id: workOrder.id,
               name: template.name,
@@ -118,8 +131,13 @@ export default function AddWorkOrder() {
     }
   });
 
-  const handleSubmit = async (data: CreateWorkOrderInput): Promise<void> => {
-    await createWorkOrderMutation(data);
+  const handleSubmit = async (data: CreateWorkOrderSchemaValues): Promise<void> => {
+    try {
+      await createWorkOrderMutation(data);
+    } catch (error) {
+      // Error already handled in the mutation
+      console.error("Submit handler caught error:", error);
+    }
   };
 
   return (
