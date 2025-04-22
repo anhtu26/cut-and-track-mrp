@@ -6,7 +6,7 @@ import { CustomerSelect } from "./work-order-customer-select";
 import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WorkOrder } from "@/types/work-order";
-import { PartSelection } from "@/components/part-selection/part-selection";
+import { PartSelector } from "@/components/part-selection/part-selector";
 
 interface WorkOrderFormContentProps {
   form: any;
@@ -77,7 +77,7 @@ export function WorkOrderFormContent({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <CustomerSelect field={form} isLoading={isSubmitting} />
-        <PartSelection 
+        <PartSelector 
           field={form} 
           disabled={isSubmitting}
           customerId={customerId}
