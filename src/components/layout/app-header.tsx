@@ -25,7 +25,7 @@ export function AppHeader() {
             alt="TRAN CNC" 
             className="h-8 w-8" 
           />
-          <span className="hidden md:inline">CutTrack MRP</span>
+          <span className="hidden md:inline">TRAN CNC</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Button 
