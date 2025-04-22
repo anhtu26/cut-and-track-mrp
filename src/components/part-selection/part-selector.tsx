@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -75,16 +76,16 @@ export function PartSelector({
   // Ensure we have a valid array to work with
   const parts = Array.isArray(partsData) ? partsData : [];
   
-  // Filter parts based on search query
+  // Filter parts based on search query with careful null handling
   const filteredParts = parts.filter(part => {
-    if (!searchQuery) return true;
     if (!part) return false;
+    if (!searchQuery) return true;
     
     try {
       const query = searchQuery.toLowerCase();
-      const name = (part.name || "").toLowerCase();
-      const partNumber = (part.partNumber || "").toLowerCase();
-      const description = (part.description || "").toLowerCase();
+      const name = part.name ? part.name.toLowerCase() : '';
+      const partNumber = part.partNumber ? part.partNumber.toLowerCase() : '';
+      const description = part.description ? part.description.toLowerCase() : '';
       
       return (
         name.includes(query) ||
@@ -112,112 +113,116 @@ export function PartSelector({
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
   };
-  
-  const selectorContent = (
-    <div className="relative">
-      {description && (
-        <p className="text-sm text-muted-foreground mb-2">{description}</p>
-      )}
-      
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className={cn(
-              "w-full justify-between",
-              !field.value && "text-muted-foreground"
-            )}
-            disabled={isLoading || disabled}
-            type="button" // Ensure it doesn't submit forms
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading parts...</span>
-              </div>
-            ) : field.value && selectedPart ? (
-              <span className="truncate">
-                {selectedPart.name || 'Unknown'} - {selectedPart.partNumber || 'No part number'}
-              </span>
-            ) : (
-              "Select Part"
-            )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        
-        <PopoverContent className="w-[300px] p-0" align="start">
-          <Command>
-            <CommandInput 
-              placeholder="Search parts..." 
-              value={searchQuery}
-              onValueChange={handleSearchChange}
-            />
-            <CommandList>
-              <CommandEmpty>
-                {isLoading ? 'Loading...' : 'No parts found.'}
-              </CommandEmpty>
-              <CommandGroup>
-                {isLoading ? (
-                  <div className="py-6 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
+
+  const renderCommandContent = () => (
+    <Command>
+      <CommandInput 
+        placeholder="Search parts..." 
+        value={searchQuery}
+        onValueChange={handleSearchChange}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {isLoading ? 'Loading...' : 'No parts found.'}
+        </CommandEmpty>
+        <CommandGroup>
+          {isLoading ? (
+            <div className="py-6 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+              <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
+            </div>
+          ) : filteredParts.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-muted-foreground">No parts found</p>
+            </div>
+          ) : (
+            filteredParts.map(part => {
+              if (!part || !part.id) return null;
+              
+              return (
+                <CommandItem
+                  key={part.id}
+                  value={part.id}
+                  onSelect={() => {
+                    field.onChange(part.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      field.value === part.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">
+                      {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
+                    </span>
+                    {part.description && (
+                      <span className="text-xs text-muted-foreground truncate max-w-[220px]">
+                        {part.description}
+                      </span>
+                    )}
                   </div>
-                ) : filteredParts.length === 0 ? (
-                  <div className="py-6 text-center">
-                    <p className="text-sm text-muted-foreground">No parts found</p>
-                  </div>
-                ) : (
-                  filteredParts.map(part => {
-                    if (!part || !part.id) return null;
-                    
-                    return (
-                      <CommandItem
-                        key={part.id}
-                        value={part.id}
-                        onSelect={() => {
-                          field.onChange(part.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            field.value === part.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
-                          </span>
-                          {part.description && (
-                            <span className="text-xs text-muted-foreground truncate max-w-[220px]">
-                              {part.description}
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    );
-                  })
-                )}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
+                </CommandItem>
+              );
+            })
+          )}
+        </CommandGroup>
+      </CommandList>
+    </Command>
   );
   
+  // When useFormField is false or control is missing, render without FormField
   if (!useFormField || !field.control) {
-    return selectorContent;
+    return (
+      <div className="relative">
+        {description && (
+          <p className="text-sm text-muted-foreground mb-2">{description}</p>
+        )}
+        
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn(
+                "w-full justify-between",
+                !field.value && "text-muted-foreground"
+              )}
+              disabled={isLoading || disabled}
+              type="button" // Ensure it doesn't submit forms
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading parts...</span>
+                </div>
+              ) : field.value && selectedPart ? (
+                <span className="truncate">
+                  {selectedPart.name || 'Unknown'} - {selectedPart.partNumber || 'No part number'}
+                </span>
+              ) : (
+                "Select Part"
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          
+          <PopoverContent className="w-[300px] p-0" align="start">
+            {renderCommandContent()}
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
   }
   
+  // When useFormField is true and control exists, render with FormField
   return (
     <FormField
       control={field.control}
-      name="partId"
+      name={field.name || "partId"}
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>{label}</FormLabel>
@@ -258,62 +263,7 @@ export function PartSelector({
               </PopoverTrigger>
               
               <PopoverContent className="w-[300px] p-0" align="start">
-                <Command>
-                  <CommandInput 
-                    placeholder="Search parts..." 
-                    value={searchQuery}
-                    onValueChange={handleSearchChange}
-                  />
-                  <CommandList>
-                    <CommandEmpty>
-                      {isLoading ? 'Loading...' : 'No parts found.'}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {isLoading ? (
-                        <div className="py-6 text-center">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                          <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
-                        </div>
-                      ) : filteredParts.length === 0 ? (
-                        <div className="py-6 text-center">
-                          <p className="text-sm text-muted-foreground">No parts found</p>
-                        </div>
-                      ) : (
-                        filteredParts.map(part => {
-                          if (!part || !part.id) return null;
-                          
-                          return (
-                            <CommandItem
-                              key={part.id}
-                              value={part.id}
-                              onSelect={() => {
-                                field.onChange(part.id);
-                                setOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  field.value === part.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
-                                </span>
-                                {part.description && (
-                                  <span className="text-xs text-muted-foreground truncate max-w-[220px]">
-                                    {part.description}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          );
-                        })
-                      )}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                {renderCommandContent()}
               </PopoverContent>
             </Popover>
           </div>
@@ -322,4 +272,4 @@ export function PartSelector({
       )}
     />
   );
-} 
+}

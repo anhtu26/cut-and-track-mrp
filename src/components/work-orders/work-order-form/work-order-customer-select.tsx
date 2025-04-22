@@ -1,90 +1,121 @@
-import React from 'react';
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Customer } from "@/types/customer";
+
+import React, { useState, useEffect } from 'react';
 import { 
   FormField, 
   FormItem, 
   FormLabel, 
   FormControl, 
-  FormMessage 
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown, Loader2, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { PlusCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { z } from 'zod';
 
-interface CustomerSelectProps {
+// Define Customer schema using Zod for type-safety
+export const customerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  company: z.string().optional(),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  active: z.boolean().default(true),
+});
+
+export type CustomerSelectItem = z.infer<typeof customerSchema>;
+
+interface WorkOrderCustomerSelectProps {
   field: any;
-  isLoading?: boolean;
+  label?: string;
+  description?: string;
+  isDisabled?: boolean;
+  required?: boolean;
 }
 
-export function CustomerSelect({ field, isLoading: formIsLoading }: CustomerSelectProps) {
-  // Use staleTime: 0 to always fetch fresh data to ensure new customers appear immediately
-  const { data: customers = [], isLoading: isLoadingCustomers, error, refetch } = useQuery({
+export function WorkOrderCustomerSelect({ 
+  field, 
+  label = "Customer", 
+  description,
+  isDisabled = false,
+  required = true
+}: WorkOrderCustomerSelectProps) {
+  // Safety check for field structure
+  if (!field || typeof field !== 'object' || !field.control) {
+    console.error("WorkOrderCustomerSelect: Invalid field prop:", field);
+    return null;
+  }
+
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch customers data with TanStack Query
+  const { 
+    data: customers = [], 
+    isLoading 
+  } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
       console.log("Fetching customers for dropdown");
-      
       const { data, error } = await supabase
         .from('customers')
-        .select("*")
-        .eq('active', true)  // Only get active customers
+        .select('id, name, company, email, phone, active')
+        .eq('active', true)
         .order('name', { ascending: true });
-
+        
       if (error) {
         console.error("Error fetching customers:", error);
         throw error;
       }
       
-      console.log("Retrieved customers:", data?.length || 0);
-      
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        company: item.company,
-        email: item.email,
-        phone: item.phone,
-        address: item.address,
-        active: item.active,
-        notes: item.notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        orderCount: item.order_count || 0
-      })) as Customer[];
+      return data || [];
     },
-    staleTime: 0, // Always refetch to get the latest customers
-    refetchOnMount: true, // Refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
-  const isDisabled = formIsLoading || isLoadingCustomers;
+  // Ensure customers is always an array
+  const safeCustomers = Array.isArray(customers) ? customers : [];
   
-  if (error) {
-    console.error("Customer select error:", error);
-  }
+  // Filter customers based on search query
+  const filteredCustomers = safeCustomers.filter(customer => {
+    if (!customer) return false;
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const name = (customer.name || '').toLowerCase();
+    const company = (customer.company || '').toLowerCase();
+    const email = (customer.email || '').toLowerCase();
+    
+    return name.includes(query) || company.includes(query) || email.includes(query);
+  });
+
+  // Find the selected customer for display
+  const selectedCustomer = field.value 
+    ? safeCustomers.find(c => c?.id === field.value)
+    : null;
 
   return (
     <FormField
       control={field.control}
       name="customerId"
       render={({ field }) => (
-        <FormItem>
+        <FormItem className="flex flex-col">
           <div className="flex items-center justify-between">
-            <FormLabel>Customer</FormLabel>
+            <FormLabel>{label}{required && <span className="text-destructive ml-1">*</span>}</FormLabel>
             <Button 
               type="button"
               variant="ghost" 
@@ -98,40 +129,95 @@ export function CustomerSelect({ field, isLoading: formIsLoading }: CustomerSele
               </Link>
             </Button>
           </div>
-          {isLoadingCustomers ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <Select 
-              onValueChange={(value) => {
-                if (value && field.onChange) {
-                  field.onChange(value);
-                }
-              }} 
-              defaultValue={field.value || ""} 
-              value={field.value || ""}
-              disabled={isDisabled}
-              onOpenChange={() => refetch()} // Refetch customers when dropdown is opened
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {Array.isArray(customers) && customers.length === 0 ? (
-                  <SelectItem value="no-customers" disabled>
-                    No customers found
-                  </SelectItem>
-                ) : (
-                  Array.isArray(customers) && customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name || 'Unknown'} - {customer.company || 'No company'}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+          
+          {description && (
+            <FormDescription>{description}</FormDescription>
           )}
+          
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className={cn(
+                    "w-full justify-between",
+                    !field.value && "text-muted-foreground"
+                  )}
+                  disabled={isLoading || isDisabled}
+                  type="button"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading customers...</span>
+                    </div>
+                  ) : field.value && selectedCustomer ? (
+                    <span className="truncate">
+                      {selectedCustomer.name || 'Unknown'}{selectedCustomer.company ? ` - ${selectedCustomer.company}` : ''}
+                    </span>
+                  ) : (
+                    "Select Customer"
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <Command>
+                <CommandInput 
+                  placeholder="Search customers..." 
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                />
+                <CommandEmpty>
+                  {isLoading ? 'Loading...' : 'No customers found.'}
+                </CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {isLoading ? (
+                    <div className="py-6 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      <p className="text-sm text-muted-foreground mt-2">Loading customers...</p>
+                    </div>
+                  ) : filteredCustomers.length === 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm text-muted-foreground">No customers found</p>
+                    </div>
+                  ) : (
+                    filteredCustomers.map(customer => (
+                      <CommandItem
+                        key={customer.id}
+                        value={customer.id}
+                        onSelect={() => {
+                          field.onChange(customer.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            field.value === customer.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {customer.name}
+                          </span>
+                          {customer.company && (
+                            <span className="text-xs text-muted-foreground">
+                              {customer.company}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))
+                  )}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <FormMessage />
         </FormItem>
       )}
