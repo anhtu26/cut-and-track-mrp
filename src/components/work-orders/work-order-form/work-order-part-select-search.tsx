@@ -33,6 +33,12 @@ interface PartSelectSearchProps {
 }
 
 export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelectSearchProps) {
+  // Check if field is properly defined
+  if (!field || typeof field !== 'object') {
+    console.error('PartSelectSearch received invalid field prop:', field);
+    return null; // Early return to prevent errors
+  }
+
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -87,17 +93,25 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
   // Filter parts based on search query
   const filteredParts = safePartsList.filter(part => {
     if (!searchQuery) return true;
+    if (!part) return false; // Skip null/undefined parts
     
-    const query = searchQuery.toLowerCase();
-    const nameMatch = part.name.toLowerCase().includes(query);
-    const partNumberMatch = part.partNumber.toLowerCase().includes(query);
-    const descriptionMatch = part.description ? part.description.toLowerCase().includes(query) : false;
-    
-    return nameMatch || partNumberMatch || descriptionMatch;
+    try {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = part.name?.toLowerCase().includes(query) || false;
+      const partNumberMatch = part.partNumber?.toLowerCase().includes(query) || false;
+      const descriptionMatch = part.description ? part.description.toLowerCase().includes(query) : false;
+      
+      return nameMatch || partNumberMatch || descriptionMatch;
+    } catch (error) {
+      console.error("Error filtering part:", part, error);
+      return false;
+    }
   });
 
   // Find the currently selected part for display
-  const selectedPart = field.value ? safePartsList.find(part => part.id === field.value) : null;
+  const selectedPart = field.value && safePartsList.length > 0 
+    ? safePartsList.find(part => part?.id === field.value) 
+    : null;
 
   // Refetch when opened to ensure latest data
   useEffect(() => {
@@ -105,6 +119,65 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
       refetch();
     }
   }, [open, refetch]);
+
+  // Render with defensive checks
+  const renderCommandItems = () => {
+    if (isLoadingParts) {
+      return (
+        <div className="py-6 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
+        </div>
+      );
+    }
+    
+    if (!Array.isArray(filteredParts) || filteredParts.length === 0) {
+      return (
+        <div className="py-6 text-center">
+          <p className="text-sm text-muted-foreground">No parts found</p>
+        </div>
+      );
+    }
+    
+    // Return array of safe components
+    return filteredParts.map((part) => {
+      if (!part || !part.id) return null;
+      
+      return (
+        <CommandItem
+          key={part.id}
+          value={part.id}
+          onSelect={() => {
+            field.onChange(part.id);
+            setOpen(false);
+          }}
+        >
+          <Check
+            className={cn(
+              "mr-2 h-4 w-4",
+              field.value === part.id ? "opacity-100" : "opacity-0"
+            )}
+          />
+          <div className="flex flex-col">
+            <span className="font-medium">
+              {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
+            </span>
+            {part.description && (
+              <span className="text-xs text-muted-foreground truncate max-w-[220px]">
+                {part.description}
+              </span>
+            )}
+          </div>
+        </CommandItem>
+      );
+    }).filter(Boolean); // Filter out any null items
+  };
+
+  // Ensure field.control exists before rendering the form field
+  if (!field.control) {
+    console.error("Field control is missing in PartSelectSearch");
+    return null;
+  }
 
   return (
     <FormField
@@ -163,44 +236,7 @@ export function PartSelectSearch({ field, isLoading: formIsLoading }: PartSelect
                 />
                 <CommandEmpty>No parts found.</CommandEmpty>
                 <CommandGroup className="max-h-[300px] overflow-auto">
-                  {isLoadingParts ? (
-                    <div className="py-6 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
-                    </div>
-                  ) : filteredParts.length > 0 ? (
-                    filteredParts.map((part) => (
-                      <CommandItem
-                        key={part.id}
-                        value={part.id}
-                        onSelect={() => {
-                          field.onChange(part.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            field.value === part.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {part.name} - {part.partNumber}
-                          </span>
-                          {part.description && (
-                            <span className="text-xs text-muted-foreground truncate max-w-[220px]">
-                              {part.description}
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))
-                  ) : (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-muted-foreground">No parts found</p>
-                    </div>
-                  )}
+                  {renderCommandItems()}
                 </CommandGroup>
               </Command>
             </PopoverContent>

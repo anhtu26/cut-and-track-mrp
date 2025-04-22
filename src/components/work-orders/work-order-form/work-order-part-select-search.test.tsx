@@ -31,7 +31,7 @@ const mockField = {
   },
 };
 
-const renderComponent = () => {
+const renderComponent = (fieldOverrides = {}) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -40,9 +40,11 @@ const renderComponent = () => {
     },
   });
 
+  const field = { ...mockField, ...fieldOverrides };
+
   return render(
     <QueryClientProvider client={queryClient}>
-      <PartSelectSearch field={mockField} />
+      <PartSelectSearch field={field} />
     </QueryClientProvider>
   );
 };
@@ -174,5 +176,81 @@ describe("PartSelectSearch", () => {
     
     // Should not crash with API error
     expect(screen.getByText("Part")).toBeInTheDocument();
+  });
+
+  test("handles undefined field prop gracefully", async () => {
+    // Suppress expected console errors for this test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // @ts-ignore - intentionally passing invalid props to test error handling
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <PartSelectSearch field={undefined} />
+      </QueryClientProvider>
+    );
+    
+    // Should not crash even with undefined field
+    expect(container).toBeInTheDocument();
+    expect(console.error).toHaveBeenCalled();
+    
+    // Restore console.error
+    (console.error as jest.Mock).mockRestore();
+  });
+
+  test("handles malformed field object gracefully", async () => {
+    // Suppress expected console errors for this test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Render with malformed field (missing control property)
+    const { container } = renderComponent({ control: undefined });
+    
+    // Should not crash even with malformed field
+    expect(container).toBeInTheDocument();
+    expect(console.error).toHaveBeenCalled();
+    
+    // Restore console.error
+    (console.error as jest.Mock).mockRestore();
+  });
+
+  test("handles null/undefined parts in the list", async () => {
+    // Mock response with null items
+    (supabase.from as jest.Mock).mockImplementation(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      then: jest.fn().mockImplementation((callback) => {
+        return Promise.resolve(
+          callback({
+            data: [
+              {
+                id: "1",
+                name: "Test Part",
+                part_number: "TP-001"
+              },
+              null, // Add a null item to test handling
+              undefined, // Add undefined to test handling
+              {
+                id: "2",
+                name: undefined, // Missing name
+                part_number: "TP-002"
+              }
+            ],
+            error: null,
+          })
+        );
+      }),
+    }));
+
+    renderComponent();
+    
+    // Open the dropdown
+    await userEvent.click(screen.getByRole("combobox"));
+    
+    // Should show the valid parts and handle the null/undefined gracefully
+    await waitFor(() => {
+      expect(screen.getByText("Test Part - TP-001")).toBeInTheDocument();
+      // Should show fallback text for the part with undefined name
+      expect(screen.getByText("Unknown - TP-002")).toBeInTheDocument();
+    });
   });
 }); 
