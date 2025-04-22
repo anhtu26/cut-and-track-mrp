@@ -79,8 +79,8 @@ export function WorkOrderFormContent({
       {/* Customer Selection */}
       <div className="md:col-span-2">
         <WorkOrderCustomerSelect
-          form={form}
-          isSubmitting={isSubmitting}
+          control={form.control}
+          isDisabled={isSubmitting}
         />
       </div>
 
