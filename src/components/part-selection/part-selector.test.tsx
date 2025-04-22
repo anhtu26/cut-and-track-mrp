@@ -5,9 +5,17 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PartSelector } from './part-selector';
 import * as useParts from '@/hooks/use-parts';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+
+// Mock ResizeObserver
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+global.ResizeObserver = ResizeObserver;
 
 // Mock the useParts hook
 jest.mock('@/hooks/use-parts', () => ({
@@ -22,12 +30,10 @@ const testSchema = z.object({
 type TestFormValues = z.infer<typeof testSchema>;
 
 // Test wrapper component with form context
-const TestForm = ({ children }: { children: React.ReactNode }) => {
+const TestFormWrapper = ({ children, defaultValues = { partId: '' } }: { children: React.ReactNode, defaultValues?: TestFormValues }) => {
   const methods = useForm<TestFormValues>({
     resolver: zodResolver(testSchema),
-    defaultValues: {
-      partId: '',
-    }
+    defaultValues,
   });
   
   return <FormProvider {...methods}>{children}</FormProvider>;
@@ -76,37 +82,59 @@ describe('PartSelector', () => {
     jest.clearAllMocks();
   });
   
-  test('renders the part selector correctly', async () => {
+  test('renders the part selector correctly and handles selection', async () => {
     const user = userEvent.setup();
-    const mockField = {
-      value: '',
-      onChange: jest.fn(),
-      control: {
-        register: jest.fn(),
-        unregister: jest.fn(),
-        getFieldState: jest.fn(),
-        _formValues: {},
-        _defaultValues: {},
-      },
-    };
+    let submittedValue: string | undefined;
     
+    const TestComponent = () => {
+      const methods = useForm<TestFormValues>({
+        resolver: zodResolver(testSchema),
+        defaultValues: { partId: '' },
+      });
+      const { control, handleSubmit, watch } = methods;
+      
+      const onSubmit = (data: TestFormValues) => {
+        submittedValue = data.partId;
+      };
+      
+      const selectedValue = watch('partId');
+      
+      return (
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} data-testid="form">
+            <Controller
+              name="partId"
+              control={control}
+              render={({ field }) => (
+                <PartSelector
+                  field={field}
+                  label="Test Part Field"
+                  description="Select a test part"
+                />
+              )}
+            />
+            <button type="submit">Submit</button>
+            <div data-testid="selected-value">{selectedValue}</div>
+          </form>
+        </FormProvider>
+      );
+    };
+
     render(
       <QueryClientProvider client={queryClient}>
-        <PartSelector
-          field={mockField}
-          label="Test Part Field"
-          description="Select a test part"
-        />
+        <TestComponent />
       </QueryClientProvider>
     );
     
-    // Check if the component renders properly
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByText('Test Part Field')).toBeInTheDocument();
-    expect(screen.getByText('Select a test part')).toBeInTheDocument();
+    // Check if the combobox and description render (label is associated via FormField internally)
+    const combobox = screen.getByRole('combobox');
+    expect(combobox).toBeInTheDocument();
+    // Check the label text is associated with the combobox
+    expect(screen.getByLabelText('Test Part Field')).toBe(combobox);
+    expect(screen.getByText('Select a test part')).toBeInTheDocument(); // Check description
     
     // Open the popover
-    await user.click(screen.getByRole('combobox'));
+    await user.click(combobox);
     
     // Check if the options are displayed
     await waitFor(() => {
@@ -116,10 +144,20 @@ describe('PartSelector', () => {
     });
     
     // Select an option
-    await user.click(screen.getByText('Test Part 1 - TP-001'));
+    const option1 = screen.getByText('Test Part 1 - TP-001');
+    await user.click(option1);
     
-    // Check if onChange was called with the correct value
-    expect(mockField.onChange).toHaveBeenCalledWith('part1');
+    // Verify the trigger button updates
+    await waitFor(() => {
+      expect(combobox).toHaveTextContent('Test Part 1 - TP-001');
+    });
+
+    // Verify form state updates
+    expect(screen.getByTestId('selected-value')).toHaveTextContent('part1');
+    
+    // Submit form to check if value is passed correctly
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+    expect(submittedValue).toBe('part1');
   });
   
   test('shows loading state correctly', async () => {
@@ -130,21 +168,27 @@ describe('PartSelector', () => {
       refetch: jest.fn(),
     });
     
-    const mockField = {
-      value: '',
-      onChange: jest.fn(),
-      control: {
-        register: jest.fn(),
-        unregister: jest.fn(),
-        getFieldState: jest.fn(),
-        _formValues: {},
-        _defaultValues: {},
-      },
+    const TestComponent = () => {
+      const methods = useForm<TestFormValues>({
+        resolver: zodResolver(testSchema),
+        defaultValues: { partId: '' },
+      });
+      const { control } = methods;
+      
+      return (
+        <FormProvider {...methods}>
+          <Controller
+            name="partId"
+            control={control}
+            render={({ field }) => <PartSelector field={field} />}
+          />
+        </FormProvider>
+      );
     };
     
     render(
       <QueryClientProvider client={queryClient}>
-        <PartSelector field={mockField} />
+        <TestComponent />
       </QueryClientProvider>
     );
     
@@ -154,29 +198,37 @@ describe('PartSelector', () => {
   
   test('filters parts based on search query', async () => {
     const user = userEvent.setup();
-    const mockField = {
-      value: '',
-      onChange: jest.fn(),
-      control: {
-        register: jest.fn(),
-        unregister: jest.fn(),
-        getFieldState: jest.fn(),
-        _formValues: {},
-        _defaultValues: {},
-      },
+    const TestComponent = () => {
+      const methods = useForm<TestFormValues>({
+        resolver: zodResolver(testSchema),
+        defaultValues: { partId: '' },
+      });
+      const { control } = methods;
+      
+      return (
+        <FormProvider {...methods}>
+          <Controller
+            name="partId"
+            control={control}
+            render={({ field }) => <PartSelector field={field} />}
+          />
+        </FormProvider>
+      );
     };
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <PartSelector field={mockField} />
+        <TestComponent />
       </QueryClientProvider>
     );
     
     // Open the popover
-    await user.click(screen.getByRole('combobox'));
+    const combobox = screen.getByRole('combobox');
+    await user.click(combobox);
     
-    // Type in the search box
-    const searchInput = screen.getByPlaceholderText('Search parts...');
+    // Wait for the search input to appear and then type
+    const searchInput = await screen.findByPlaceholderText('Search parts...');
+    expect(searchInput).toBeInTheDocument();
     await user.type(searchInput, 'Test Part 2');
     
     // Check if only the matching part is displayed
@@ -186,27 +238,34 @@ describe('PartSelector', () => {
     });
   });
   
-  test('displays selected part in trigger button', async () => {
-    const user = userEvent.setup();
-    const mockField = {
-      value: 'part1',
-      onChange: jest.fn(),
-      control: {
-        register: jest.fn(),
-        unregister: jest.fn(),
-        getFieldState: jest.fn(),
-        _formValues: {},
-        _defaultValues: {},
-      },
+  test('displays selected part in trigger button when initialized', async () => {
+    const TestComponent = () => {
+      const methods = useForm<TestFormValues>({
+        resolver: zodResolver(testSchema),
+        defaultValues: { partId: 'part1' }, // Initialize with a value
+      });
+      const { control } = methods;
+      
+      return (
+        <FormProvider {...methods}>
+          <Controller
+            name="partId"
+            control={control}
+            render={({ field }) => <PartSelector field={field} />}
+          />
+        </FormProvider>
+      );
     };
-    
+
     render(
       <QueryClientProvider client={queryClient}>
-        <PartSelector field={mockField} />
+        <TestComponent />
       </QueryClientProvider>
     );
     
-    // Check if the selected part is displayed in the button
-    expect(screen.getByText('Test Part 1 - TP-001')).toBeInTheDocument();
+    // Check if the selected part is displayed in the button immediately
+    await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveTextContent('Test Part 1 - TP-001');
+    });
   });
 }); 
