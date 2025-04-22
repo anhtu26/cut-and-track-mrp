@@ -27,6 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { z } from 'zod';
+import { Control } from "react-hook-form";
 
 // Define Customer schema using Zod for type-safety
 export const customerSchema = z.object({
@@ -41,7 +42,8 @@ export const customerSchema = z.object({
 export type CustomerSelectItem = z.infer<typeof customerSchema>;
 
 interface WorkOrderCustomerSelectProps {
-  field: any;
+  control: Control<any>;
+  fieldName?: string;
   label?: string;
   description?: string;
   isDisabled?: boolean;
@@ -49,15 +51,16 @@ interface WorkOrderCustomerSelectProps {
 }
 
 export function WorkOrderCustomerSelect({ 
-  field, 
+  control, 
+  fieldName = "customerId",
   label = "Customer", 
   description,
   isDisabled = false,
   required = true
 }: WorkOrderCustomerSelectProps) {
-  // Safety check for field structure
-  if (!field || typeof field !== 'object' || !field.control) {
-    console.error("WorkOrderCustomerSelect: Invalid field prop:", field);
+  // Validate control prop is provided
+  if (!control) {
+    console.error("WorkOrderCustomerSelect: Missing required control prop");
     return null;
   }
 
@@ -103,124 +106,129 @@ export function WorkOrderCustomerSelect({
     return name.includes(query) || company.includes(query) || email.includes(query);
   });
 
-  // Find the selected customer for display
-  const selectedCustomer = field.value 
-    ? safeCustomers.find(c => c?.id === field.value)
-    : null;
-
   return (
     <FormField
-      control={field.control}
-      name="customerId"
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <div className="flex items-center justify-between">
-            <FormLabel>{label}{required && <span className="text-destructive ml-1">*</span>}</FormLabel>
-            <Button 
-              type="button"
-              variant="ghost" 
-              size="sm" 
-              className="h-8 px-2 text-xs"
-              asChild
-            >
-              <Link to="/customers/new" target="_blank">
-                <PlusCircle className="mr-1 h-3 w-3" />
-                Add New
-              </Link>
-            </Button>
-          </div>
+      control={control}
+      name={fieldName}
+      render={({ field }) => {
+        // Find the selected customer for display
+        const selectedCustomer = field.value 
+          ? safeCustomers.find(c => c?.id === field.value)
+          : null;
           
-          {description && (
-            <FormDescription>{description}</FormDescription>
-          )}
-          
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className={cn(
-                    "w-full justify-between",
-                    !field.value && "text-muted-foreground"
-                  )}
-                  disabled={isLoading || isDisabled}
-                  type="button"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Loading customers...</span>
-                    </div>
-                  ) : field.value && selectedCustomer ? (
-                    <span className="truncate">
-                      {selectedCustomer.name || 'Unknown'}{selectedCustomer.company ? ` - ${selectedCustomer.company}` : ''}
-                    </span>
-                  ) : (
-                    "Select Customer"
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
+        return (
+          <FormItem className="flex flex-col">
+            <div className="flex items-center justify-between">
+              <FormLabel>{label}{required && <span className="text-destructive ml-1">*</span>}</FormLabel>
+              <Button 
+                type="button"
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2 text-xs"
+                asChild
+              >
+                <Link to="/customers/new" target="_blank">
+                  <PlusCircle className="mr-1 h-3 w-3" />
+                  Add New
+                </Link>
+              </Button>
+            </div>
             
-            <PopoverContent className="w-[300px] p-0" align="start">
-              <Command>
-                <CommandInput 
-                  placeholder="Search customers..." 
-                  value={searchQuery}
-                  onValueChange={setSearchQuery}
-                />
-                <CommandEmpty>
-                  {isLoading ? 'Loading...' : 'No customers found.'}
-                </CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  {isLoading ? (
-                    <div className="py-6 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground mt-2">Loading customers...</p>
-                    </div>
-                  ) : filteredCustomers.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-muted-foreground">No customers found</p>
-                    </div>
-                  ) : (
-                    filteredCustomers.map(customer => (
-                      <CommandItem
-                        key={customer.id}
-                        value={customer.id}
-                        onSelect={() => {
-                          field.onChange(customer.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            field.value === customer.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {customer.name}
-                          </span>
-                          {customer.company && (
-                            <span className="text-xs text-muted-foreground">
-                              {customer.company}
+            {description && (
+              <FormDescription>{description}</FormDescription>
+            )}
+            
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={cn(
+                      "w-full justify-between",
+                      !field.value && "text-muted-foreground"
+                    )}
+                    disabled={isLoading || isDisabled}
+                    type="button"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading customers...</span>
+                      </div>
+                    ) : field.value && selectedCustomer ? (
+                      <span className="truncate">
+                        {selectedCustomer.name || 'Unknown'}{selectedCustomer.company ? ` - ${selectedCustomer.company}` : ''}
+                      </span>
+                    ) : (
+                      "Select Customer"
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput 
+                    placeholder="Search customers..." 
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                  />
+                  <CommandEmpty>
+                    {isLoading ? 'Loading...' : 'No customers found.'}
+                  </CommandEmpty>
+                  <CommandGroup className="max-h-[300px] overflow-auto">
+                    {isLoading ? (
+                      <div className="py-6 text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Loading customers...</p>
+                      </div>
+                    ) : filteredCustomers.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-muted-foreground">No customers found</p>
+                      </div>
+                    ) : (
+                      filteredCustomers.map(customer => (
+                        <CommandItem
+                          key={customer.id}
+                          value={customer.id}
+                          onSelect={() => {
+                            field.onChange(customer.id);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              field.value === customer.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {customer.name}
                             </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))
-                  )}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
+                            {customer.company && (
+                              <span className="text-xs text-muted-foreground">
+                                {customer.company}
+                              </span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))
+                    )}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }
+
+// Export alias for backward compatibility
+export const CustomerSelect = WorkOrderCustomerSelect;
