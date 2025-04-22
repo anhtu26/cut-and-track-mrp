@@ -41,6 +41,17 @@ export interface PartSelectionProps {
   description?: string;
 }
 
+// EMERGENCY FIX: Ensure we always return safe objects/arrays for filteredParts
+const createEmptyPart = (): PartSelectItem => ({
+  id: "",
+  name: "",
+  partNumber: "",
+  description: "",
+  active: true,
+  materials: [],
+  customerId: null,
+});
+
 export function PartSelection({ 
   field,
   disabled = false,
@@ -51,173 +62,205 @@ export function PartSelection({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Verify the field is properly structured before proceeding
-  if (!field || typeof field !== 'object' || !field.control) {
-    console.error('PartSelection received invalid field prop:', field);
-    return null;
-  }
-  
-  // Use the custom hook to fetch parts data
-  const { 
-    data: parts = [], 
-    isLoading,
-    refetch
-  } = useParts({ customerId });
-  
-  // Ensure we have a safe array to work with
-  const safePartsList: PartSelectItem[] = Array.isArray(parts) ? parts : [];
-  
-  // Filter parts based on search query (type ahead search)
-  const filteredParts = safePartsList.filter(part => {
-    // Skip filtering if search is empty
-    if (!searchQuery) return true;
-    if (!part) return false;
+  // EMERGENCY FIX: Extra safety check - use try/catch to prevent any crash
+  try {
+    // Verify the field is properly structured before proceeding
+    if (!field || typeof field !== 'object' || !field.control) {
+      console.error('PartSelection received invalid field prop:', field);
+      return null;
+    }
     
-    try {
-      const query = searchQuery.toLowerCase();
-      // Search across multiple fields
-      return (
-        (part.name?.toLowerCase().includes(query) || false) ||
-        (part.partNumber?.toLowerCase().includes(query) || false) ||
-        (part.description?.toLowerCase().includes(query) || false)
-      );
-    } catch (error) {
-      console.error("Error filtering part:", error);
-      return false;
-    }
-  });
-  
-  // Find currently selected part
-  const selectedPart = field.value && safePartsList.length > 0
-    ? safePartsList.find(part => part?.id === field.value)
-    : null;
-  
-  // Refresh data when dropdown is opened
-  useEffect(() => {
-    if (open) {
-      refetch();
-    }
-  }, [open, refetch]);
-  
-  return (
-    <FormField
-      control={field.control}
-      name="partId"
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <div className="flex items-center justify-between">
-            <FormLabel>{label}</FormLabel>
-            <Button 
-              type="button"
-              variant="ghost" 
-              size="sm" 
-              className="h-8 px-2 text-xs"
-              asChild
-            >
-              <Link to="/parts/new" target="_blank">
-                <PlusCircle className="mr-1 h-3 w-3" />
-                Add New
-              </Link>
-            </Button>
-          </div>
-          
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-          
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className={cn(
-                    "w-full justify-between",
-                    !field.value && "text-muted-foreground"
-                  )}
-                  disabled={isLoading || disabled}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Loading parts...</span>
-                    </div>
-                  ) : field.value && selectedPart ? (
-                    <span className="truncate">
-                      {selectedPart.name || 'Unknown'} - {selectedPart.partNumber || 'No part number'}
-                    </span>
-                  ) : (
-                    "Select a part"
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
+    // Use the custom hook to fetch parts data
+    const { 
+      data: partsData, 
+      isLoading,
+      refetch
+    } = useParts({ customerId });
+    
+    // EMERGENCY FIX: Extra safety around parts data
+    const parts = partsData || [];
+    
+    // EMERGENCY FIX: Force array type with extra safety
+    const safePartsList: PartSelectItem[] = Array.isArray(parts) ? parts : [];
+    
+    // EMERGENCY FIX: Safe filtering with double-guarded checks
+    const filteredParts = safePartsList.filter(part => {
+      // Skip filtering if search is empty
+      if (!searchQuery) return true;
+      if (!part || typeof part !== 'object') return false;
+      
+      try {
+        const query = searchQuery.toLowerCase();
+        const partName = (part.name || "").toLowerCase();
+        const partNumber = (part.partNumber || "").toLowerCase();
+        const partDescription = (part.description || "").toLowerCase();
+        
+        // Search across multiple fields
+        return (
+          partName.includes(query) ||
+          partNumber.includes(query) ||
+          partDescription.includes(query)
+        );
+      } catch (error) {
+        console.error("Error filtering part:", error);
+        return false;
+      }
+    });
+    
+    // EMERGENCY FIX: Guarantee we have a valid selected part
+    const selectedPart = (() => {
+      if (!field.value) return null;
+      if (!safePartsList.length) return null;
+      
+      const found = safePartsList.find(part => part?.id === field.value);
+      
+      // If not found, return null rather than undefined
+      return found || null;
+    })();
+    
+    // Refresh data when dropdown is opened
+    useEffect(() => {
+      if (open) {
+        try {
+          refetch();
+        } catch (error) {
+          console.error("Error refetching parts:", error);
+        }
+      }
+    }, [open, refetch]);
+    
+    return (
+      <FormField
+        control={field.control}
+        name="partId"
+        render={({ field }) => (
+          <FormItem className="flex flex-col">
+            <div className="flex items-center justify-between">
+              <FormLabel>{label}</FormLabel>
+              <Button 
+                type="button"
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2 text-xs"
+                asChild
+              >
+                <Link to="/parts/new" target="_blank">
+                  <PlusCircle className="mr-1 h-3 w-3" />
+                  Add New
+                </Link>
+              </Button>
+            </div>
             
-            <PopoverContent className="w-[300px] p-0">
-              <Command>
-                <CommandInput 
-                  placeholder="Search parts..." 
-                  value={searchQuery}
-                  onValueChange={setSearchQuery}
-                />
-                
-                <CommandEmpty>
-                  {isLoading ? 'Loading...' : 'No parts found.'}
-                </CommandEmpty>
-                
-                <CommandGroup className="max-h-[300px] overflow-auto">
-                  {isLoading ? (
-                    <div className="py-6 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
-                    </div>
-                  ) : filteredParts.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-muted-foreground">No parts found</p>
-                    </div>
-                  ) : (
-                    // Safe rendering with null checks
-                    filteredParts.map((part) => {
-                      if (!part || !part.id) return null;
-                      
-                      return (
-                        <CommandItem
-                          key={part.id}
-                          value={part.id}
-                          onSelect={() => {
-                            field.onChange(part.id);
-                            setOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              field.value === part.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
-                            </span>
-                            {part.description && (
-                              <span className="text-xs text-muted-foreground truncate max-w-[220px]">
-                                {part.description}
+            {description && (
+              <p className="text-sm text-muted-foreground">{description}</p>
+            )}
+            
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={cn(
+                      "w-full justify-between",
+                      !field.value && "text-muted-foreground"
+                    )}
+                    disabled={isLoading || disabled}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading parts...</span>
+                      </div>
+                    ) : field.value && selectedPart ? (
+                      <span className="truncate">
+                        {selectedPart.name || 'Unknown'} - {selectedPart.partNumber || 'No part number'}
+                      </span>
+                    ) : (
+                      "Select a part"
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              
+              <PopoverContent className="w-[300px] p-0">
+                {/* EMERGENCY FIX: Guard the entire Command component rendering */}
+                <Command>
+                  <CommandInput 
+                    placeholder="Search parts..." 
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                  />
+                  
+                  <CommandEmpty>
+                    {isLoading ? 'Loading...' : 'No parts found.'}
+                  </CommandEmpty>
+                  
+                  {/* EMERGENCY FIX: Guarantee empty array over undefined */}
+                  <CommandGroup className="max-h-[300px] overflow-auto">
+                    {isLoading ? (
+                      <div className="py-6 text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        <p className="text-sm text-muted-foreground mt-2">Loading parts...</p>
+                      </div>
+                    ) : filteredParts.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-muted-foreground">No parts found</p>
+                      </div>
+                    ) : (
+                      // EMERGENCY FIX: Double ensure we have a valid array to map over
+                      (Array.isArray(filteredParts) ? filteredParts : []).map((part) => {
+                        // EMERGENCY FIX: Explicit null check, not just undefined
+                        if (!part || !part.id) return null;
+                        
+                        return (
+                          <CommandItem
+                            key={part.id}
+                            value={part.id}
+                            onSelect={() => {
+                              field.onChange(part.id);
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === part.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {part.name || 'Unknown'} - {part.partNumber || 'No part number'}
                               </span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      );
-                    })
-                  )}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
+                              {part.description && (
+                                <span className="text-xs text-muted-foreground truncate max-w-[220px]">
+                                  {part.description}
+                                </span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        );
+                      })
+                    )}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  } catch (error) {
+    // EMERGENCY FIX: Ultimate fallback to prevent blank screen
+    console.error("Critical error in PartSelection:", error);
+    return (
+      <div className="p-4 border rounded bg-red-50 text-red-800">
+        <p className="font-bold">Error loading part selection</p>
+        <p className="text-sm">Please try again or contact support if the problem persists.</p>
+      </div>
+    );
+  }
 } 

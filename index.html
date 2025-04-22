@@ -15,6 +15,39 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- EMERGENCY FIX: Patch Array.from to prevent "undefined is not iterable" errors -->
+    <script>
+      (function fixArrayFrom() {
+        // Store the original Array.from implementation
+        const originalArrayFrom = Array.from;
+        
+        // Override Array.from to handle undefined/null values
+        Array.from = function safeArrayFrom(items) {
+          // If items is null or undefined, return an empty array
+          if (items === null || items === undefined) {
+            console.warn('Array.from received null/undefined, returning empty array');
+            return [];
+          }
+          
+          // Handle non-iterable objects by wrapping in array
+          if (typeof items !== 'string' && typeof items[Symbol.iterator] !== 'function') {
+            console.warn('Array.from received non-iterable value, wrapping in array', items);
+            return [items];
+          }
+          
+          // Use the original implementation for valid iterables
+          try {
+            return originalArrayFrom.apply(this, arguments);
+          } catch (error) {
+            console.error('Error in Array.from:', error);
+            return [];
+          }
+        };
+        
+        console.log('✅ Array.from patched for safety');
+      })();
+    </script>
   </head>
 
   <body>

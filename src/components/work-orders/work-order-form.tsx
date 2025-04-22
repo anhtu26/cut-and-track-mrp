@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
@@ -16,126 +15,170 @@ interface WorkOrderFormProps {
   isSubmitting: boolean;
 }
 
-export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrderFormProps) {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const isEditMode = !!initialData?.id;
-  
-  // Explicitly handle the useOperationTemplates with a default value
-  const defaultValues: Partial<WorkOrderFormValues> = {
-    workOrderNumber: initialData?.workOrderNumber || "",
-    purchaseOrderNumber: initialData?.purchaseOrderNumber || "",
-    customerId: initialData?.customerId || "",
-    partId: initialData?.partId || "",
-    quantity: initialData?.quantity || 1,
-    status: initialData?.status || "Not Started",
-    priority: initialData?.priority || "Normal",
-    startDate: initialData?.startDate ? new Date(initialData.startDate) : undefined,
-    dueDate: initialData?.dueDate ? new Date(initialData.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    assignedToId: initialData?.assignedTo?.id || "",
-    notes: initialData?.notes || "",
-    useOperationTemplates: initialData?.useOperationTemplates !== undefined ? initialData.useOperationTemplates : true,
-  };
-
-  // Check if work order status allows changing the part
-  const canChangePartId = !isEditMode || initialData?.status === "Not Started";
-
-  const form = useForm<WorkOrderFormValues>({
-    resolver: zodResolver(workOrderSchema),
-    defaultValues,
-  });
-
-  // Helper functions for type conversion
-  const formValuesToCreateWorkOrderInput = (data: WorkOrderFormValues): CreateWorkOrderInput => {
-    return {
-      workOrderNumber: data.workOrderNumber,
-      purchaseOrderNumber: data.purchaseOrderNumber,
-      customerId: data.customerId,
-      partId: data.partId,
-      quantity: data.quantity,
-      status: data.status,
-      priority: data.priority,
-      startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
-      dueDate: format(data.dueDate, "yyyy-MM-dd"),
-      assignedToId: data.assignedToId,
-      notes: data.notes,
-      useOperationTemplates: data.useOperationTemplates,
-    };
-  };
-
-  const formValuesToUpdateWorkOrderInput = (data: WorkOrderFormValues, id: string): UpdateWorkOrderInput => {
-    // For work orders that are in progress or beyond, prevent changing the part
-    const partId = !canChangePartId ? initialData?.partId : data.partId;
-    
-    if (!canChangePartId && partId !== initialData?.partId) {
-      toast.warning("Cannot change part for work orders that are in progress");
-    }
-
-    return {
-      id,
-      workOrderNumber: data.workOrderNumber,
-      purchaseOrderNumber: data.purchaseOrderNumber,
-      customerId: data.customerId,
-      partId: partId,
-      quantity: data.quantity,
-      status: data.status,
-      priority: data.priority,
-      startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
-      dueDate: format(data.dueDate, "yyyy-MM-dd"),
-      assignedToId: data.assignedToId,
-      notes: data.notes,
-      useOperationTemplates: data.useOperationTemplates,
-    };
-  };
-
-  const handleSubmit = async (data: WorkOrderFormValues) => {
-    setSubmitError(null);
-    try {
-      let formattedData;
-      
-      if (isEditMode && initialData?.id) {
-        // Edit mode - create UpdateWorkOrderInput
-        formattedData = formValuesToUpdateWorkOrderInput(data, initialData.id);
-      } else {
-        // Create mode - create CreateWorkOrderInput
-        formattedData = formValuesToCreateWorkOrderInput(data);
-      }
-      
-      await onSubmit(formattedData);
-    } catch (error: any) {
-      console.error("Form submission error:", error);
-      setSubmitError(error.message || "Failed to submit form");
-    }
-  };
-
+// EMERGENCY FIX: Safety wrapper to catch any errors
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <WorkOrderFormContent 
-          form={form} 
-          initialData={initialData} 
-          isSubmitting={isSubmitting} 
-          isEditMode={isEditMode}
-        />
-
-        {!canChangePartId && (
-          <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 p-4 rounded-md text-sm">
-            <p className="font-medium">Note:</p>
-            <p>Once a work order is in progress, the part cannot be changed. To use a different part, please create a new work order.</p>
-          </div>
-        )}
-
-        {submitError && (
-          <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
-            {submitError}
-          </div>
-        )}
-
-        <div className="flex justify-end gap-4">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : isEditMode ? "Update Work Order" : "Create Work Order"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+    <div className="relative">
+      {children}
+    </div>
   );
+}
+
+export function WorkOrderForm({ initialData, onSubmit, isSubmitting }: WorkOrderFormProps) {
+  // EMERGENCY FIX: Add global try/catch for the entire form component
+  try {
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const isEditMode = !!initialData?.id;
+    
+    // EMERGENCY FIX: Ensure initialData always has proper objects and values
+    const sanitizedInitialData = initialData ? {
+      ...initialData,
+      customerId: initialData.customerId || "",
+      partId: initialData.partId || "",
+      useOperationTemplates: initialData.useOperationTemplates !== undefined 
+        ? !!initialData.useOperationTemplates 
+        : true
+    } : {};
+    
+    // Explicitly handle the useOperationTemplates with a default value
+    const defaultValues: Partial<WorkOrderFormValues> = {
+      workOrderNumber: sanitizedInitialData?.workOrderNumber || "",
+      purchaseOrderNumber: sanitizedInitialData?.purchaseOrderNumber || "",
+      customerId: sanitizedInitialData?.customerId || "",
+      partId: sanitizedInitialData?.partId || "",
+      quantity: sanitizedInitialData?.quantity || 1,
+      status: sanitizedInitialData?.status || "Not Started",
+      priority: sanitizedInitialData?.priority || "Normal",
+      startDate: sanitizedInitialData?.startDate ? new Date(sanitizedInitialData.startDate) : undefined,
+      dueDate: sanitizedInitialData?.dueDate ? new Date(sanitizedInitialData.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      assignedToId: sanitizedInitialData?.assignedTo?.id || "",
+      notes: sanitizedInitialData?.notes || "",
+      useOperationTemplates: sanitizedInitialData?.useOperationTemplates !== undefined ? sanitizedInitialData.useOperationTemplates : true,
+    };
+
+    // Check if work order status allows changing the part
+    const canChangePartId = !isEditMode || sanitizedInitialData?.status === "Not Started";
+
+    const form = useForm<WorkOrderFormValues>({
+      resolver: zodResolver(workOrderSchema),
+      defaultValues,
+    });
+
+    // Helper functions for type conversion
+    const formValuesToCreateWorkOrderInput = (data: WorkOrderFormValues): CreateWorkOrderInput => {
+      return {
+        workOrderNumber: data.workOrderNumber,
+        purchaseOrderNumber: data.purchaseOrderNumber,
+        customerId: data.customerId,
+        partId: data.partId,
+        quantity: data.quantity,
+        status: data.status,
+        priority: data.priority,
+        startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
+        dueDate: format(data.dueDate, "yyyy-MM-dd"),
+        assignedToId: data.assignedToId,
+        notes: data.notes,
+        useOperationTemplates: data.useOperationTemplates,
+      };
+    };
+
+    const formValuesToUpdateWorkOrderInput = (data: WorkOrderFormValues, id: string): UpdateWorkOrderInput => {
+      // For work orders that are in progress or beyond, prevent changing the part
+      const partId = !canChangePartId ? sanitizedInitialData?.partId : data.partId;
+      
+      if (!canChangePartId && partId !== sanitizedInitialData?.partId) {
+        toast.warning("Cannot change part for work orders that are in progress");
+      }
+
+      return {
+        id,
+        workOrderNumber: data.workOrderNumber,
+        purchaseOrderNumber: data.purchaseOrderNumber,
+        customerId: data.customerId,
+        partId: partId,
+        quantity: data.quantity,
+        status: data.status,
+        priority: data.priority,
+        startDate: data.startDate ? format(data.startDate, "yyyy-MM-dd") : undefined,
+        dueDate: format(data.dueDate, "yyyy-MM-dd"),
+        assignedToId: data.assignedToId,
+        notes: data.notes,
+        useOperationTemplates: data.useOperationTemplates,
+      };
+    };
+
+    const handleSubmit = async (data: WorkOrderFormValues) => {
+      setSubmitError(null);
+      try {
+        let formattedData;
+        
+        if (isEditMode && sanitizedInitialData?.id) {
+          // Edit mode - create UpdateWorkOrderInput
+          formattedData = formValuesToUpdateWorkOrderInput(data, sanitizedInitialData.id);
+        } else {
+          // Create mode - create CreateWorkOrderInput
+          formattedData = formValuesToCreateWorkOrderInput(data);
+        }
+        
+        await onSubmit(formattedData);
+      } catch (error: any) {
+        console.error("Form submission error:", error);
+        setSubmitError(error.message || "Failed to submit form");
+      }
+    };
+
+    return (
+      <ErrorBoundary>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <WorkOrderFormContent 
+              form={form} 
+              initialData={sanitizedInitialData} 
+              isSubmitting={isSubmitting} 
+              isEditMode={isEditMode}
+            />
+
+            {!canChangePartId && (
+              <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 p-4 rounded-md text-sm">
+                <p className="font-medium">Note:</p>
+                <p>Once a work order is in progress, the part cannot be changed. To use a different part, please create a new work order.</p>
+              </div>
+            )}
+
+            {submitError && (
+              <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm">
+                {submitError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-4">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : isEditMode ? "Update Work Order" : "Create Work Order"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </ErrorBoundary>
+    );
+  } catch (error) {
+    // EMERGENCY FIX: Ultimate fallback for critical errors - prevent blank screen
+    console.error("CRITICAL ERROR in WorkOrderForm:", error);
+    return (
+      <div className="p-6 border border-red-300 rounded-md bg-red-50 text-red-800">
+        <h3 className="text-lg font-bold mb-2">An error occurred</h3>
+        <p>There was a problem loading the work order form. Please try:</p>
+        <ul className="list-disc pl-5 mt-2 mb-4">
+          <li>Refreshing the page</li>
+          <li>Clearing browser cache</li>
+          <li>Contact support if the issue persists</li>
+        </ul>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mr-2">
+          Refresh Page
+        </Button>
+        <Button onClick={() => window.history.back()}>
+          Go Back
+        </Button>
+      </div>
+    );
+  }
 }

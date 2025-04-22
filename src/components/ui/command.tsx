@@ -12,7 +12,7 @@ const Command = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || []
+    children: Array.isArray(props.children) ? props.children : (props.children || [])
   }
   
   return (
@@ -31,7 +31,7 @@ Command.displayName = CommandPrimitive.displayName
 interface CommandDialogProps extends DialogProps {}
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
-  const safeChildren = children || []
+  const safeChildren = Array.isArray(children) ? children : (children || [])
   
   return (
     <Dialog {...props}>
@@ -69,7 +69,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || []
+    children: Array.isArray(props.children) ? props.children : (props.children || [])
   }
   
   return (
@@ -100,21 +100,26 @@ const CommandGroup = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
 >(({ className, ...props }, ref) => {
-  const safeProps = {
-    ...props,
-    children: props.children || []
-  };
+  try {
+    const safeProps = {
+      ...props,
+      children: Array.isArray(props.children) ? props.children : (props.children || [])
+    };
 
-  return (
-    <CommandPrimitive.Group
-      ref={ref}
-      className={cn(
-        "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
-        className
-      )}
-      {...safeProps}
-    />
-  )
+    return (
+      <CommandPrimitive.Group
+        ref={ref}
+        className={cn(
+          "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+          className
+        )}
+        {...safeProps}
+      />
+    )
+  } catch (error) {
+    console.error("Error in CommandGroup:", error);
+    return <div className="p-1" ref={ref as any}></div>;
+  }
 })
 
 CommandGroup.displayName = CommandPrimitive.Group.displayName
@@ -134,16 +139,25 @@ CommandSeparator.displayName = CommandPrimitive.Separator.displayName
 const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Item
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const safeProps = { ...props };
+  
+  try {
+    return (
+      <CommandPrimitive.Item
+        ref={ref}
+        className={cn(
+          "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50",
+          className
+        )}
+        {...safeProps}
+      />
+    )
+  } catch (error) {
+    console.error("Error in CommandItem:", error);
+    return null;
+  }
+})
 
 CommandItem.displayName = CommandPrimitive.Item.displayName
 
