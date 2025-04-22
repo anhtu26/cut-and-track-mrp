@@ -10,23 +10,6 @@ jest.mock('@/hooks/use-parts', () => ({
   useParts: jest.fn()
 }));
 
-// Create a mock field object with react-hook-form structure
-const mockField = {
-  value: '',
-  onChange: jest.fn(),
-  onBlur: jest.fn(),
-  name: 'partId',
-  ref: jest.fn(),
-  control: {
-    register: jest.fn(),
-    unregister: jest.fn(),
-    getFieldState: jest.fn(),
-    _formValues: {},
-    _defaultValues: {},
-  },
-  watch: jest.fn(),
-};
-
 // Test data
 const mockParts = [
   {
@@ -67,11 +50,16 @@ const renderComponent = (fieldOverrides = {}) => {
     },
   });
 
-  const field = { ...mockField, ...fieldOverrides };
+  // Create a simple field object for testing
+  const field = {
+    value: '',
+    onChange: jest.fn(),
+    ...fieldOverrides
+  };
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <PartSelector field={field} />
+      <PartSelector field={field} useFormField={false} />
     </QueryClientProvider>
   );
 };
@@ -185,7 +173,8 @@ describe('PartSelector', () => {
     await userEvent.click(screen.getByRole('combobox'));
     
     // Select a part
-    await userEvent.click(screen.getByText('Special Part - SP-001'));
+    const specialPart = screen.getByText('Special Part - SP-001');
+    await userEvent.click(specialPart);
     
     // Check that onChange was called
     expect(onChange).toHaveBeenCalledWith('part3');
@@ -199,7 +188,10 @@ describe('PartSelector', () => {
     expect(screen.getByText('Test Part 2 - TP-002')).toBeInTheDocument();
   });
 
-  test('handles error in hook gracefully', async () => {
+  test('handles error in hook gracefully', () => {
+    // Suppress expected console errors for this test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Mock an error in the hook
     (useParts.useParts as jest.Mock).mockImplementation(() => {
       throw new Error('Test error');
@@ -207,6 +199,9 @@ describe('PartSelector', () => {
     
     // This shouldn't crash
     renderComponent();
+    
+    // Restore console.error
+    (console.error as jest.Mock).mockRestore();
   });
 
   test('filters by part number', async () => {
@@ -258,7 +253,7 @@ describe('PartSelector', () => {
     // Render with undefined field - should not crash
     const { container } = render(
       <QueryClientProvider client={new QueryClient()}>
-        <PartSelector field={undefined} />
+        <PartSelector field={undefined} useFormField={false} />
       </QueryClientProvider>
     );
     
