@@ -1,5 +1,21 @@
 
-export interface Part {
+import { partSchema, partSearchResultSchema } from '@/schemas/part';
+import { z } from 'zod';
+
+/**
+ * Part interface derived from Zod schema
+ */
+export type Part = z.infer<typeof partSchema>;
+
+/**
+ * Part search result type for use in search components
+ */
+export type PartSearchResult = z.infer<typeof partSearchResultSchema>;
+
+/**
+ * Legacy Part interface - maintained for backward compatibility
+ */
+export interface LegacyPart {
   id: string;
   name: string;
   partNumber: string; // Mapped from part_number

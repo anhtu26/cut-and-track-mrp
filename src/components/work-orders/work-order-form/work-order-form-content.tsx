@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { WorkOrderDatePicker } from "./work-order-date-picker";
 import { WorkOrderCustomerSelect } from "./work-order-customer-select";
 import { WorkOrder, WorkOrderPriority, WorkOrderStatus } from "@/types/work-order";
-import { PartSelector } from "@/components/part-selection/part-selector";
+import { PartSearchSelect } from "@/components/part-select/part-search-select";
 import { WorkOrderFormValues } from "../work-order-schema";
 
 interface WorkOrderFormContentProps {
@@ -90,10 +90,13 @@ export function WorkOrderFormContent({
           control={control}
           name="partId"
           render={({ field }) => (
-            <PartSelector
-              field={{ ...field, control }}
+            <PartSearchSelect
+              {...field}
               disabled={isSubmitting || !canChangePartId}
               customerId={form.watch('customerId')}
+              label="Part"
+              description="Select a part for this work order"
+              required
             />
           )}
         />
