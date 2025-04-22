@@ -9,6 +9,7 @@ import { CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrder } from "@/types/w
 import { workOrderSchema, WorkOrderFormValues } from "@/components/work-orders/work-order-schema";
 import { WorkOrderFormContent } from "./work-order-form/work-order-form-content";
 import { toast } from "@/components/ui/sonner";
+import { PartSelector } from "@/components/part-selection/part-selector";
 
 interface WorkOrderFormProps {
   initialData?: Partial<WorkOrder>; // Allow partial work order for initialization

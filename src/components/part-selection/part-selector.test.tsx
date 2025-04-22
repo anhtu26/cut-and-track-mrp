@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -107,7 +108,7 @@ describe('PartSelector', () => {
               control={control}
               render={({ field }) => (
                 <PartSelector
-                  field={field}
+                  field={{ ...field, control }}
                   label="Test Part Field"
                   description="Select a test part"
                 />
@@ -180,7 +181,7 @@ describe('PartSelector', () => {
           <Controller
             name="partId"
             control={control}
-            render={({ field }) => <PartSelector field={field} />}
+            render={({ field }) => <PartSelector field={{ ...field, control }} />}
           />
         </FormProvider>
       );
@@ -210,7 +211,7 @@ describe('PartSelector', () => {
           <Controller
             name="partId"
             control={control}
-            render={({ field }) => <PartSelector field={field} />}
+            render={({ field }) => <PartSelector field={{ ...field, control }} />}
           />
         </FormProvider>
       );
@@ -251,7 +252,7 @@ describe('PartSelector', () => {
           <Controller
             name="partId"
             control={control}
-            render={({ field }) => <PartSelector field={field} />}
+            render={({ field }) => <PartSelector field={{ ...field, control }} />}
           />
         </FormProvider>
       );
