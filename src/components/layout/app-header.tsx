@@ -21,7 +21,7 @@ export function AppHeader() {
       <div className="flex h-16 items-center px-4 md:px-6">
         <div className="flex items-center gap-2 font-semibold text-lg">
           <img 
-            src="/public/logo.jpg" 
+            src="/src/logo.jpg" 
             alt="TRAN CNC" 
             className="h-8 w-8" 
           />
