@@ -1,0 +1,9 @@
+{
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "node scripts/task-scanner.js"
+  ],
+  "*.{json,md}": [
+    "prettier --write"
+  ]
+}

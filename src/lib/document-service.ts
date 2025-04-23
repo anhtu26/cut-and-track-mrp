@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { PartDocument } from "@/types/part";
 import { OperationDocument } from "@/types/operation";
+import { addOperationDocument, removeOperationDocument } from "./operation-service";
 
 export type DocumentType = "part" | "operation";
 
@@ -20,11 +21,13 @@ interface UploadDocumentOptions {
   entityId: string;
   documentType: DocumentType;
   onProgress?: (progress: number) => void;
+  syncToTemplate?: boolean; // Whether to sync operation documents to part templates
 }
 
 interface DeleteDocumentOptions {
   documentId: string;
   documentType: DocumentType;
+  syncToTemplate?: boolean; // Whether to sync operation document deletions to part templates
 }
 
 /**
@@ -33,8 +36,9 @@ interface DeleteDocumentOptions {
 export const documentService = {
   /**
    * Upload a document to Supabase storage and create a database record
+   * For operations, can optionally sync to part template
    */
-  async uploadDocument({ file, entityId, documentType, onProgress }: UploadDocumentOptions) {
+  async uploadDocument({ file, entityId, documentType, onProgress, syncToTemplate = false }: UploadDocumentOptions) {
     try {
       console.log(`[Document Service] Uploading ${documentType} document:`, file.name);
       
@@ -68,21 +72,31 @@ export const documentService = {
         throw new Error("Failed to generate public URL");
       }
       
-      // Insert document record
-      const tableName = documentType === "part" ? 'part_documents' : 'operation_documents';
-      const idField = documentType === "part" ? 'part_id' : 'operation_id';
-      
-      const { error: insertError } = await supabase
-        .from(tableName)
-        .insert({
-          [idField]: entityId,
+      // Handle document record creation based on type
+      if (documentType === "part") {
+        // Insert part document record
+        const { error: insertError } = await supabase
+          .from('part_documents')
+          .insert({
+            part_id: entityId,
+            name: sanitizedName,
+            url: urlData.publicUrl,
+            type: file.type,
+            size: file.size,
+            uploaded_at: new Date().toISOString()
+          });
+        
+        if (insertError) throw insertError;
+      } else {
+        // For operations, use the operation service to handle document creation
+        // This allows for template syncing if enabled
+        await addOperationDocument(entityId, {
           name: sanitizedName,
           url: urlData.publicUrl,
           type: file.type,
           size: file.size
-        });
-      
-      if (insertError) throw insertError;
+        }, { syncToTemplate });
+      }
       
       // Report progress
       if (onProgress) onProgress(100);
@@ -101,8 +115,9 @@ export const documentService = {
   
   /**
    * Delete a document from Supabase storage and remove the database record
+   * For operations, can optionally sync deletion to part template
    */
-  async deleteDocument({ documentId, documentType }: DeleteDocumentOptions) {
+  async deleteDocument({ documentId, documentType, syncToTemplate = false }: DeleteDocumentOptions) {
     try {
       console.log(`[Document Service] Deleting ${documentType} document with ID:`, documentId);
       
@@ -135,13 +150,20 @@ export const documentService = {
         }
       }
       
-      // Delete from database
-      const { error: deleteError } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', documentId);
-      
-      if (deleteError) throw deleteError;
+      // Handle database deletion based on document type
+      if (documentType === "part") {
+        // Delete part document from database
+        const { error: deleteError } = await supabase
+          .from('part_documents')
+          .delete()
+          .eq('id', documentId);
+        
+        if (deleteError) throw deleteError;
+      } else {
+        // For operations, use the operation service to handle document deletion
+        // This allows for template syncing if enabled
+        await removeOperationDocument(documentId, { syncToTemplate });
+      }
       
       console.log(`[Document Service] Document deleted successfully`);
       return { success: true };

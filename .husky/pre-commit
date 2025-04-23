@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run task scanner to detect code changes
+npm run scan-tasks
+
+# Run lint-staged for formatting and linting
+npx lint-staged

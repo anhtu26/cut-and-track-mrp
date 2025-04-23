@@ -4,9 +4,7 @@
 ## Core Principles
 
 ### Production-First Approach
-- 🚨 **No Mock Data**: This application is built on real, actionable data from Supabase.
-- 🔍 **Workflow Integrity**: Every feature directly supports machine shop operational efficiency.
-- 📊 Real-time data and clear user interactions are our priority.
+
 
 ## Recent Changes
 
