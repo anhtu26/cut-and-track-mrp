@@ -1,55 +1,85 @@
-
-import { DocumentManager } from "@/components/shared/document-manager";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { OperationDocument } from "@/types/operation";
+import { DocumentManager } from "@/components/shared/document-manager";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Save } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface OperationDocumentManagerProps {
   operationId: string;
-  documents: Array<{
-    id: string;
-    name: string;
-    url: string;
-    type: string;
-    uploadedAt: string;
-    size?: number;
-  }>;
+  documents: OperationDocument[];
   onDocumentAdded?: () => void;
   onDocumentRemoved?: () => void;
-  syncToTemplate?: boolean; // Default sync option
+  defaultSyncToTemplate?: boolean;
 }
 
 /**
  * Document manager specifically for operations
  * Includes option to sync document changes to part templates
  */
-export function OperationDocumentManager({ 
-  operationId, 
-  documents = [], 
+export function OperationDocumentManager({
+  operationId,
+  documents,
   onDocumentAdded,
   onDocumentRemoved,
-  syncToTemplate: defaultSyncOption = false
+  defaultSyncToTemplate = false
 }: OperationDocumentManagerProps) {
-  // State for sync to template option
-  const [syncToTemplate, setSyncToTemplate] = useState(defaultSyncOption);
+  const [syncToTemplate, setSyncToTemplate] = useState(defaultSyncToTemplate);
+  const { workOrderId } = useParams<{ workOrderId: string }>();
+  
+  // Check if this operation has a template
+  const { data: hasTemplate } = useQuery({
+    queryKey: ["operation-has-template", operationId],
+    queryFn: async () => {
+      if (!workOrderId || !operationId) return false;
+      
+      // Get the work order to find the part ID
+      const { data: workOrder } = await supabase
+        .from("work_orders")
+        .select("part_id")
+        .eq("id", workOrderId)
+        .maybeSingle();
+        
+      if (!workOrder?.part_id) return false;
+      
+      // Get the operation name
+      const { data: operation } = await supabase
+        .from("operations")
+        .select("name")
+        .eq("id", operationId)
+        .maybeSingle();
+        
+      if (!operation?.name) return false;
+      
+      // Check if a template exists for this operation
+      const { data: template } = await supabase
+        .from("operation_templates")
+        .select("id")
+        .eq("part_id", workOrder.part_id)
+        .eq("name", operation.name)
+        .maybeSingle();
+        
+      return !!template;
+    },
+    enabled: !!workOrderId && !!operationId,
+  });
   
   return (
     <div className="space-y-4">
-      {/* Sync to template option */}
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id={`sync-docs-${operationId}`}
-          checked={syncToTemplate}
-          onCheckedChange={(checked) => setSyncToTemplate(checked === true)}
-        />
-        <label 
-          htmlFor={`sync-docs-${operationId}`}
-          className="text-xs font-medium leading-none cursor-pointer flex items-center"
-        >
-          <Save className="h-3 w-3 mr-1 text-amber-600" />
-          Sync document changes to part library
-        </label>
-      </div>
+      {hasTemplate !== false && (
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="sync-to-template" 
+            checked={syncToTemplate} 
+            onCheckedChange={(checked) => setSyncToTemplate(checked === true)}
+          />
+          <Label htmlFor="sync-to-template">
+            Sync document changes to part template
+          </Label>
+        </div>
+      )}
       
       <DocumentManager
         entityId={operationId}
