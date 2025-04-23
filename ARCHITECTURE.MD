@@ -2,11 +2,11 @@
 
 ## 1. Project Overview
 This MRP/ERP web app is built with:  
-- **Framework**: Next.js (React + Server Components)  
+- **Framework**: Vite + React + TypeScript
 - **Styling**: Tailwind CSS + Shadcn UI + Radix  
 - **Data Layer**: Supabase (PostgreSQL + Auth + Edge Functions)  
 - **Validation**: Zod schemas  
-- **State / Fetching**: TanStack Query (client) + Next.js SSR/ISR (server)  
+- **State / Fetching**: TanStack Query (client) + Supabase SSR/ISR (server)  
 - **Language**: TypeScript  
 
 ### Key Directories
@@ -18,13 +18,13 @@ This MRP/ERP web app is built with:
 - `src/pages/` – Route components (Next.js file system routing)  
 - `supabase/` – SQL migrations, RPC or edge functions  
 - `public/` – Static assets  
-- [tailwind.config.ts](cci:7://file:///c:/Users/anhtu/CascadeProjects/cut-and-track-mrp/cut-and-track-mrp/tailwind.config.ts:0:0-0:0) – Design tokens, breakpoints (mobile‑first)  
-- [vite.config.ts](cci:7://file:///c:/Users/anhtu/CascadeProjects/cut-and-track-mrp/cut-and-track-mrp/vite.config.ts:0:0-0:0) / [eslint.config.js](cci:7://file:///c:/Users/anhtu/CascadeProjects/cut-and-track-mrp/cut-and-track-mrp/eslint.config.js:0:0-0:0) – Tooling  
+- [tailwind.config.ts]
+- [vite.config.ts] / [eslint.config.js] – Tooling  
 
 ## 2. Objectives & Deliverables for GenCode AI
 
 1. **Performance & Security**  
-   - Always use Next.js RSC/SSR/ISR for data-critical pages.  
+   - Always use Vite RSC/SSR/ISR for data-critical pages.  
    - Source data via Supabase RPC or edge functions; never embed raw SQL.  
    - Sanitize & validate all inputs/outputs with Zod.  
 
@@ -41,7 +41,7 @@ This MRP/ERP web app is built with:
 4. **Responsive UI**  
    - Mobile‑first design; leverage Tailwind breakpoints.  
    - Lazy‑load images with `<Image>` and WebP.  
-   - Dynamically import heavy components via `next/dynamic`.  
+   - Optional but important to follow: using only shadcn/ui primitives—absolutely no cmdk/Command aiming for small bundle size and no large scale needed.
 
 5. **State Management & Data Fetching**  
    - Hooks in `hooks/` using TanStack Query; use Supabase realtime for cache invalidation.  
@@ -52,6 +52,7 @@ This MRP/ERP web app is built with:
    - Early auth/permission checks in middleware or RSC.  
 
 7. **Testing & Documentation**  
+   - Write test, then write function, then test the function until it passes, then write documentation.
    - Jest + React Testing Library unit tests for every component & hook.  
    - Add concise JSDoc for complex logic; comments explain “why,” not “what.”  
 
@@ -61,7 +62,6 @@ This MRP/ERP web app is built with:
   - `/login`, `/dashboard`, `/work-orders`, `/inventory`, `/settings`.  
 - Build shared components: Form fields, tables, modals.  
 - Set up TanStack Query providers & Supabase auth wrapper in `_app.tsx`.  
-- Write initial unit tests alongside each component.  
 - Configure CI to run lint, typecheck, tests, and deploy previews.
 
 ---

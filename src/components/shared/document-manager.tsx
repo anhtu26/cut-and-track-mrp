@@ -27,6 +27,7 @@ interface DocumentManagerProps {
   queryKey?: string[];
   maxSize?: number; // In MB
   allowedTypes?: string[];
+  syncToTemplate?: boolean; // Whether to sync document changes to part templates
 }
 
 /**
@@ -40,7 +41,8 @@ export function DocumentManager({
   onDocumentRemoved,
   queryKey,
   maxSize = 10,
-  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+  allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'],
+  syncToTemplate = false
 }: DocumentManagerProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -107,6 +109,7 @@ export function DocumentManager({
             file,
             entityId,
             documentType,
+            syncToTemplate,
             onProgress: (fileProgress) => {
               // Calculate overall progress
               const overallProgress = ((completedFiles + (fileProgress / 100)) / totalFiles) * 100;
