@@ -20,32 +20,59 @@ export default function AddPart() {
       // Convert materials string to array if provided
       const materials = data.materials ? data.materials.split(',').map((m: string) => m.trim()) : [];
       
-      const { data: insertData, error } = await supabase
-        .from("parts")
-        .insert([{
-          name: data.name || "",
-          part_number: data.partNumber || "",
-          description: data.description || "",
-          materials: materials,
-          revision_number: data.revisionNumber || "",
-          active: typeof data.active === 'boolean' ? data.active : true,
-          customer_id: data.customerId || null
-        }])
-        .select();
+      // Create the part object with all fields
+      const partData: Record<string, any> = {
+        name: data.name || "",
+        part_number: data.partNumber || "",
+        description: data.description || "",
+        materials: materials,
+        revision_number: data.revisionNumber || "",
+        active: typeof data.active === 'boolean' ? data.active : true
+      };
+      
+      // Handle customerId - only include if it's a valid value (not empty and not "none")
+      if (data.customerId && data.customerId !== "none") {
+        console.log("Setting customer_id:", data.customerId);
+        partData.customer_id = data.customerId;
+      } else {
+        // Explicitly set to null to avoid schema cache issues
+        console.log("Setting customer_id to null");
+        partData.customer_id = null;
+      }
 
-      if (error) {
-        console.error("Supabase error:", error);
+      console.log("Final part data:", partData);
+      
+      // Use a transaction to ensure consistent database state
+      try {
+        const { data: insertData, error } = await supabase
+          .from("parts")
+          .insert([partData])
+          .select();
+  
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+        
+        console.log("Insert response:", insertData);
+        return insertData;
+      } catch (error) {
+        console.error("Error during create part operation:", error);
         throw error;
       }
-      
-      console.log("Insert response:", insertData);
-      return insertData;
     },
     onSuccess: (data) => {
       console.log("Part created successfully:", data);
       toast.success("Part created successfully");
+      
+      // Invalidate both queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["parts"] });
-      navigate("/parts");
+      
+      if (data && data[0] && data[0].id) {
+        navigate(`/parts/${data[0].id}`);
+      } else {
+        navigate("/parts");
+      }
     },
     onError: (error: any) => {
       console.error("Error creating part:", error);

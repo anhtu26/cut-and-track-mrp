@@ -303,6 +303,7 @@ export type Database = {
           archived: boolean
           archived_at: string | null
           created_at: string
+          customer_id: string | null
           description: string | null
           id: string
           machining_methods: string | null
@@ -320,6 +321,7 @@ export type Database = {
           archived?: boolean
           archived_at?: string | null
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           machining_methods?: string | null
@@ -337,6 +339,7 @@ export type Database = {
           archived?: boolean
           archived_at?: string | null
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           machining_methods?: string | null
@@ -349,6 +352,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "parts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "parts_previous_revision_id_fkey"
             columns: ["previous_revision_id"]

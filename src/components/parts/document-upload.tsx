@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, File, X, FileText, Image } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { DropzoneOptions, useDropzone } from "react-dropzone";
+import { documentService } from "@/lib/document-service";
 
 interface DocumentUploadProps {
   partId: string;
@@ -97,95 +97,23 @@ export function DocumentUpload({ partId }: DocumentUploadProps) {
       let completedFiles = 0;
       
       for (const file of selectedFiles) {
-        // Create a sanitized filename (ITAR compliance)
-        const timestamp = Date.now();
-        const sanitizedName = file.name.replace(/[^\w\s.-]/g, '');
-        const fileName = `${timestamp}-${sanitizedName}`;
-        
-        // Determine file type based on extension if needed
-        let fileType = file.type;
-        const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
-        
-        // Handle common edge cases with file types
-        if (fileExtension === '.pdf' && !fileType.includes('pdf')) {
-          fileType = 'application/pdf';
-        } else if ((fileExtension === '.jpg' || fileExtension === '.jpeg') && !fileType.includes('image')) {
-          fileType = 'image/jpeg';
-        } else if (fileExtension === '.png' && !fileType.includes('image')) {
-          fileType = 'image/png';
-        } else if (fileExtension === '.dxf') {
-          fileType = 'application/dxf';
-        } else if (['.stp', '.step'].includes(fileExtension)) {
-          fileType = 'application/step';
-        }
-        
-        // Log upload details for debugging
-        console.log(`Uploading file: ${fileName}, type: ${fileType}`);
-        
-        // Create storage path with partId as folder
-        const storagePath = `parts/${partId}/${fileName}`;
-        
-        // We'll use a simpler direct approach to avoid RLS issues
         try {
-          console.log(`Attempting direct upload for: ${fileName}`);
-          
-          // Upload directly to Supabase Storage
-          const { error: uploadError } = await supabase.storage
-            .from('documents')
-            .upload(storagePath, file, {
-              contentType: fileType,
-              cacheControl: '3600',
-              upsert: true // Allow overwriting in case of name conflict
-            });
-          
-          if (uploadError) {
-            console.error("Storage upload error:", uploadError);
-            // Provide a more helpful error message
-            if (uploadError.message.includes('policy')) {
-              throw new Error("Permission denied. Storage bucket may have Row Level Security enabled that prevents uploads.");
+          await documentService.uploadDocument({
+            file,
+            entityId: partId,
+            documentType: "part",
+            onProgress: (fileProgress) => {
+              // Calculate overall progress
+              const overallProgress = ((completedFiles + (fileProgress / 100)) / totalFiles) * 100;
+              setProgress(Math.round(overallProgress));
             }
-            throw uploadError;
-          }
+          });
           
-          // Get the public URL
-          const { data: urlData } = supabase.storage
-            .from('documents')
-            .getPublicUrl(storagePath);
-          
-          if (!urlData?.publicUrl) {
-            throw new Error("Failed to generate public URL for the uploaded file");
-          }
-          
-          console.log(`File uploaded successfully. Public URL: ${urlData.publicUrl}`);
-          
-          // Store document reference in database with metadata
-          const { error: insertError } = await supabase
-            .from('part_documents')
-            .insert({
-              part_id: partId,
-              name: sanitizedName,
-              url: urlData.publicUrl,
-              type: fileType,
-              size: file.size,
-              uploaded_at: new Date().toISOString()
-            });
-          
-          if (insertError) {
-            console.error("Database insert error:", insertError);
-            
-            // Provide clearer error message for policy violations
-            if (insertError.message.includes('policy')) {
-              throw new Error("Permission denied. Database has Row Level Security that prevents inserting document records.");
-            }
-            throw insertError;
-          }
+          completedFiles++;
         } catch (error: any) {
-          console.error("Upload processing error:", error);
-          throw error;
+          console.error(`Error uploading ${file.name}:`, error);
+          toast.error(`Error uploading ${file.name}: ${error.message || "Unknown error"}`);
         }
-        
-        completedFiles++;
-        setProgress(Math.round((completedFiles / totalFiles) * 100));
       }
       
       toast.success("Documents uploaded successfully");

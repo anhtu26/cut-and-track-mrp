@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PartDocument, OperationTemplate } from "@/types/part";
@@ -7,6 +8,8 @@ import { Link } from "react-router-dom";
 import { DocumentUpload } from "./document-upload";
 import { FileText, File, Image } from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
+import { toast } from "@/components/ui/sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PartDetailTabsProps {
   partId: string;
@@ -25,6 +28,7 @@ export function PartDetailTabs({
   operationTemplates = [],
   workOrders = []
 }: PartDetailTabsProps) {
+  const queryClient = useQueryClient();
   
   // Helper function to get appropriate icon for document type
   const getDocumentIcon = (type: string) => {
@@ -39,6 +43,10 @@ export function PartDetailTabs({
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDocumentDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ["part", partId] });
   };
 
   return (
@@ -167,7 +175,11 @@ export function PartDetailTabs({
                         </div>
                       </div>
                     </div>
-                    {doc.url && <DocumentViewer document={doc} />}
+                    <DocumentViewer 
+                      document={doc} 
+                      documentType="part" 
+                      onDelete={handleDocumentDeleted} 
+                    />
                   </li>
                 ))}
               </ul>

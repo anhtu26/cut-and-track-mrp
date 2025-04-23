@@ -1,15 +1,44 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { File, Maximize, FileText, Image } from "lucide-react";
+import { File, Maximize, FileText, Image, Trash2 } from "lucide-react";
 import { PartDocument } from "@/types/part";
+import { OperationDocument } from "@/types/operation";
+import { documentService, DocumentType } from "@/lib/document-service";
+import { toast } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+
+type Document = PartDocument | OperationDocument;
 
 interface DocumentViewerProps {
-  document: PartDocument;
+  document: Document;
+  documentType?: DocumentType;
+  onDelete?: () => void;
+  showDeleteButton?: boolean;
 }
 
-export function DocumentViewer({ document }: DocumentViewerProps) {
+/**
+ * DocumentViewer component for viewing and managing documents
+ */
+export function DocumentViewer({
+  document,
+  documentType = "part",
+  onDelete,
+  showDeleteButton = true
+}: DocumentViewerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Helper function to get appropriate icon for document type
   const getDocumentIcon = (type: string) => {
@@ -61,17 +90,55 @@ export function DocumentViewer({ document }: DocumentViewerProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!document.id) {
+      toast.error('Invalid document ID');
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      await documentService.deleteDocument({
+        documentId: document.id,
+        documentType
+      });
+      
+      toast.success('Document deleted successfully');
+      setIsDeleteDialogOpen(false);
+      if (onDelete) onDelete();
+    } catch (error: any) {
+      toast.error(`Failed to delete document: ${error.message || 'Unknown error'}`);
+      console.error('Error deleting document:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
-      <Button 
-        variant="outline" 
-        size="sm"
-        className="flex items-center gap-1 text-primary"
-        onClick={() => setIsOpen(true)}
-      >
-        {getDocumentIcon(document.type)}
-        <span>View</span>
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="flex items-center gap-1 text-primary"
+          onClick={() => setIsOpen(true)}
+        >
+          {getDocumentIcon(document.type)}
+          <span>View</span>
+        </Button>
+
+        {showDeleteButton && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete</span>
+          </Button>
+        )}
+      </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-4xl w-full">
@@ -95,6 +162,27 @@ export function DocumentViewer({ document }: DocumentViewerProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{document.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

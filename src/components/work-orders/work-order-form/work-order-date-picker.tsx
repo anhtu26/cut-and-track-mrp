@@ -11,21 +11,26 @@ import {
   FormItem, 
   FormLabel, 
   FormControl, 
-  FormMessage 
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 
 interface DatePickerProps {
   control: any;
   name: "startDate" | "dueDate";
   label: string;
-  optional?: boolean;
+  description?: string;
+  disabled?: boolean;
+  required?: boolean;
 }
 
 export function WorkOrderDatePicker({ 
   control, 
   name, 
   label, 
-  optional = false 
+  description,
+  disabled = false,
+  required = true
 }: DatePickerProps) {
   return (
     <FormField
@@ -35,8 +40,9 @@ export function WorkOrderDatePicker({
         <FormItem className="flex flex-col">
           <FormLabel>
             {label} 
-            {optional && <span className="text-muted-foreground ml-1">(Optional)</span>}
+            {!required && <span className="text-muted-foreground ml-1">(Optional)</span>}
           </FormLabel>
+          {description && <FormDescription>{description}</FormDescription>}
           <Popover>
             <PopoverTrigger asChild>
               <FormControl>
@@ -46,6 +52,7 @@ export function WorkOrderDatePicker({
                     "w-full pl-3 text-left font-normal",
                     !field.value && "text-muted-foreground"
                   )}
+                  disabled={disabled}
                 >
                   {field.value ? (
                     format(field.value, "PPP")
