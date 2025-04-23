@@ -28,8 +28,16 @@ export async function syncOperationToTemplate(operationId: string, operationData
       .maybeSingle();
       
     if (workOrderError) throw workOrderError;
-    if (!workOrder || !workOrder.part_id) {
-      console.warn("[Template Sync] Work order has no part ID, skipping template sync");
+    
+    // Check if work order exists and has a part_id property
+    if (!workOrder) {
+      console.warn("[Template Sync] Work order not found, skipping template sync");
+      return;
+    }
+    
+    // Check if part_id exists and is not null
+    if (!workOrder.part_id) {
+      console.warn(`[Template Sync] Work order ${operation.work_order_id} has no part ID, skipping template sync`);
       return;
     }
     
