@@ -119,7 +119,7 @@ Comprehensive, module‑by‑module checklist guiding development from prototype
 - [ ] Penetration testing
 
 ### 10. Testing & CI/CD
-- [x] Basic testing configured (Jest, react-testing-library)
+- [x] Basic testing configured (Vitest, Jest, react-testing-library)
 - [x] Initial test file structure (`basic.test.ts`)
 - [ ] Unit tests for all hooks, utils, components
 - [ ] Integration tests for page workflows

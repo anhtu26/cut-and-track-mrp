@@ -142,28 +142,31 @@ export function TemplateForm({
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="includeDocuments"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Include Documents</FormLabel>
-                <p className="text-sm text-muted-foreground">
-                  {operation.documents.length > 0 
-                    ? `Copy ${operation.documents.length} document${operation.documents.length > 1 ? 's' : ''} to the template`
-                    : "No documents to copy"}
-                </p>
-              </div>
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4">
+          <h3 className="text-md font-medium">Document Handling</h3>
+          <FormField
+            control={form.control}
+            name="includeDocuments"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/10">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="font-medium">Sync Documents with Template</FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    {operation.documents.length > 0 
+                      ? `Copy ${operation.documents.length} document${operation.documents.length > 1 ? 's' : ''} to the template. These documents will be used for the template only and will not affect the part's documents.`
+                      : "No documents to copy. Any documents you add later will not be automatically synced unless you update the template."}
+                  </p>
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
       </div>
     </Form>
   );

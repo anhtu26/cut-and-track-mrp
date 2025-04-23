@@ -14,7 +14,7 @@ Utilize `scripts/task-scanner.js` to automatically update this file.
   - Parts (Parts, AddPart, EditPart, PartDetail)
   - Operations (Operations, AddOperation, EditOperation, OperationDetail)
   - Work Orders (WorkOrders, AddWorkOrder, EditWorkOrder, WorkOrderDetail)
-- Basic testing configured (jest, react-testing-library, basic.test.ts)
+- Basic testing configured (vitest, jest, react-testing-library, basic.test.ts)
 
 ## In Progress (🚧)
 - WorkOrderDetail enhancements: time tracking & quality control UI

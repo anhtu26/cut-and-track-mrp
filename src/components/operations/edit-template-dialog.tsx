@@ -62,8 +62,16 @@ export function EditTemplateDialog({
         throw new Error("Failed to fetch work order");
       }
       
-      const workOrder = await response.json();
-      if (!workOrder.part_id) {
+      let workOrder;
+      try {
+        workOrder = await response.json();
+      } catch (error) {
+        // Handle JSON parsing errors (e.g., HTML responses)
+        console.error("Error parsing response as JSON:", error);
+        throw new Error(`Failed to parse work order data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      if (!workOrder || !workOrder.part_id) {
         throw new Error("Work order has no associated part");
       }
       
@@ -79,6 +87,10 @@ export function EditTemplateDialog({
       };
       
       // Update or create template using the operation service
+      const syncOptions = {
+        syncDocuments: values.includeDocuments
+      };
+      
       if (existingTemplate) {
         // Update existing template
         await OperationService.syncOperationToPartTemplate(
@@ -88,7 +100,8 @@ export function EditTemplateDialog({
           {
             ...templateData,
             updated_at: new Date().toISOString()
-          }
+          },
+          syncOptions
         );
       } else {
         // Create new template
@@ -100,7 +113,8 @@ export function EditTemplateDialog({
             ...templateData,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }
+          },
+          syncOptions
         );
       }
       
