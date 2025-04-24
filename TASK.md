@@ -15,6 +15,7 @@ Utilize `scripts/task-scanner.js` to automatically update this file.
   - Operations (Operations, AddOperation, EditOperation, OperationDetail)
   - Work Orders (WorkOrders, AddWorkOrder, EditWorkOrder, WorkOrderDetail)
 - Basic testing configured (vitest, jest, react-testing-library, basic.test.ts)
+- Refactoring operation template management: Modularized forms, removed redundant save-as-template button, ensured document handling
 
 ## In Progress (🚧)
 - WorkOrderDetail enhancements: time tracking & quality control UI
@@ -36,6 +37,9 @@ Utilize `scripts/task-scanner.js` to automatically update this file.
 - Supabase/functions folder initialized but no edge functions implemented
 - Code duplication in pages; opportunity to abstract CRUD patterns
 - Missing tests for specific components and API calls
+- Implement unit tests for ModularOperationForm component
+- Implement unit tests for OperationTemplateForm component
+- Add integration tests for template saving and document syncing
 
 ## Workflow & Automation
 1. Use this `TASK.md` to track tasks; update before/after PRs.
