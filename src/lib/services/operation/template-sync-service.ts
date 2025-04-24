@@ -9,7 +9,7 @@ import { mapOperationToDb } from "./operation-mapper";
 /**
  * Sync operation changes to the part template
  */
-export async function syncOperationToTemplate(operationId: string, operationData: any): Promise<void> {
+export async function syncOperationToTemplate(operationId: string, operationData: any, options?: { syncDocuments?: boolean }): Promise<void> {
   try {
     // Get the work order to find the part ID
     const { data: operation, error: operationError } = await supabase
@@ -28,8 +28,16 @@ export async function syncOperationToTemplate(operationId: string, operationData
       .maybeSingle();
       
     if (workOrderError) throw workOrderError;
-    if (!workOrder || !workOrder.part_id) {
-      console.warn("[Template Sync] Work order has no part ID, skipping template sync");
+    
+    // Check if work order exists and has a part_id property
+    if (!workOrder) {
+      console.warn("[Template Sync] Work order not found, skipping template sync");
+      return;
+    }
+    
+    // Check if part_id exists and is not null
+    if (!workOrder.part_id) {
+      console.warn(`[Template Sync] Work order ${operation.work_order_id} has no part ID, skipping template sync`);
       return;
     }
     
@@ -47,7 +55,8 @@ export async function syncOperationToPartTemplate(
   operationId: string, 
   partId: string, 
   operationName: string, 
-  operationData?: any
+  operationData?: any,
+  options?: { syncDocuments?: boolean }
 ): Promise<void> {
   try {
     // If no operation data provided, fetch it
@@ -116,8 +125,13 @@ export async function syncOperationToPartTemplate(
       console.log("[Template Sync] Created new template for part:", partId);
     }
     
-    // Sync documents if needed
-    await syncOperationDocuments(operationId, partId, operationName);
+    // Sync documents if needed and not explicitly disabled
+    const shouldSyncDocuments = options?.syncDocuments !== false; // Default to true if not specified
+    if (shouldSyncDocuments) {
+      await syncOperationDocuments(operationId, partId, operationName);
+    } else {
+      console.log(`[Template Sync] Document syncing disabled for operation ${operationId}`);
+    }
   } catch (error) {
     console.error("[Template Sync] Error syncing to part template:", error);
     throw error;

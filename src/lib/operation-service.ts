@@ -88,7 +88,6 @@ export async function addOperationDocument(
 ): Promise<OperationDocument> {
   return addOperationDocumentFromService(operationId, document, options);
 }
-}
 
 /**
  * Remove a document from an operation

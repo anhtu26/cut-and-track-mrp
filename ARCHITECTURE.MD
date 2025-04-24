@@ -53,7 +53,7 @@ This MRP/ERP web app is built with:
 
 7. **Testing & Documentation**  
    - Write test, then write function, then test the function until it passes, then write documentation.
-   - Jest + React Testing Library unit tests for every component & hook.  
+   - Vitest + Jest + React Testing Library unit tests for every component & hook.  
    - Add concise JSDoc for complex logic; comments explain “why,” not “what.”  
 
 ## 3. Recommended Next Steps
