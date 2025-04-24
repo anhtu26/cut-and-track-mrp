@@ -42,7 +42,18 @@ export function OperationTemplateForm({
             .eq("template_id", existingTemplate.id);
             
           if (error) throw error;
-          if (data) setTemplateDocuments(data);
+          if (data) {
+            // Map documents to OperationDocument format for ModularOperationForm
+            const formattedDocs = data.map(doc => ({
+              id: doc.id,
+              name: doc.name,
+              url: doc.url,
+              type: doc.type,
+              uploadedAt: doc.uploaded_at,
+              size: doc.size
+            }));
+            setTemplateDocuments(formattedDocs);
+          }
         } catch (error) {
           console.error("Error fetching template documents:", error);
         }
@@ -197,6 +208,8 @@ export function OperationTemplateForm({
         return;
       }
       
+      console.log(`Found ${documents.length} documents to sync to template`);
+      
       // First, clear existing template documents to avoid duplicates
       const { error: deleteError } = await supabase
         .from("template_documents")
@@ -242,7 +255,7 @@ export function OperationTemplateForm({
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       onCancel={onCancel}
-      showDocuments={existingTemplate !== undefined && templateDocuments.length > 0}
+      showDocuments={true}
       documents={templateDocuments}
     />
   );

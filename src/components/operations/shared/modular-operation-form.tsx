@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Operation, OperationDocument, OperationStatus } from "@/types/operation";
-import { FileText, Image } from "lucide-react";
+import { FileText, Image, Trash2 } from "lucide-react";
 import { DocumentViewer } from "@/components/parts/document-viewer";
 import { Card } from "@/components/ui/card";
 import { OperationDocumentManager } from "../operation-document-manager";
 import { formatDateForInput } from "@/lib/date-utils";
 import { OperationTemplate } from "@/types/part";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Define the schema for the operation form - used for both operations and templates
 export const operationFormSchema = z.object({
@@ -339,25 +342,62 @@ export function ModularOperationForm({
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Template Documents</h3>
             <div className="space-y-2 border rounded-md p-2">
-              {documents.map((doc) => (
-                <div key={doc.id} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                  <div className="flex items-center">
-                    {doc.type.includes('pdf') ? (
-                      <FileText className="h-4 w-4" />
-                    ) : (
-                      <Image className="h-4 w-4" />
-                    )}
-                    <span className="ml-2 text-sm">{doc.name}</span>
+              {documents.map((doc) => {
+                // Create a mutation for deleting template documents
+                const queryClient = useQueryClient();
+                const deleteDocumentMutation = useMutation({
+                  mutationFn: async () => {
+                    if (!doc.id) throw new Error("Document ID is required");
+                    
+                    // Delete from template_documents table
+                    const { error } = await supabase
+                      .from("template_documents")
+                      .delete()
+                      .eq("id", doc.id);
+                      
+                    if (error) throw error;
+                    return doc.id;
+                  },
+                  onSuccess: () => {
+                    toast.success("Document deleted successfully");
+                    // Invalidate relevant queries
+                    queryClient.invalidateQueries({ queryKey: ["part"] });
+                    queryClient.invalidateQueries({ queryKey: ["operation-templates"] });
+                  },
+                  onError: (error: any) => {
+                    console.error("Error deleting document:", error);
+                    toast.error(`Failed to delete document: ${error.message || "Unknown error"}`);
+                  },
+                });
+                
+                return (
+                  <div key={doc.id} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                    <div className="flex items-center">
+                      {doc.type?.includes('pdf') ? (
+                        <FileText className="h-4 w-4" />
+                      ) : (
+                        <Image className="h-4 w-4" />
+                      )}
+                      <span className="ml-2 text-sm">{doc.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <DocumentViewer 
+                        document={doc}
+                        documentType="operation"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteDocumentMutation.mutate()}
+                        disabled={deleteDocumentMutation.isPending}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <DocumentViewer 
-                    document={doc}
-                    documentType="operation"
-                    onDelete={() => {
-                      // Handle document deletion if needed
-                    }}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         )}

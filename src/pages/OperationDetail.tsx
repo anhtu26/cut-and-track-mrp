@@ -24,7 +24,7 @@ import { OperationDetailsCard } from "@/components/operations/operation-details-
 import { OperationTimelineCard } from "@/components/operations/operation-timeline-card";
 import { OperationAssignmentCard } from "@/components/operations/operation-assignment-card";
 import { OperationCommentsCard } from "@/components/operations/operation-comments-card";
-import { SaveAsTemplateButton } from "@/components/operations/save-as-template-button";
+
 
 export default function OperationDetail() {
   const { workOrderId, operationId } = useParams<{ workOrderId: string, operationId: string }>();
@@ -174,13 +174,7 @@ export default function OperationDetail() {
                 <OperationCommentsCard comments={operation.comments} />
               )}
               
-              {/* Display the Save as Template button when we have both workOrderId and operationId */}
-              {workOrderId && operationId && (
-                <SaveAsTemplateButton 
-                  operation={operation}
-                  workOrderId={workOrderId}
-                />
-              )}
+
             </div>
           </div>
         </CardContent>
