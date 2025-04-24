@@ -20,6 +20,7 @@ Utilize `scripts/task-scanner.js` to automatically update this file.
 - WorkOrderDetail enhancements: time tracking & quality control UI
 - KPI calculation logic & dashboard integration
 - Refactoring common CRUD patterns into reusable components/hooks
+- Fix save operation detail to template error and remove redundant sync checkbox (2025-04-23)
 
 ## Backlog (🗒️)
 - Inventory management module

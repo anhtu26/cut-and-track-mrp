@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Operation } from "@/types/operation";
 import { OperationTemplate } from "@/types/part";
 import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Dialog, 
   DialogContent, 
@@ -56,19 +57,16 @@ export function EditTemplateDialog({
   // Create save template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async (values: TemplateFormValues) => {
-      // Get the part ID from the work order
-      const response = await fetch(`/api/work-orders/${workOrderId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch work order");
-      }
+      // Get the part ID from the work order using Supabase directly
+      const { data: workOrder, error: workOrderError } = await supabase
+        .from("work_orders")
+        .select("part_id")
+        .eq("id", workOrderId)
+        .maybeSingle();
       
-      let workOrder;
-      try {
-        workOrder = await response.json();
-      } catch (error) {
-        // Handle JSON parsing errors (e.g., HTML responses)
-        console.error("Error parsing response as JSON:", error);
-        throw new Error(`Failed to parse work order data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (workOrderError) {
+        console.error("Error fetching work order:", workOrderError);
+        throw new Error(`Failed to fetch work order: ${workOrderError.message}`);
       }
       
       if (!workOrder || !workOrder.part_id) {
