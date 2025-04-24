@@ -14,7 +14,13 @@
     "test:coverage": "vitest run --coverage",
     "scan-tasks": "node scripts/task-scanner.js",
     "update-tasks": "node scripts/task-scanner.js --auto-update",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:init": "bash ./init-local-db.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

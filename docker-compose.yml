@@ -1,0 +1,153 @@
+services:
+  # React client application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - supabase-db
+      - supabase-api
+    networks:
+      - mrp-network
+
+  # Supabase services
+  supabase-db:
+    image: supabase/postgres:15.1.0.147
+    hostname: supabase-db
+    ports:
+      - "54322:5432"
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - mrp-network
+
+  supabase-api:
+    image: supabase/postgres-meta:v0.55.2
+    restart: unless-stopped
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: supabase-db
+      PG_META_DB_PASSWORD: postgres
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+    ports:
+      - "54323:8080"
+    depends_on:
+      - supabase-db
+    networks:
+      - mrp-network
+
+  supabase-auth:
+    image: supabase/gotrue:v2.0.3
+    depends_on:
+      - supabase-db
+    restart: unless-stopped
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_SITE_URL: http://localhost:8080
+      GOTRUE_URI_ALLOW_LIST: http://localhost:8080,http://localhost:3000
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: super-secret-jwt-token-for-local-dev
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMS_AUTOCONFIRM: "true"
+    ports:
+      - "54324:9999"
+    networks:
+      - mrp-network
+
+  supabase-rest:
+    image: postgrest/postgrest:v11.2.2
+    depends_on:
+      - supabase-db
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: postgres://postgres:postgres@supabase-db:5432/postgres
+      PGRST_DB_SCHEMA: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: super-secret-jwt-token-for-local-dev
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    ports:
+      - "54321:3000"
+    networks:
+      - mrp-network
+
+  supabase-storage:
+    image: supabase/storage-api:v0.20.0
+    depends_on:
+      - supabase-db
+      - supabase-rest
+    restart: unless-stopped
+    environment:
+      ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG50bWpicGR6Y3lqZHVtbnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDM1NzAsImV4cCI6MjA2MDMxOTU3MH0.K88YsqVWQ4IwqrRaoXI1F6rjT9Ue_Ori7ShlzzRm3_A
+      SERVICE_KEY: super-secret-jwt-token-for-local-dev
+      POSTGREST_URL: http://supabase-rest:3000
+      PGRST_JWT_SECRET: super-secret-jwt-token-for-local-dev
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: tenant
+      REGION: us-east-1
+      GLOBAL_S3_BUCKET: mrp-storage
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://supabase-imgproxy:5001
+    volumes:
+      - supabase-storage-data:/var/lib/storage
+    ports:
+      - "54325:5000"
+    networks:
+      - mrp-network
+
+  supabase-imgproxy:
+    image: darthsim/imgproxy:v3.22.0
+    environment:
+      IMGPROXY_BIND: :5001
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /var/lib/storage
+      IMGPROXY_BASE_URL: http://supabase-storage:5000
+    volumes:
+      - supabase-storage-data:/var/lib/storage
+    networks:
+      - mrp-network
+
+  supabase-studio:
+    image: supabase/studio:v0.23.10
+    ports:
+      - "54326:3000"
+    environment:
+      STUDIO_PG_META_URL: http://supabase-api:8080
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_REST_URL: http://supabase-rest:3000
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG50bWpicGR6Y3lqZHVtbnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDM1NzAsImV4cCI6MjA2MDMxOTU3MH0.K88YsqVWQ4IwqrRaoXI1F6rjT9Ue_Ori7ShlzzRm3_A
+      SUPABASE_SERVICE_KEY: super-secret-jwt-token-for-local-dev
+    depends_on:
+      - supabase-api
+      - supabase-rest
+    networks:
+      - mrp-network
+
+networks:
+  mrp-network:
+    driver: bridge
+
+volumes:
+  supabase-db-data:
+  supabase-storage-data:
