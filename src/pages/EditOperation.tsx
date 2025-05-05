@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { OperationForm } from "@/components/operations/operation-form";
+import { ModularOperationForm, ModularOperationFormValues } from "@/components/operations/shared/modular-operation-form";
 import { useOperation } from "@/hooks/useOperation";
 import { updateOperation } from "@/lib/operation-service";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,9 +56,15 @@ export default function EditOperation() {
     },
   });
 
-  const handleSubmit = async (data: UpdateOperationInput) => {
+  const handleSubmit = async (values: ModularOperationFormValues) => {
     try {
-      await updateMutation.mutateAsync(data);
+      // Format data for the update mutation
+      const submitData: UpdateOperationInput = {
+        ...values,
+        workOrderId,
+        ...(operation && { id: operation.id }),
+      };
+      await updateMutation.mutateAsync(submitData);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
@@ -139,11 +145,13 @@ export default function EditOperation() {
               </p>
             </div>
             
-            <OperationForm
-              workOrderId={workOrderId || ''}
-              operation={operation}
+            <ModularOperationForm
+              entityType="operation"
+              parentId={workOrderId || ''}
+              entity={operation}
               onSubmit={handleSubmit}
               isSubmitting={updateMutation.isPending}
+              showDocuments={true}
             />
           </ErrorBoundary>
         </CardContent>

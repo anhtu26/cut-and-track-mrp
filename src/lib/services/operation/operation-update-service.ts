@@ -37,7 +37,7 @@ export async function updateOperation(
     
     // If syncToTemplate is true, update the template in the part library
     if (options.syncToTemplate) {
-      await syncOperationToTemplate(operationId, operationData);
+      await syncOperationToTemplate(operationId, operationData, { syncDocuments: true });
     }
     
     // Return the updated operation

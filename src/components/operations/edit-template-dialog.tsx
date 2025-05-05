@@ -1,21 +1,9 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Operation } from "@/types/operation";
 import { OperationTemplate } from "@/types/part";
-import { toast } from "@/components/ui/sonner";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { TemplateForm, TemplateFormValues, useTemplateForm } from "./template/template-form";
-
-// Import the operation service
-import OperationService from "@/lib/services/operation/operation-service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { OperationTemplateForm } from "./template/operation-template-form";
 
 interface EditTemplateDialogProps {
   operation: Operation;
@@ -25,6 +13,10 @@ interface EditTemplateDialogProps {
   existingTemplate?: OperationTemplate;
 }
 
+/**
+ * Dialog for editing or creating operation templates
+ * Uses the refactored OperationTemplateForm component which handles document syncing properly
+ */
 export function EditTemplateDialog({ 
   operation, 
   workOrderId, 
@@ -32,124 +24,43 @@ export function EditTemplateDialog({
   onOpenChange,
   existingTemplate 
 }: EditTemplateDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryClient = useQueryClient();
+  // State to track when we're fetching part ID
+  const [partId, setPartId] = useState<string | null>(null);
   
-  // Use the template form hook
-  const form = useTemplateForm(operation, existingTemplate);
-
-  // Update form when operation changes
+  // Fetch part ID from work order when the dialog opens
   useEffect(() => {
-    form.reset({
-      name: operation.name,
-      description: operation.description || "",
-      machiningMethods: operation.machiningMethods || "",
-      setupInstructions: operation.setupInstructions || "",
-      sequence: operation.sequence,
-      estimatedDuration: operation.actualStartTime && operation.actualEndTime
-        ? Math.round((new Date(operation.actualEndTime).getTime() - new Date(operation.actualStartTime).getTime()) / (1000 * 60))
-        : existingTemplate?.estimatedDuration,
-      includeDocuments: true,
-    });
-  }, [operation, existingTemplate, form]);
-
-  // Create save template mutation
-  const saveTemplateMutation = useMutation({
-    mutationFn: async (values: TemplateFormValues) => {
-      // Get the part ID from the work order
-      const response = await fetch(`/api/work-orders/${workOrderId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch work order");
+    const fetchPartId = async () => {
+      if (open && workOrderId) {
+        try {
+          const { data, error } = await supabase
+            .from('work_orders')
+            .select('part_id')
+            .eq('id', workOrderId)
+            .maybeSingle();
+            
+          if (error) throw error;
+          if (data?.part_id) {
+            setPartId(data.part_id);
+          }
+        } catch (error) {
+          console.error('Error fetching part ID:', error);
+          // Could show a toast error here if needed
+        }
       }
-      
-      let workOrder;
-      try {
-        workOrder = await response.json();
-      } catch (error) {
-        // Handle JSON parsing errors (e.g., HTML responses)
-        console.error("Error parsing response as JSON:", error);
-        throw new Error(`Failed to parse work order data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-      
-      if (!workOrder || !workOrder.part_id) {
-        throw new Error("Work order has no associated part");
-      }
-      
-      // Create template data
-      const templateData = {
-        name: values.name,
-        description: values.description || null,
-        machining_methods: values.machiningMethods || null,
-        setup_instructions: values.setupInstructions || null,
-        sequence: values.sequence,
-        estimated_duration: values.estimatedDuration || null,
-        part_id: workOrder.part_id,
-      };
-      
-      // Update or create template using the operation service
-      const syncOptions = {
-        syncDocuments: values.includeDocuments
-      };
-      
-      if (existingTemplate) {
-        // Update existing template
-        await OperationService.syncOperationToPartTemplate(
-          operation.id,
-          workOrder.part_id,
-          values.name,
-          {
-            ...templateData,
-            updated_at: new Date().toISOString()
-          },
-          syncOptions
-        );
-      } else {
-        // Create new template
-        await OperationService.syncOperationToPartTemplate(
-          operation.id,
-          workOrder.part_id,
-          values.name,
-          {
-            ...templateData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          syncOptions
-        );
-      }
-      
-      // Return the part ID for invalidation
-      return { partId: workOrder.part_id };
-    },
-    onSuccess: (data) => {
-      // Show success message
-      toast.success(existingTemplate 
-        ? "Template updated successfully" 
-        : "Operation saved as template"
-      );
-      
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["part", data.partId] });
-      queryClient.invalidateQueries({ queryKey: ["operation-templates"] });
-      
-      // Close dialog
-      onOpenChange(false);
-    },
-    onError: (error: any) => {
-      console.error("Error saving template:", error);
-      toast.error(`Failed to save template: ${error.message || "Unknown error"}`);
-    }
-  });
-
-  // Handle form submission
-  const onSubmit = async (values: TemplateFormValues) => {
-    setIsSubmitting(true);
+    };
     
-    try {
-      await saveTemplateMutation.mutateAsync(values);
-    } finally {
-      setIsSubmitting(false);
-    }
+    fetchPartId();
+  }, [open, workOrderId]);
+  
+  // Handle form submission success
+  const handleFormSubmitted = async (data: any): Promise<void> => {
+    // Close the dialog when form is submitted successfully
+    onOpenChange(false);
+  };
+  
+  // Handle dialog close
+  const handleCancel = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -166,36 +77,14 @@ export function EditTemplateDialog({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Use the extracted TemplateForm component */}
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <TemplateForm 
-            operation={operation} 
-            existingTemplate={existingTemplate} 
-            form={form} 
-          />
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting || saveTemplateMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isSubmitting || saveTemplateMutation.isPending}
-            >
-              {(isSubmitting || saveTemplateMutation.isPending)
-                ? "Saving..." 
-                : existingTemplate 
-                  ? "Update Template" 
-                  : "Save as Template"
-              }
-            </Button>
-          </DialogFooter>
-        </form>
+        {/* Use the new OperationTemplateForm component */}
+        <OperationTemplateForm
+          partId={partId || ""}  
+          operation={operation}
+          existingTemplate={existingTemplate}
+          onSubmit={handleFormSubmitted}
+          onCancel={handleCancel}
+        />
       </DialogContent>
     </Dialog>
   );
