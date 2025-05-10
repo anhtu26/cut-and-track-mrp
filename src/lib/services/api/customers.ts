@@ -1,5 +1,5 @@
 // Base API URL from configuration
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
 import AuthService from '../auth';
 import axios from 'axios';
 

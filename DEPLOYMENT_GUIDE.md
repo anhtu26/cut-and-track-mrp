@@ -104,11 +104,17 @@ cd server
 node index.js
 ```
 
-Or use the deployment script for a guided setup:
+The server will start on port 3002 by default (configured in the .env file).
+
+Alternatively, you can use the setup and deployment scripts for a guided setup:
 
 ```bash
+# First, set up the database tables and admin user
 cd server
-node scripts/local-deploy.js
+node scripts/setup-local-db.js
+
+# Then start the server
+node index.js
 ```
 
 ### Start the Frontend Application

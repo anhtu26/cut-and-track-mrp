@@ -1,11 +1,11 @@
--- Schema for Cut and Track MRP local implementation
+-- Schema for Cut and Track MRP local database
 
--- Create users table for authentication
+-- Users table for authentication
 CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  role TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'Staff',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

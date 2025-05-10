@@ -8,14 +8,11 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Install @tailwindcss/postcss package
-RUN npm install --save-dev @tailwindcss/postcss
-
-# Copy the rest of the app
+# Copy the rest of the application
 COPY . .
 
-# Expose the port
+# Expose the port the app runs on
 EXPOSE 8080
 
-# Start the app in development mode
+# Command to run the app
 CMD ["npm", "run", "dev"]

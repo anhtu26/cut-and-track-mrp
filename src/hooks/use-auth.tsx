@@ -1,10 +1,20 @@
 
 import { useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { signInWithPassword, signOut, getUserRole, UserRole } from '@/lib/services/auth/mock-auth';
 
-export type UserRole = 'Administrator' | 'Manager' | 'Staff' | 'Operator';
+// Mock Session and User types to replace Supabase types
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+}
+
+interface Session {
+  access_token: string;
+}
+
+// Using UserRole enum imported from mock-auth
 
 export interface UserWithRole extends User {
   role: UserRole;
@@ -22,69 +32,47 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Setup auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        
-        if (currentSession?.user) {
-          // Fetch user's role when authenticated
-          setTimeout(async () => {
-            try {
-              const { data, error } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', currentSession.user.id)
-                .single();
-              
-              if (error) throw error;
-              
-              // Combine auth user with role data
-              setUser({
-                ...currentSession.user,
-                role: data.role
-              });
-            } catch (err) {
-              console.error('Error fetching user role:', err);
-              setUser(null);
-            }
-          }, 0);
-        } else {
-          setUser(null);
+    setLoading(true);
+
+    // Check for active session from localStorage
+    const checkSession = async () => {
+      const savedSession = localStorage.getItem('auth_session');
+      const savedUser = localStorage.getItem('auth_user');
+      
+      if (savedSession && savedUser) {
+        try {
+          const session = JSON.parse(savedSession);
+          const user = JSON.parse(savedUser);
+          
+          // Get user role
+          const { data: userData, error: roleError } = await getUserRole(user.id);
+          
+          if (roleError) {
+            console.error('Error fetching user role:', roleError);
+            setUser(null);
+            setSession(null);
+            localStorage.removeItem('auth_session');
+            localStorage.removeItem('auth_user');
+          } else {
+            const userWithRole = { ...user, role: userData?.role || UserRole.STAFF };
+            setUser(userWithRole);
+            setSession(session);
+          }
+        } catch (error) {
+          console.error('Error parsing saved session:', error);
+          localStorage.removeItem('auth_session');
+          localStorage.removeItem('auth_user');
         }
       }
-    );
-
-    // Check for initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
       
-      if (initialSession?.user) {
-        // Fetch user's role for initial session
-        supabase
-          .from('users')
-          .select('role')
-          .eq('id', initialSession.user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error('Error fetching user role:', error);
-              setUser(null);
-            } else {
-              setUser({
-                ...initialSession.user,
-                role: data.role
-              });
-            }
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
-      }
-    });
+      setLoading(false);
+    };
 
+    checkSession();
+
+    // No need for subscription in mock auth
     return () => {
-      subscription.unsubscribe();
+      // Cleanup if needed
     };
   }, []);
 
@@ -92,23 +80,23 @@ export const useAuth = () => {
     setError(null);
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { data, error } = await signInWithPassword({ email, password });
 
       if (error) throw error;
 
       // Fetch user's role
-      const { data: userData, error: roleError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
+      const { data: userData, error: roleError } = await getUserRole(data.user.id);
 
       if (roleError) throw roleError;
       
-      // All roles are now allowed to log in
+      // Save session and user to localStorage
+      localStorage.setItem('auth_session', JSON.stringify(data.session));
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      
+      // Update state
+      const userWithRole = { ...data.user, role: userData?.role || UserRole.STAFF };
+      setUser(userWithRole);
+      setSession(data.session);
 
       return data;
     } catch (err) {
@@ -125,8 +113,16 @@ export const useAuth = () => {
     setError(null);
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
+      const { error } = await signOut();
       if (error) throw error;
+      
+      // Clear local storage
+      localStorage.removeItem('auth_session');
+      localStorage.removeItem('auth_user');
+      
+      // Update state
+      setUser(null);
+      setSession(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during logout';
       setError(errorMessage);

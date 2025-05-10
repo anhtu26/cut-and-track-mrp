@@ -3,7 +3,7 @@
  */
 
 // Configure API URL from environment or default to localhost in development
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
 
 // Default API request timeout in milliseconds
 export const API_TIMEOUT = 30000;

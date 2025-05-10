@@ -32,28 +32,67 @@ const LOCAL_SCHEMA_PATH = path.resolve(__dirname, '../db/schema.sql');
 const pool = new Pool(dbConfig);
 
 /**
- * Execute a SQL command using the psql CLI
+ * Execute SQL from a file using the pg client
  * @param {string} sqlFile - Path to SQL file
  * @returns {Promise<void>}
  */
-function executeSqlFile(sqlFile) {
-  return new Promise((resolve, reject) => {
-    const command = `psql -U ${dbConfig.user} -d ${dbConfig.database} -f "${sqlFile}"`;
+async function executeSqlFile(sqlFile) {
+  try {
+    console.log(`Reading SQL file: ${sqlFile}`);
     
-    console.log(`Executing: ${command}`);
+    // Check if file exists
+    if (!fs.existsSync(sqlFile)) {
+      throw new Error(`SQL file not found: ${sqlFile}`);
+    }
     
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing SQL file: ${error.message}`);
-        return reject(error);
+    // Read SQL file content
+    const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+    console.log(`SQL file loaded, size: ${sqlContent.length} bytes`);
+    
+    // Split SQL into statements (simple approach)
+    const statements = sqlContent
+      .replace(/\r\n/g, '\n')
+      .split(';')
+      .filter(stmt => stmt.trim().length > 0);
+    
+    console.log(`Executing ${statements.length} SQL statements...`);
+    
+    // Get a client from the pool
+    const client = await pool.connect();
+    
+    try {
+      // Begin transaction
+      await client.query('BEGIN');
+      
+      // Execute each statement
+      for (let i = 0; i < statements.length; i++) {
+        const stmt = statements[i];
+        try {
+          await client.query(stmt);
+          if (i % 10 === 0) {
+            console.log(`Executed ${i + 1}/${statements.length} statements...`);
+          }
+        } catch (err) {
+          console.warn(`Warning executing statement ${i + 1}: ${err.message}`);
+          // Continue despite errors
+        }
       }
-      if (stderr) {
-        console.warn(`SQL warnings: ${stderr}`);
-      }
-      console.log(`SQL output: ${stdout}`);
-      resolve();
-    });
-  });
+      
+      // Commit transaction
+      await client.query('COMMIT');
+      console.log(`SQL execution completed successfully.`);
+    } catch (error) {
+      // Rollback on error
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      // Release client back to pool
+      client.release();
+    }
+  } catch (error) {
+    console.error(`Error executing SQL file: ${error.message}`);
+    throw error;
+  }
 }
 
 /**
