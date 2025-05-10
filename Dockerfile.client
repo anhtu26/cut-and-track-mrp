@@ -8,14 +8,25 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Install @tailwindcss/postcss package
-RUN npm install --save-dev @tailwindcss/postcss
-
 # Copy the rest of the app
 COPY . .
+
+# Make sure postcss.config.js is properly configured
+RUN echo 'export default {\n  plugins: {\n    "@tailwindcss/postcss": {},\n    autoprefixer: {},\n  },\n}' > postcss.config.js
+
+# Set environment variables for build
+ENV NODE_ENV=production
+ENV VITE_API_URL=http://api-server:3002
+
+# Build for production (for ITAR-compliant deployment)
+RUN npm run build
 
 # Expose the port
 EXPOSE 8080
 
-# Start the app in development mode
-CMD ["npm", "run", "dev"]
+# Use environment variables for API URL to support local hosting
+ENV VITE_API_URL=http://localhost:3002
+
+# Start the app in production mode for ITAR-compliant deployment
+# In development, this will be overridden by the docker-compose CMD
+CMD ["npm", "run", "preview"]

@@ -1,7 +1,17 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from "sonner";
-import { signInWithPassword, signOut, getUserRole, UserRole } from '@/lib/services/auth/mock-auth';
+import { authService } from '@/lib/api/auth';
+import { User } from '@/types';
+
+// Define UserRole enum for ITAR-compliant local system
+export enum UserRole {
+  ADMIN = 'admin',
+  MANAGER = 'manager',
+  OPERATOR = 'operator',
+  INSPECTOR = 'inspector',
+  STAFF = 'staff'
+}
 
 // Mock Session and User types to replace Supabase types
 interface User {

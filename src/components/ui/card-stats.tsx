@@ -46,7 +46,7 @@ export function CardStats({
       </div>
       <div className="text-2xl font-bold">{value}</div>
       {description && (
-        <p className="text-xs opacity-80 mt-1">{description}</p>
+        <div className="text-xs opacity-80 mt-1">{description}</div>
       )}
     </div>
   );

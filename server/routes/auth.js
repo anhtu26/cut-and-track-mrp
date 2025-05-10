@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
@@ -32,9 +32,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
-    // Compare password
-    const passwordValid = await bcrypt.compare(password, user.password);
-    if (!passwordValid) {
+    // Compare password using argon2
+    try {
+      const passwordValid = await argon2.verify(user.password_hash, password);
+      if (!passwordValid) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+    } catch (err) {
+      console.error('Password verification error:', err);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
@@ -92,8 +97,13 @@ router.post('/register', authenticateToken, authorizeRoles(['Administrator']), a
       return res.status(400).json({ message: 'User already exists' });
     }
     
-    // Hash password (10 rounds)
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password with argon2
+    const hashedPassword = await argon2.hash(password, {
+      type: argon2.argon2id,  // Most secure variant
+      memoryCost: 2**16,      // 64 MiB memory usage
+      timeCost: 3,            // 3 iterations
+      parallelism: 1          // 1 thread
+    });
     
     // Generate UUID for new user
     const userId = uuidv4();
@@ -101,7 +111,7 @@ router.post('/register', authenticateToken, authorizeRoles(['Administrator']), a
     // Create user
     const result = await db.query(
       `INSERT INTO users 
-       (id, email, password, role, created_at, updated_at) 
+       (id, email, password_hash, role, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, NOW(), NOW())
        RETURNING id, email, role, created_at`,
       [userId, email.toLowerCase(), hashedPassword, role]
@@ -206,8 +216,13 @@ router.put('/users/:id', authenticateToken, authorizeRoles(['Administrator']), a
     
     // Add password if provided
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateQuery += `, password = $${paramIndex}`;
+      const hashedPassword = await argon2.hash(password, {
+        type: argon2.argon2id,  // Most secure variant
+        memoryCost: 2**16,      // 64 MiB memory usage
+        timeCost: 3,            // 3 iterations
+        parallelism: 1          // 1 thread
+      });
+      updateQuery += `, password_hash = $${paramIndex}`;
       queryParams.push(hashedPassword);
       paramIndex++;
     }

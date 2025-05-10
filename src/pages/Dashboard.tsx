@@ -3,7 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { KPIMetrics } from "@/components/dashboard/kpi-metrics";
 import { RecentOrdersTable } from "@/components/dashboard/recent-orders-table";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "@/providers/auth-provider";
 
@@ -14,12 +14,14 @@ export default function Dashboard() {
     queryKey: ["recentWorkOrders"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("work_orders")
-          .select("*, customer:customers(*), part:parts(*), operations(*)")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
+        // For development without a backend, use mock data
+        if (process.env.NODE_ENV === 'development') {
+          return await apiClient.mock.getRecentWorkOrders();
+        }
+        
+        // For production with local backend
+        const { data, error } = await apiClient.workOrders.getRecent(5);
+        
         if (error) throw error;
         console.log("Fetched work orders:", data);
         return data || [];
@@ -30,31 +32,31 @@ export default function Dashboard() {
     },
   });
 
-  // Mock data for top parts - would come from API in real app
+  // Top parts - using local API client
   const { data: topParts = [], isLoading: isPartsLoading } = useQuery({
     queryKey: ["topParts"],
     queryFn: async () => {
-      // This would be a real API call in production
-      return [
-        { name: "Hydraulic Manifold", orderCount: 12 },
-        { name: "Precision Shaft", orderCount: 8 },
-        { name: "Bearing Housing", orderCount: 7 },
-        { name: "Custom Flange", orderCount: 5 }
-      ];
+      try {
+        // Using mock data for development/demonstration purposes
+        return await apiClient.mock.getTopParts();
+      } catch (error) {
+        console.error("Error fetching top parts:", error);
+        return [];
+      }
     },
   });
 
-  // Mock data for top customers - would come from API in real app
+  // Top customers - using local API client
   const { data: topCustomers = [], isLoading: isCustomersLoading } = useQuery({
     queryKey: ["topCustomers"],
     queryFn: async () => {
-      // This would be a real API call in production
-      return [
-        { name: "Airo Defense Systems", orderValue: 28500 },
-        { name: "Precision Hydraulics", orderValue: 19200 },
-        { name: "TechMach Industries", orderValue: 15800 },
-        { name: "Aerospace Specialties", orderValue: 12400 }
-      ];
+      try {
+        // Using mock data for development/demonstration purposes
+        return await apiClient.mock.getTopCustomers();
+      } catch (error) {
+        console.error("Error fetching top customers:", error);
+        return [];
+      }
     },
   });
 

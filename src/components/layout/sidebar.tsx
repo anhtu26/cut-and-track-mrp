@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { useState } from "react";
@@ -23,7 +23,9 @@ export function Sidebar({ className }: SidebarProps) {
             <span className="sr-only">Toggle sidebar</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0 pt-10">
+        <SheetContent side="left" className="w-64 p-0 pt-10" aria-describedby="sidebar-description">
+          <div id="sidebar-description" className="sr-only">Application navigation sidebar</div>
+          <SheetTitle className="px-4 text-lg font-semibold mb-4">Navigation</SheetTitle>
           <SidebarNav className="px-2" />
         </SheetContent>
       </Sheet>

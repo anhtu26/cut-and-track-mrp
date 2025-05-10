@@ -36,12 +36,11 @@ export function KPIMetrics() {
         variant={staticData.completionRate > 80 ? "success" : "default"}
         value={`${staticData.completionRate}%`}
         icon={<Users className="h-5 w-5" />}
-        description={
-          <div className="w-full pt-1">
-            <Progress value={staticData.completionRate} className="h-1" />
-          </div>
-        }
+        description={`${staticData.completionRate}% completion rate`}
       />
+      <div className="col-span-1 md:col-span-2 lg:col-span-4 px-4 pb-3 -mt-2">
+        <Progress value={staticData.completionRate} className="h-1" />
+      </div>
       <CardStats
         title="Avg. Completion Time"
         value={staticData.avgCompletionDays.toFixed(1)}
