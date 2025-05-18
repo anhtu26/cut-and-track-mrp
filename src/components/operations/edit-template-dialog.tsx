@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Operation } from "@/types/operation";
 import { OperationTemplate } from "@/types/part";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { OperationTemplateForm } from "./template/operation-template-form";
 
 interface EditTemplateDialogProps {

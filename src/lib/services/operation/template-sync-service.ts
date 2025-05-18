@@ -3,7 +3,7 @@
  * 
  * Handles syncing operations with their templates in the part library
  */
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { mapOperationToDb } from "./operation-mapper";
 
 /**

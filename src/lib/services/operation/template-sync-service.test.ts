@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api/client';;
 import { syncOperationToTemplate } from './template-sync-service';
 
 // Mock the Supabase client
@@ -48,7 +48,7 @@ describe('Template Sync Service Error Handling', () => {
     const mockFrom2 = vi.fn().mockReturnValue({ select: mockSelect2 });
     
     // Replace the global mock with our specific mocks
-    vi.mocked(supabase.from)
+    vi.mocked(apiClient.from)
       .mockImplementationOnce(mockFrom)
       .mockImplementationOnce(mockFrom2);
 
@@ -68,8 +68,8 @@ describe('Template Sync Service Error Handling', () => {
     )).resolves.not.toThrow();
 
     // Verify appropriate queries were made
-    expect(supabase.from).toHaveBeenCalledWith('operations');
-    expect(supabase.from).toHaveBeenCalledWith('work_orders');
+    expect(apiClient.from).toHaveBeenCalledWith('operations');
+    expect(apiClient.from).toHaveBeenCalledWith('work_orders');
   });
 
   it('should handle work order without part_id gracefully', async () => {
@@ -105,7 +105,7 @@ describe('Template Sync Service Error Handling', () => {
     const mockFrom2 = vi.fn().mockReturnValue({ select: mockSelect2 });
     
     // Replace the global mock with our specific mocks
-    vi.mocked(supabase.from)
+    vi.mocked(apiClient.from)
       .mockImplementationOnce(mockFrom)
       .mockImplementationOnce(mockFrom2);
 
@@ -125,8 +125,8 @@ describe('Template Sync Service Error Handling', () => {
     )).resolves.not.toThrow();
 
     // Verify appropriate queries were made
-    expect(supabase.from).toHaveBeenCalledWith('operations');
-    expect(supabase.from).toHaveBeenCalledWith('work_orders');
+    expect(apiClient.from).toHaveBeenCalledWith('operations');
+    expect(apiClient.from).toHaveBeenCalledWith('work_orders');
   });
 
   it('should handle work order that exists but has no part record gracefully', async () => {
@@ -162,7 +162,7 @@ describe('Template Sync Service Error Handling', () => {
     const mockFrom2 = vi.fn().mockReturnValue({ select: mockSelect2 });
     
     // Replace the global mock with our specific mocks
-    vi.mocked(supabase.from)
+    vi.mocked(apiClient.from)
       .mockImplementationOnce(mockFrom)
       .mockImplementationOnce(mockFrom2);
 
@@ -182,7 +182,7 @@ describe('Template Sync Service Error Handling', () => {
     )).resolves.not.toThrow();
 
     // Verify appropriate queries were made
-    expect(supabase.from).toHaveBeenCalledWith('operations');
-    expect(supabase.from).toHaveBeenCalledWith('work_orders');
+    expect(apiClient.from).toHaveBeenCalledWith('operations');
+    expect(apiClient.from).toHaveBeenCalledWith('work_orders');
   });
 });

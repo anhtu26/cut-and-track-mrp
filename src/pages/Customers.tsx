@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useQuery } from "@tanstack/react-query";
 import { Customer } from "@/types/customer";
 

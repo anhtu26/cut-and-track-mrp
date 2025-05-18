@@ -8,7 +8,7 @@
 import { WorkOrder, Customer, Part, Operation } from '@/types';
 
 // Base URL for API endpoints - configured to use local server
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3002/api';
 
 // Custom error for API operations
 export class ApiError extends Error {
@@ -178,23 +178,30 @@ export const apiClient = {
   
   // Authentication (local)
   auth: {
-    login: async (email: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> => {
+    async login(email: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> {
       return fetchApi<{ user: any; token: string }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
     },
     
-    register: async (email: string, password: string, userData: any): Promise<ApiResponse<{ user: any }>> => {
+    async register(email: string, password: string, userData: any): Promise<ApiResponse<{ user: any }>> {
       return fetchApi<{ user: any }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, ...userData }),
       });
     },
     
-    logout: async (): Promise<void> => {
+    async logout(): Promise<void> {
       localStorage.removeItem('auth_token');
-    }
+      localStorage.removeItem('auth_user');
+    },
+    
+    async getUserRole(userId: string): Promise<ApiResponse<{ role: string }>> {
+      return fetchApi<{ role: string }>(`/auth/user/${userId}/role`, {
+        method: 'GET',
+      });
+    },
   }
 };
 

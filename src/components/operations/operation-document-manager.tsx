@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { OperationDocument } from "@/types/operation";
 import { DocumentManager } from "@/components/shared/document-manager";
 import { Checkbox } from "@/components/ui/checkbox";

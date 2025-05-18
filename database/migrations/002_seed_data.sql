@@ -45,5 +45,5 @@ VALUES
   ('cdef3456-7890-12cd-efab-3456789012cd', 'CNC Machining', 'Housing machining', 'completed', 'DMG MORI DMU 50', 1.0, 2.5, 2.6, 1, (SELECT id FROM users WHERE email = 'operator@example.com')),
   ('cdef3456-7890-12cd-efab-3456789012cd', 'Inspection', 'Quality control inspection', 'completed', NULL, 0.0, 0.5, 0.4, 2, (SELECT id FROM users WHERE email = 'manager@example.com')),
   
-  ('defg4567-8901-23de-fabc-4567890123de', 'Material Prep', 'Titanium material preparation', 'completed', NULL, 0.5, 1.0, 1.1, 1, (SELECT id FROM users WHERE email = 'operator@example.com')),
-  ('defg4567-8901-23de-fabc-4567890123de', 'CNC Machining', 'Flange machining', 'on_hold', 'HAAS UMC-750', 2.0, 4.0, NULL, 2, (SELECT id FROM users WHERE email = 'operator@example.com'));
+  ('def04567-8901-23de-fabc-4567890123de', 'Material Prep', 'Titanium material preparation', 'completed', NULL, 0.5, 1.0, 1.1, 1, (SELECT id FROM users WHERE email = 'operator@example.com')),
+  ('def04567-8901-23de-fabc-4567890123de', 'CNC Machining', 'Flange machining', 'on_hold', 'HAAS UMC-750', 2.0, 4.0, NULL, 2, (SELECT id FROM users WHERE email = 'operator@example.com'));

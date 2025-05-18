@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { createWorkOrderSchema, CreateWorkOrderSchemaValues } from "@/components/work-orders/work-order-schema";

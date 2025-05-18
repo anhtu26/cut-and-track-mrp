@@ -6,7 +6,7 @@ import { ArrowLeft, Archive, FileEdit } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { ArchivePartDialog } from "@/components/parts/archive-part-dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useQuery } from "@tanstack/react-query";
 import { Part, OperationTemplate } from "@/types/part";
 import { Skeleton } from "@/components/ui/skeleton";

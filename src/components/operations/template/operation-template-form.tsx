@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { OperationTemplate } from "@/types/part";
 import { Operation } from "@/types/operation";
 import { ModularOperationForm, ModularOperationFormValues } from "../shared/modular-operation-form";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
 

@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { OperationDocumentManager } from "../operation-document-manager";
 import { formatDateForInput } from "@/lib/date-utils";
 import { OperationTemplate } from "@/types/part";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { toast } from "@/components/ui/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { OperationForm } from "@/components/operations/operation-form";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { CreateOperationInput } from "@/types/operation";
 

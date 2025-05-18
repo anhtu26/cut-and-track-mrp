@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { toast } from "@/components/ui/sonner";
 import { PartDocument } from "@/types/part";
 import { OperationDocument } from "@/types/operation";
@@ -53,7 +53,7 @@ export const documentService = {
         : `operations/${entityId}/${fileName}`;
       
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await apiClient.storage
         .from('documents')
         .upload(storagePath, file, {
           contentType: file.type,
@@ -64,7 +64,7 @@ export const documentService = {
       if (uploadError) throw uploadError;
       
       // Get the public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = apiClient.storage
         .from('documents')
         .getPublicUrl(storagePath);
       
@@ -139,7 +139,7 @@ export const documentService = {
       if (pathMatch && pathMatch[1]) {
         // Delete from storage first
         const storagePath = pathMatch[1];
-        const { error: storageError } = await supabase.storage
+        const { error: storageError } = await apiClient.storage
           .from('documents')
           .remove([storagePath]);
         

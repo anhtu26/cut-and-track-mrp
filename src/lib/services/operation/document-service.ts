@@ -3,7 +3,7 @@
  * 
  * Handles document operations for operations and templates
  */
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { OperationDocument } from "@/types/operation";
 import { mapDocumentFromDb } from "./operation-mapper";
 import { syncOperationDocuments } from "./template-sync-service";

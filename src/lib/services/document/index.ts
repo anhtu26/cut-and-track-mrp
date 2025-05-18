@@ -3,7 +3,7 @@
  * 
  * Centralized service for document management across the application
  */
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { OperationDocument } from "@/types/operation";
 
 // Document entity types
@@ -48,14 +48,14 @@ export async function uploadDocument(
     const filePath = `${entityType}s/${entityId}/${Date.now()}_${sanitizedName}`;
     
     // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await apiClient.storage
       .from('documents')
       .upload(filePath, file);
       
     if (uploadError) throw uploadError;
     
     // Get public URL
-    const { data: urlData } = await supabase.storage
+    const { data: urlData } = await apiClient.storage
       .from('documents')
       .getPublicUrl(filePath);
       
@@ -159,7 +159,7 @@ export async function deleteDocument(
     const filePath = url.pathname.replace('/storage/v1/object/public/documents/', '');
     
     // Delete from storage
-    const { error: storageError } = await supabase.storage
+    const { error: storageError } = await apiClient.storage
       .from('documents')
       .remove([filePath]);
       

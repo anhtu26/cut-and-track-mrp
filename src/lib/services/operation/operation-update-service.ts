@@ -3,7 +3,7 @@
  * 
  * Handles updating operations in the database
  */
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { Operation, UpdateOperationInput } from "@/types/operation";
 import { mapOperationToDb } from "./operation-mapper";
 import { getOperation } from "./operation-query-service";

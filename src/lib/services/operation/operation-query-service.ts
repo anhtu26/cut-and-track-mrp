@@ -3,7 +3,7 @@
  * 
  * Handles fetching operation data from the database
  */
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { Operation } from "@/types/operation";
 import { OperationTemplate } from "@/types/part";
 import { mapOperationFromDb } from "./operation-mapper";

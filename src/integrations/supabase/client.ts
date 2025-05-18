@@ -1,20 +1,30 @@
 
-import { createClient } from '@supabase/supabase-js';
+/**
+ * DEPRECATED - DO NOT USE
+ * 
+ * This Supabase client has been deprecated as part of the ITAR compliance migration.
+ * All cloud services have been replaced with local API implementations.
+ * 
+ * Please use the local API client from '@/lib/api/client' instead.
+ */
 
-// Get the current URL to determine if we're running locally or in production
-const isLocalhost = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1';
+// Create a dummy object that throws errors if used
+const createErrorProxy = () => {
+  return new Proxy({}, {
+    get: (target, prop) => {
+      if (typeof prop === 'string' && prop !== 'then') { // Avoid breaking Promise checks
+        return createErrorProxy();
+      }
+      return undefined;
+    },
+    apply: () => {
+      throw new Error('Supabase client is deprecated. Use local API client instead.');
+    }
+  });
+};
 
-// Initialize the Supabase client with appropriate URL and key
-// For local development, use the local Supabase instance if running on localhost
-export const supabase = createClient(
-  isLocalhost 
-    ? 'http://localhost:54321'  // Local Supabase URL
-    : 'https://xydntmjbpdzcyjdumnrg.supabase.co', // Production Supabase URL
-  isLocalhost
-    ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG50bWpicGR6Y3lqZHVtbnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDM1NzAsImV4cCI6MjA2MDMxOTU3MH0.K88YsqVWQ4IwqrRaoXI1F6rjT9Ue_Ori7ShlzzRm3_A'  // Local Anon Key
-    : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZG50bWpicGR6Y3lqZHVtbnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NDM1NzAsImV4cCI6MjA2MDMxOTU3MH0.K88YsqVWQ4IwqrRaoXI1F6rjT9Ue_Ori7ShlzzRm3_A'  // Production Anon Key
-);
+// Export a dummy supabase client that will throw errors if used
+export const supabase = createErrorProxy();
 
-console.log('Supabase client initialized with URL:', isLocalhost ? 'http://localhost:54321' : 'https://xydntmjbpdzcyjdumnrg.supabase.co');
+console.warn('DEPRECATED: Supabase client is no longer supported. Please use the local API client instead.');
+

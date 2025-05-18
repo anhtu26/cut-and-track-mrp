@@ -1,140 +1,162 @@
-# Comprehensive Migration Plan: Supabase to Local Hosting
+# Cut-and-Track MRP Migration Tasks
 
-This document outlines all tasks required to migrate the Cut-and-Track MRP/ERP application from Supabase cloud to a local hosting solution for ITAR compliance. This aerospace CNC machine shop application must maintain all data locally without external dependencies.
+> **Last Updated: May 17, 2025**
 
-## Phase 1: Environment Setup ✅
+This document centralizes all tasks related to migrating the Cut-and-Track MRP application from cloud-based services to a fully local hosting solution for ITAR compliance in aerospace CNC machine shops.
 
-### 1.1 Database Setup
-- [x] Install PostgreSQL locally
-- [x] Configure PostgreSQL user and permissions
-- [x] Create database for the application
-- [x] Implement database connection module for server
-- [x] Create database setup script
+## Migration Overview
 
-### 1.2 File Storage Setup
-- [x] Create local file storage directory structure
-- [x] Configure file upload/download permissions
-- [x] Implement file security measures
+The Cut-and-Track MRP application is being migrated from cloud services (primarily Supabase) to a fully local implementation to comply with ITAR regulations, which require all data to remain within the controlled local environment.
 
-### 1.3 Authentication Server Setup
-- [x] Install required packages for JWT authentication
-- [x] Create authentication API endpoints
-- [x] Implement JWT token validation middleware
+## Migration Progress Summary
 
-## Phase 2: Backend Implementation ✅
+| Phase | Description | Status | Completion Date |
+|-------|-------------|--------|----------------|
+| 1 | Initial Assessment & Planning | ✅ Complete | May 6, 2025 |
+| 2 | Local Infrastructure Setup | ✅ Complete | May 9, 2025 |
+| 3 | Database Migration | ✅ Complete | May 10, 2025 |
+| 4 | Authentication System Migration | 🔄 In Progress | - |
+| 5 | Storage System Migration | ⏳ Pending | - |
+| 6 | Frontend Updates | 🔄 In Progress | - |
+| 7 | Testing & Verification | ⏳ Pending | - |
+| 8 | Documentation & Training | 🔄 In Progress | - |
 
-### 2.1 API Server Implementation
-- [x] Create Express server with necessary middleware
-- [x] Set up API routes structure
-- [x] Implement database connection pool
-- [x] Create authentication endpoints
-- [x] Create file storage endpoints
-- [x] Create parts endpoints
-- [x] Create work orders endpoints
-- [x] Create customers endpoints
-- [x] Create operations endpoints
+## Detailed Task Breakdown
 
-## Phase 3: Data Migration ✅
+### Phase 1: Initial Assessment & Planning ✅
 
-### 3.1 Database Schema and Data Import
-- [x] Import schema from backup
-- [x] Import data from backup
-- [x] Verify database structure
-- [x] Verify data integrity
-- [x] Create migration script for Supabase to local database
+- ✅ Identify all cloud dependencies
+- ✅ Document data structures and API endpoints
+- ✅ Create migration strategy
+- ✅ Define ITAR compliance requirements
+- ✅ Establish project timeline
 
-### 3.2 User Authentication Data
-- [x] Create/update users table structure
-- [x] Migrate user data from Supabase
-- [x] Set up secure password storage
+### Phase 2: Local Infrastructure Setup ✅
 
-## Phase 4: Frontend Code Updates 
+- ✅ Configure Docker environment
+- ✅ Set up local PostgreSQL database
+- ✅ Configure local API server
+- ✅ Set up local file storage
+- ✅ Create development environment
 
-### 4.1 Authentication Client Updates
-- [x] Update authentication context provider
-- [x] Replace Supabase auth methods with local JWT auth
-- [x] Update login and registration components
+### Phase 3: Database Migration ✅
 
-### 4.2 Data Access Updates
-- [x] Create API services for local backend
-- [x] Update data fetching logic across components
-- [x] Test data flow between frontend and local backend
+- ✅ Create database schema
+- ✅ Develop migration scripts
+- ✅ Test data integrity
+- ✅ Implement backup procedures
+- ✅ Verify data consistency
 
-### 4.3 File Storage Updates
-- [x] Create local file upload/download services
-- [x] Update file handling components
-- [x] Test file operations
+### Phase 4: Authentication System Migration 🔄
 
-## Phase 5: Testing and Verification 
+- ✅ Replace Supabase client with error-throwing proxy (May 17, 2025)
+- ✅ Implement JWT-based authentication (May 10, 2025)
+- ✅ Create local user management API (May 10, 2025)
+- ✅ Update authentication hooks in frontend (May 17, 2025)
+- ✅ Add user role endpoint to server API (May 17, 2025)
+- ✅ Create test admin user functionality (May 17, 2025)
+- ✅ Implement comprehensive authentication testing (May 17, 2025)
+- 🔄 Fix login functionality issues
+- 🔄 Test authentication flow end-to-end
+- ⏳ Implement password reset functionality
+- ⏳ Add session management features
 
-### 5.1 Component Testing
-- [x] Test authentication functionality
-- [x] Test database access
-- [x] Test file storage operations
+### Phase 5: Storage System Migration ⏳
 
-### 5.2 End-to-End Testing
-- [x] Test critical user workflows
-- [x] Verify data integrity throughout processes
-- [x] Performance testing
+- ✅ Create local file storage structure (May 10, 2025)
+- 🔄 Implement file upload/download API
+- 🔄 Update frontend components to use local storage
+- ⏳ Migrate existing files from Supabase storage
+- ⏳ Implement file versioning
+- ⏳ Add file metadata management
+- ⏳ Test file operations
 
-## Phase 6: Frontend UI Fixes
+### Phase 6: Frontend Updates 🔄
 
-### 6.1 CSS & Tailwind Configuration Fixes
-- [x] Fix PostCSS configuration in project - Fixed incorrect plugin name from '@tailwindcss/postcss' to 'tailwindcss'
-- [x] Ensure CSS variables in index.css are properly defined
-- [x] Validate import of index.css in main.tsx
+- ✅ Fix CSS & Tailwind configuration issues (May 10, 2025)
+- ✅ Fix DOM nesting violations (May 10, 2025)
+- ✅ Address component accessibility issues (May 10, 2025)
+- ✅ Replace Supabase imports with local API client imports (May 17, 2025)
+- 🔄 Update UI components to work with local API response format
+- 🔄 Fix login/authentication UI
+- ⏳ Update file management components
+- ⏳ Implement offline capabilities
+- ⏳ Add error handling for network issues
 
-### 6.2 DOM Nesting Fixes
-- [x] Update the CardStats component to use appropriate HTML structure
-- [x] Replace `<p>` tags with `<div>` or other block-level elements where needed
-- [x] Update the KPI-metrics component to avoid invalid nesting
-- [x] Restructure how the description property is used - Moved Progress component outside of the CardStats description
+### Phase 7: Testing & Verification ⏳
 
-### 6.3 Accessibility Fixes
-- [x] Add required DialogTitle to Sheet component usage
-- [x] Add proper description or aria attributes for accessibility - Added aria-describedby and SR-only description
+- ✅ Create authentication test scripts (May 17, 2025)
+- 🔄 Develop integration tests
+- ⏳ Perform end-to-end testing
+- ⏳ Verify ITAR compliance
+- ⏳ Conduct performance testing
+- ⏳ Security audit
+- ⏳ User acceptance testing
 
-## Phase 7: Final Integration & Testing
+### Phase 8: Documentation & Training 🔄
 
-### 7.1 Docker Configuration
-- [x] Verify Docker Compose configurations are correct for all services
-- [x] Test complete Docker environment startup
-- [x] Fix any network connectivity issues between containers
-- [x] Ensure database initialization script runs correctly
+- ✅ Document ITAR compliance measures (May 10, 2025)
+- ✅ Create migration progress tracking (May 17, 2025)
+- 🔄 Consolidate documentation
+- 🔄 Update deployment instructions
+- ⏳ Create user training materials
+- ⏳ Document maintenance procedures
+- ⏳ Prepare handover documentation
 
-### 7.2 End-to-End Testing
-- [x] Verify authentication flows for all user types
-- [ ] Test data creation, retrieval, updates, and deletion
-- [ ] Validate file upload and download functions
-- [ ] Test all critical business workflows
+## Current Focus (May 17, 2025)
 
-### 7.3 Performance & Security Validation
-- [ ] Conduct performance testing of the local system
-- [x] Verify all data remains local (ITAR compliance check)
-- [x] Ensure proper error handling throughout the application
-- [ ] Test backup and recovery procedures
+The current focus is on completing the authentication system migration and fixing the login functionality. Key tasks include:
 
-## Phase 8: Deployment & Documentation
+1. Fixing the login error: `ReferenceError: signInWithPassword is not defined`
+2. Ensuring the local API client is properly integrated with the authentication system
+3. Testing the authentication flow end-to-end
+4. Updating UI components to work with the local API response format
 
-### 8.1 Final Deployment
-- [x] Configure production environment
-- [x] Deploy application to local server
-- [x] Set up monitoring and backups
+## Known Issues
 
-### 8.2 Documentation
-- [x] Document new architecture
-- [x] Create maintenance procedures
-- [x] Update user documentation as needed
-- [x] Document ITAR compliance measures
+1. **Database Connection Issues**
+   - Error: "getaddrinfo ENOTFOUND postgres" when trying to connect to the database
+   - Need to verify Docker network configuration and database container settings
 
-## Migration Status: Complete ✅
+2. **Login Functionality**
+   - Error: `ReferenceError: signInWithPassword is not defined`
+   - Supabase authentication functions need to be fully replaced with local equivalents
 
-All components of the Supabase to local server migration have been successfully completed. The application is now fully ITAR compliant with all data and services properly hosted locally.
+3. **UI Component Compatibility**
+   - Some UI components may still expect Supabase-specific data structures
+   - Need to update components to work with local API response format
 
-- ✅ Local PostgreSQL database with proper schema and seed data
-- ✅ Local authentication system using JWT and Argon2
-- ✅ Local file storage for document uploads
-- ✅ Local API server with all necessary endpoints
-- ✅ Frontend connected to local services only
-- ✅ Docker configuration for easy deployment
-- ✅ Comprehensive documentation
+## Test Credentials
+
+For development and testing purposes, use the following admin credentials:
+
+- Email: `admin@cutandtrack.local`
+- Password: `admin123`
+
+## ITAR Compliance Verification
+
+The following must be verified to ensure ITAR compliance:
+
+1. **Data Isolation**: All data must remain on the local server with no external transmission
+2. **Authentication**: All user authentication must be handled locally
+3. **File Storage**: All files must be stored on the local server
+4. **API Services**: No external API services can be used
+5. **Development Tools**: No cloud-based development tools can send data externally
+
+## Deployment Instructions
+
+Once all migration tasks are complete, follow these steps for production deployment:
+
+1. Update environment variables with production values
+2. Build production Docker images
+3. Deploy to the local production server
+4. Configure regular backups
+5. Implement monitoring
+6. Train users on the new system
+
+## References
+
+- [ITAR_COMPLIANCE.MD](./ITAR_COMPLIANCE.MD) - Detailed ITAR compliance documentation
+- [MIGRATION_COMPLETION.MD](./MIGRATION_COMPLETION.MD) - Step-by-step deployment guide
+- [FRONTEND_FIX.MD](./FRONTEND_FIX.MD) - Frontend-specific fixes (now consolidated here)
+- [MIGRATION_PROGRESS.MD](./MIGRATION_PROGRESS.MD) - Previous progress tracking (now consolidated here)

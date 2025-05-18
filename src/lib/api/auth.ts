@@ -86,5 +86,20 @@ export const authService = {
    */
   isAuthenticated(): boolean {
     return !!this.getToken();
+  },
+  
+  /**
+   * Get a user's role by their ID
+   * @param userId The user's ID
+   * @returns The user's role data
+   */
+  async getUserRole(userId: string) {
+    const response = await apiClient.auth.getUserRole(userId);
+    
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+    
+    return response.data;
   }
 };

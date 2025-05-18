@@ -278,6 +278,37 @@ router.delete('/users/:id', authenticateToken, authorizeRoles(['Administrator'])
   }
 });
 
+/**
+ * @route GET /api/auth/user/:id/role
+ * @desc Get a user's role by ID
+ * @access Private
+ */
+router.get('/user/:id/role', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Only admins can check other users' roles
+    // Regular users can only check their own role
+    if (req.user.id !== id && req.user.role !== 'Administrator') {
+      return res.status(403).json({ message: 'Not authorized to access this resource' });
+    }
+    
+    const result = await db.query(
+      'SELECT role FROM users WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({ role: result.rows[0].role });
+  } catch (error) {
+    console.error('User role fetch error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Export router and authenticateToken for use in other files
 module.exports = {
   router,

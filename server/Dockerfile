@@ -8,17 +8,22 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
+    gcc \
+    make \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy package.json and package-lock.json first for better caching
 COPY package*.json ./
 
-# Install dependencies and rebuild native modules
-RUN npm ci && npm rebuild argon2 --build-from-source
+# Clean install dependencies
+RUN npm ci
 
 # Copy the rest of the application
 COPY . .
+
+# Rebuild argon2 from source after copying all files
+RUN npm rebuild argon2 --build-from-source
 
 # Create uploads directory with proper permissions
 RUN mkdir -p uploads && chmod 755 uploads

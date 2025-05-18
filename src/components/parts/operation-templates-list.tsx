@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { OperationTemplateForm } from "./operation-template-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { toast } from "@/components/ui/sonner";
 
 interface OperationTemplatesListProps {

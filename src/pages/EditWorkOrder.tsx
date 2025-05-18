@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UpdateWorkOrderInput, WorkOrder } from "@/types/work-order";
 import { useState } from "react";

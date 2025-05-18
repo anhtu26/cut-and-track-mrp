@@ -8,7 +8,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Clock, Check, PlayCircle, PauseCircle, RotateCcw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from '@/lib/api/client';;
 
 interface OperationTrackingProps {
   operation: Operation;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api/client';;
 import { syncOperationToPartTemplate, syncOperationDocuments } from '@/lib/services/operation/template-sync-service';
 
 // Create proper mock response types
@@ -37,7 +37,7 @@ describe('Template Sync Service', () => {
   describe('syncOperationToPartTemplate', () => {
     it('should update an existing template', async () => {
       // Mock template exists
-      vi.mocked(supabase.from().select().eq().maybeSingle).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq().maybeSingle).mockResolvedValue({
         data: { id: 'template-123' },
         error: null,
         count: null,
@@ -46,7 +46,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock update success
-      vi.mocked(supabase.from().update().eq).mockResolvedValue({
+      vi.mocked(apiClient.from().update().eq).mockResolvedValue({
         data: null,
         error: null,
         count: null,
@@ -55,7 +55,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock documents sync
-      vi.mocked(supabase.from().select().eq).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq).mockResolvedValue({
         data: [],
         error: null,
         count: 0,
@@ -82,13 +82,13 @@ describe('Template Sync Service', () => {
       )).resolves.not.toThrow();
 
       // Verify template was updated
-      expect(supabase.from).toHaveBeenCalledWith('operation_templates');
-      expect(supabase.from().update).toHaveBeenCalled();
+      expect(apiClient.from).toHaveBeenCalledWith('operation_templates');
+      expect(apiClient.from().update).toHaveBeenCalled();
     });
 
     it('should create a new template if one does not exist', async () => {
       // Mock template doesn't exist
-      vi.mocked(supabase.from().select().eq().maybeSingle).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq().maybeSingle).mockResolvedValue({
         data: null,
         error: null,
         count: null,
@@ -97,7 +97,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock insert success
-      vi.mocked(supabase.from().insert).mockResolvedValue({
+      vi.mocked(apiClient.from().insert).mockResolvedValue({
         data: null,
         error: null,
         count: null,
@@ -106,7 +106,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock documents sync
-      vi.mocked(supabase.from().select().eq).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq).mockResolvedValue({
         data: [],
         error: null,
         count: 0,
@@ -133,15 +133,15 @@ describe('Template Sync Service', () => {
       )).resolves.not.toThrow();
 
       // Verify template was created
-      expect(supabase.from).toHaveBeenCalledWith('operation_templates');
-      expect(supabase.from().insert).toHaveBeenCalled();
+      expect(apiClient.from).toHaveBeenCalledWith('operation_templates');
+      expect(apiClient.from().insert).toHaveBeenCalled();
     });
   });
 
   describe('syncOperationDocuments', () => {
     it('should sync documents from operation to template', async () => {
       // Mock template exists
-      vi.mocked(supabase.from().select().eq().maybeSingle).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq().maybeSingle).mockResolvedValue({
         data: { id: 'template-123' },
         error: null,
         count: null,
@@ -150,7 +150,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock documents exist
-      vi.mocked(supabase.from().select().eq).mockResolvedValue({
+      vi.mocked(apiClient.from().select().eq).mockResolvedValue({
         data: [
           { 
             id: 'doc-1',
@@ -168,7 +168,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock delete success
-      vi.mocked(supabase.from().delete().eq).mockResolvedValue({
+      vi.mocked(apiClient.from().delete().eq).mockResolvedValue({
         data: null,
         error: null,
         count: null,
@@ -177,7 +177,7 @@ describe('Template Sync Service', () => {
       });
 
       // Mock insert success
-      vi.mocked(supabase.from().insert).mockResolvedValue({
+      vi.mocked(apiClient.from().insert).mockResolvedValue({
         data: null,
         error: null,
         count: null,
@@ -196,9 +196,9 @@ describe('Template Sync Service', () => {
       )).resolves.not.toThrow();
 
       // Verify documents were synced
-      expect(supabase.from).toHaveBeenCalledWith('operation_documents');
-      expect(supabase.from).toHaveBeenCalledWith('template_documents');
-      expect(supabase.from().insert).toHaveBeenCalled();
+      expect(apiClient.from).toHaveBeenCalledWith('operation_documents');
+      expect(apiClient.from).toHaveBeenCalledWith('template_documents');
+      expect(apiClient.from().insert).toHaveBeenCalled();
     });
   });
 });
