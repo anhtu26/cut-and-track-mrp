@@ -37,19 +37,19 @@ const navItems: NavItem[] = [
     title: "Reports",
     href: "/reports",
     icon: BarChart2,
-    allowedRoles: ["Administrator", "Manager"],
+    allowedRoles: [UserRole.ADMIN, UserRole.MANAGER],
   },
   {
     title: "User Management",
     href: "/users",
     icon: Users,
-    allowedRoles: ["Administrator"],
+    allowedRoles: [UserRole.ADMIN],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    allowedRoles: ["Administrator"],
+    allowedRoles: [UserRole.ADMIN],
   },
 ];
 
@@ -64,35 +64,42 @@ export function SidebarNav({
   );
 
   return (
-    <nav className={cn("flex flex-col gap-1", className)} {...props}>
+    <nav className={cn("flex flex-col gap-2 py-2", className)} {...props}>
       {filteredNavItems.map((item) => (
         <NavLink
           key={item.href}
           to={item.href}
           className={({ isActive }) =>
             cn(
-              "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+              "group flex items-center gap-4 rounded-lg px-4 py-3 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30",
               isActive
-                ? "bg-accent text-accent-foreground"
-                : "transparent text-muted-foreground"
+                ? "bg-primary/15 text-primary shadow-sm"
+                : "text-muted-foreground"
             )
           }
         >
           {({ isActive }) => (
             <>
-              <item.icon
-                className={cn(
-                  "h-5 w-5",
-                  isActive
-                    ? "text-accent-foreground"
-                    : "text-muted-foreground group-hover:text-accent-foreground"
-                )}
-              />
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg",
+                isActive
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted text-muted-foreground group-hover:text-primary"
+              )}>
+                <item.icon className="h-5 w-5" />
+              </div>
               <span>{item.title}</span>
             </>
           )}
         </NavLink>
       ))}
+      
+      <div className="mt-6 px-4">
+        <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <h4 className="mb-2 text-sm font-medium">ITAR Compliant System</h4>
+          <p className="text-xs text-muted-foreground">All data is securely stored on local servers per aerospace regulations.</p>
+        </div>
+      </div>
     </nav>
   );
 }

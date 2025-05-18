@@ -1,30 +1,19 @@
 
 /**
- * DEPRECATED - DO NOT USE
+ * Supabase Client Proxy Implementation
  * 
- * This Supabase client has been deprecated as part of the ITAR compliance migration.
- * All cloud services have been replaced with local API implementations.
+ * This file provides a proxy implementation of the Supabase client
+ * that redirects all calls to our local API implementation.
  * 
- * Please use the local API client from '@/lib/api/client' instead.
+ * This allows existing code that uses Supabase to continue working
+ * while we migrate to a fully local implementation for ITAR compliance.
  */
 
-// Create a dummy object that throws errors if used
-const createErrorProxy = () => {
-  return new Proxy({}, {
-    get: (target, prop) => {
-      if (typeof prop === 'string' && prop !== 'then') { // Avoid breaking Promise checks
-        return createErrorProxy();
-      }
-      return undefined;
-    },
-    apply: () => {
-      throw new Error('Supabase client is deprecated. Use local API client instead.');
-    }
-  });
-};
+import supabaseClientProxy from '@/lib/supabase-client-proxy';
 
-// Export a dummy supabase client that will throw errors if used
-export const supabase = createErrorProxy();
+// Export the Supabase client proxy as the default client
+export const supabase = supabaseClientProxy;
 
-console.warn('DEPRECATED: Supabase client is no longer supported. Please use the local API client instead.');
+// Log that we're using the proxy implementation
+console.log('Using Supabase client proxy for local authentication');
 

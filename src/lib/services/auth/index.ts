@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { UserRole, UserWithRole } from '@/hooks/use-auth';
+import { signInWithPassword, signOut, supabaseAuthProxy } from './supabase-proxy';
 
-// Configure API URL from environment or default to localhost in development
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// Configure API URL from environment or default to Docker container API server
+const API_URL = process.env.VITE_API_URL || 'http://localhost:3002/api';
+// For Docker deployment, use the container name: http://api-server:3002/api
 
 /**
  * Token management utilities
@@ -133,5 +135,8 @@ export const AuthService = {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 };
+
+// Export the Supabase proxy functions to handle legacy code
+export { signInWithPassword, signOut, supabaseAuthProxy };
 
 export default AuthService;

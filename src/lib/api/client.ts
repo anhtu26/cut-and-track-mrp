@@ -3,12 +3,14 @@
  * 
  * This client handles all API requests to the local backend services.
  * It replaces Supabase with locally hosted API endpoints for ITAR compliance.
+ * 
+ * This enhanced version supports all the operations needed by our Supabase proxy.
  */
 
 import { WorkOrder, Customer, Part, Operation } from '@/types';
 
-// Base URL for API endpoints - configured to use local server
-const API_BASE_URL = 'http://localhost:3002/api';
+// Base URL for API endpoints - configured to use local server or Docker container
+const API_BASE_URL = process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/api` : 'http://localhost:3002/api';
 
 // Custom error for API operations
 export class ApiError extends Error {
@@ -80,6 +82,8 @@ async function fetchApi<T>(
 
 // API client with methods for different resources
 export const apiClient = {
+  // Expose the base URL for use in other modules
+  baseUrl: API_BASE_URL,
   // Work Orders
   workOrders: {
     getAll: async (options: { archived?: boolean } = {}): Promise<ApiResponse<WorkOrder[]>> => {
@@ -176,13 +180,21 @@ export const apiClient = {
     }
   },
   
-  // Authentication (local)
+  // Authentication (local) - updated for direct implementation
   auth: {
     async login(email: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> {
-      return fetchApi<{ user: any; token: string }>('/auth/login', {
+      const response = await fetchApi<{ user: any; token: string }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
+      
+      // If login successful, store token and user data
+      if (response.data && response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+      }
+      
+      return response;
     },
     
     async register(email: string, password: string, userData: any): Promise<ApiResponse<{ user: any }>> {
@@ -192,16 +204,56 @@ export const apiClient = {
       });
     },
     
-    async logout(): Promise<void> {
+    async logout(): Promise<ApiResponse<{ success: boolean }>> {
+      // Call the server logout endpoint
+      const response = await fetchApi<{ success: boolean }>('/auth/logout', {
+        method: 'POST'
+      });
+      
+      // Always clear local storage regardless of server response
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      
+      return response;
+    },
+    
+    async getUserInfo(): Promise<ApiResponse<any>> {
+      return fetchApi<any>('/auth/user');
     },
     
     async getUserRole(userId: string): Promise<ApiResponse<{ role: string }>> {
-      return fetchApi<{ role: string }>(`/auth/user/${userId}/role`, {
-        method: 'GET',
-      });
+      return fetchApi<{ role: string }>(`/auth/user/${userId}/role`);
     },
+    
+    /**
+     * Check if the user is authenticated
+     */
+    isAuthenticated(): boolean {
+      return localStorage.getItem('auth_token') !== null;
+    },
+    
+    /**
+     * Get the current user from local storage
+     * Note: This doesn't verify the token validity
+     */
+    getStoredUser(): any | null {
+      const userJson = localStorage.getItem('auth_user');
+      if (!userJson) return null;
+      
+      try {
+        return JSON.parse(userJson);
+      } catch (e) {
+        console.error('Failed to parse stored user:', e);
+        return null;
+      }
+    },
+    
+    /**
+     * Get the current auth token
+     */
+    getToken(): string | null {
+      return localStorage.getItem('auth_token');
+    }
   }
 };
 

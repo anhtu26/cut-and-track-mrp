@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 import { HTMLAttributes, ReactNode } from "react";
 
 const cardStatsVariants = cva(
-  "rounded-lg border p-4 flex flex-col gap-1",
+  "rounded-lg border p-4 flex flex-col gap-2 transition-all duration-200",
   {
     variants: {
       variant: {
@@ -41,12 +41,12 @@ export function CardStats({
   return (
     <div className={cn(cardStatsVariants({ variant }), className)} {...props}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        {icon && <div className="h-5 w-5">{icon}</div>}
+        <p className="text-base font-medium leading-tight">{title}</p>
+        {icon && <div className="flex items-center justify-center rounded-full bg-background/20 p-2">{icon}</div>}
       </div>
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-3xl font-bold tracking-tight">{value}</div>
       {description && (
-        <div className="text-xs opacity-80 mt-1">{description}</div>
+        <div className="text-sm text-muted-foreground/90 mt-1">{description}</div>
       )}
     </div>
   );

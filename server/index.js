@@ -4,7 +4,9 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 // Import routes
-const { router: authRouter } = require('./routes/auth');
+const authRouter = require('./routes/auth-routes');
+// Legacy auth router - to be removed after full migration
+// const { router: legacyAuthRouter } = require('./routes/auth');
 const storageRouter = require('./routes/storage');
 const partsRouter = require('./routes/parts');
 const workordersRouter = require('./routes/workorders');

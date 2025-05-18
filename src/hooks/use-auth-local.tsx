@@ -4,6 +4,10 @@ import AuthService from '@/lib/services/auth';
 
 export type UserRole = 'Administrator' | 'Manager' | 'Staff' | 'Operator';
 
+export interface Session {
+  access_token: string;
+}
+
 export interface UserWithRole {
   id: string;
   email: string;
@@ -13,7 +17,7 @@ export interface UserWithRole {
 
 export interface UserSession {
   user: UserWithRole | null;
-  session: any | null;
+  session: Session | null;
 }
 
 /**

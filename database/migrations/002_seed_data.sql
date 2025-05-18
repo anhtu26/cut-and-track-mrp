@@ -4,9 +4,9 @@
 -- Add admin user (password is 'admin123' - using argon2 hashing for ITAR-compliant local authentication)
 INSERT INTO users (email, password_hash, first_name, last_name, role)
 VALUES 
-  ('admin@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Admin', 'User', 'admin'),
-  ('manager@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Manager', 'User', 'manager'),
-  ('operator@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Operator', 'User', 'operator');
+  ('admin@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Admin', 'User', 'Administrator'),
+  ('manager@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Manager', 'User', 'Manager'),
+  ('operator@example.com', '$argon2id$v=19$m=65536,t=3,p=1$NXc5UHFmVDRZY0JodGRGSA$KCQXCwlxMhXEH5QcIZ0RGGaR9mY0xKsqwoGJVSl9/Hs', 'Operator', 'User', 'Operator');
 
 -- Add customers
 INSERT INTO customers (id, name, contact_name, contact_email, contact_phone, address)

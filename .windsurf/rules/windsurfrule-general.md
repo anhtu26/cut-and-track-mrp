@@ -13,3 +13,4 @@ You're building a MRP/ERP web app for an aerospace CNC machine shop that is able
 - **Always use npm for package management**
 - **Do not use && or || in bash commands** - use semicolon instead for Windows
 - **Prioritise reusing UI components & business logic** - when created, use it in other places to avoid code duplication and streamline development.
+- **Perform UNIT TESTING after development, keep testing files centralized** 

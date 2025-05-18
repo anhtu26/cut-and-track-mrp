@@ -6,15 +6,22 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "echo \"No build step required for server\" && exit 0",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "node ./scripts/migrations/run-migrations.js",
+    "seed": "node ./scripts/db/seed.js",
+    "init-auth": "node ./scripts/auth/init-auth-tables.js",
+    "test-auth": "node ./scripts/auth/test-auth.js"
   },
   "dependencies": {
     "argon2": "^0.31.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "http-status-codes": "^2.2.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
     "pg": "^8.15.6",
     "uuid": "^9.0.1"
   },
