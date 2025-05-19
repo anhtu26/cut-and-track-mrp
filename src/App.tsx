@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
+import { UserRole } from "@/hooks/use-auth"; // Added import
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -41,7 +42,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <div className="temp-bg-red-500">
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system">
       <AuthProvider>
         <TooltipProvider>
@@ -88,7 +90,7 @@ const App = () => (
                 <Route 
                   path="/users" 
                   element={
-                    <AuthGuard allowedRoles={['Administrator']}>
+                    <AuthGuard allowedRoles={[UserRole.ADMIN]}>
                       <UserManagement />
                     </AuthGuard>
                   } 
@@ -103,6 +105,7 @@ const App = () => (
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </div>
 );
 
 export default App;

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { UserRole, UserWithRole } from '@/hooks/use-auth';
-import { signInWithPassword, signOut, supabaseAuthProxy } from './supabase-proxy';
 
-// Configure API URL from environment or default to Docker container API server
-const API_URL = process.env.VITE_API_URL || 'http://localhost:3002/api';
-// For Docker deployment, use the container name: http://api-server:3002/api
+// Configure API URL from environment or default to localhost for browser access
+// IMPORTANT: Always use localhost for browser access, not Docker hostnames
+const API_URL = 'http://localhost:3002';
+console.log('Local API client initialized with URL:', API_URL);
 
 /**
  * Token management utilities
@@ -30,11 +30,38 @@ const TokenService = {
   },
 
   /**
-   * Remove token from localStorage
+   * Save user to localStorage
    */
-  removeToken: (): void => {
+  setUser: (user: any): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_user', JSON.stringify(user));
+    }
+  },
+
+  /**
+   * Get user from localStorage
+   */
+  getUser: (): any => {
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('auth_user');
+      if (userStr) {
+        try {
+          return JSON.parse(userStr);
+        } catch (e) {
+          return null;
+        }
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Remove token and user from localStorage
+   */
+  removeAuth: (): void => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
     }
   }
 };
@@ -48,19 +75,23 @@ export const AuthService = {
    */
   login: async (email: string, password: string) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { 
+      console.log(`Attempting to login with email: ${email}`);
+      const response = await axios.post(`${API_URL}/api/auth/login`, { 
         email, 
         password 
       });
       
-      // Save token to localStorage
+      console.log('Login response:', response.data);
+      
+      // Save token and user to localStorage
       TokenService.setToken(response.data.token);
+      TokenService.setUser(response.data.user);
       
       return {
         user: response.data.user,
         session: { access_token: response.data.token }
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       throw error;
     }
@@ -70,8 +101,8 @@ export const AuthService = {
    * Logout user
    */
   logout: async () => {
-    // For JWT-based auth, just remove the token
-    TokenService.removeToken();
+    // For JWT-based auth, just remove the token and user
+    TokenService.removeAuth();
     return { error: null };
   },
 
@@ -83,21 +114,37 @@ export const AuthService = {
       const token = TokenService.getToken();
       if (!token) return null;
 
-      const response = await axios.get(`${API_URL}/auth/me`, {
+      // First try to get from localStorage to avoid unnecessary API calls
+      const cachedUser = TokenService.getUser();
+      if (cachedUser) {
+        return {
+          ...cachedUser,
+          id: cachedUser.id,
+          email: cachedUser.email,
+          role: cachedUser.role as UserRole
+        };
+      }
+
+      // If not in localStorage, fetch from API
+      const response = await axios.get(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      return {
+      const user = {
         ...response.data,
-        // Add any fields required by the UserWithRole interface
         id: response.data.id,
         email: response.data.email,
         role: response.data.role as UserRole
       };
+
+      // Cache the user
+      TokenService.setUser(user);
+
+      return user;
     } catch (error) {
       console.error('Get current user error:', error);
       // Remove token if it's invalid
-      TokenService.removeToken();
+      TokenService.removeAuth();
       return null;
     }
   },
@@ -135,8 +182,5 @@ export const AuthService = {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 };
-
-// Export the Supabase proxy functions to handle legacy code
-export { signInWithPassword, signOut, supabaseAuthProxy };
 
 export default AuthService;

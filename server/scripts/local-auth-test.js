@@ -1,9 +1,8 @@
 /**
- * Docker Authentication Test
+ * Local Authentication Test
  * 
- * This script tests the authentication system specifically with the Docker setup.
- * It connects directly to the PostgreSQL container and tests the API endpoints.
- * Updated to work with the password_hash field instead of password.
+ * This script tests the authentication system from the host machine.
+ * It connects to the PostgreSQL container via the exposed port on localhost.
  */
 
 require('dotenv').config();
@@ -36,9 +35,9 @@ const TEST_USERS = [
   { email: 'operator@example.com', password: 'admin123', expectedRole: 'Operator' }
 ];
 
-// Create database connection pool
+// Create database connection pool - using localhost and exposed port
 const pool = new Pool({
-  host: 'localhost', // Connect to the exposed port on localhost
+  host: 'localhost',  // Connect to the exposed port on localhost
   port: 5432,
   database: 'mrp_db',
   user: 'postgres',
@@ -179,7 +178,7 @@ async function runTests() {
 
 // Main function
 async function main() {
-  log.title('Docker Authentication Test');
+  log.title('Local Authentication Test');
   log.info('Testing authentication with updated password_hash field');
   
   try {
@@ -188,7 +187,10 @@ async function main() {
     if (success) {
       log.title('Final Results');
       log.success('All tests passed successfully!');
-      log.info('Authentication system is working correctly with Docker environment.');
+      log.info('Authentication system is working correctly.');
+      log.info('Admin credentials: admin@example.com / admin123');
+      log.info('Manager credentials: manager@example.com / admin123');
+      log.info('Operator credentials: operator@example.com / admin123');
       process.exit(0);
     } else {
       log.title('Final Results');

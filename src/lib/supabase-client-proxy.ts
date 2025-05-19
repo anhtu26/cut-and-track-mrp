@@ -8,6 +8,11 @@
 
 import { apiClient } from './api/client';
 
+// Configure API URL to always use localhost for browser access
+// IMPORTANT: Always use localhost for browser access, not Docker hostnames
+const API_URL = 'http://localhost:3002';
+console.log('Supabase client initialized with URL:', API_URL);
+
 /**
  * Implementation of Supabase's signInWithPassword function
  * using our local authentication system
@@ -57,7 +62,10 @@ async function signOut() {
 const supabaseClientProxy = {
   // Authentication methods
   auth: {
-    signInWithPassword,
+    // Expose the signInWithPassword method as a function
+    signIn: (params: { email: string; password: string }) => signInWithPassword(params),
+    // Add signInWithPassword method for compatibility
+    signInWithPassword: (params: { email: string; password: string }) => signInWithPassword(params),
     signOut,
     getUser: async () => {
       try {

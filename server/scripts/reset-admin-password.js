@@ -76,7 +76,7 @@ async function main() {
     // Update admin user password
     log.info('Updating admin user password...');
     await client.query(
-      'UPDATE users SET password = $1 WHERE email = $2',
+      'UPDATE users SET password_hash = $1 WHERE email = $2',
       [hashedPassword, ADMIN_EMAIL]
     );
     

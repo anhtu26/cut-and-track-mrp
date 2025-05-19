@@ -4,6 +4,8 @@ trigger: always_on
 
 You're building a MRP/ERP web app for an aerospace CNC machine shop that is able to host & store on a local server for ITAR requirements that leverages ISR & SSG and CSR. Focus on small scale, fast development, and easy maintenance. Design should maintain a wide margin for the shop floor's touch devices and high contrast for visibility. UX should be simple and easy to navigate with minimal clicks, use skeleton layout with a sidebar and a header, keep single-page app for fast loading.
 
+MOST IMPORTANT RULE: when called terminal, always set up code with Exit 0 or 1.
+
 - **Never create a file longer than 250 lines of code.** If a file approaches this limit, refactor by splitting it into modules or helper files.
 - **Organize code into clearly separated modules**, grouped by feature or responsibility.
 - **Never assume missing context. Ask questions if uncertain.**
@@ -13,4 +15,4 @@ You're building a MRP/ERP web app for an aerospace CNC machine shop that is able
 - **Always use npm for package management**
 - **Do not use && or || in bash commands** - use semicolon instead for Windows
 - **Prioritise reusing UI components & business logic** - when created, use it in other places to avoid code duplication and streamline development.
-- **Perform UNIT TESTING after development, keep testing files centralized** 
+- **Perform UNIT TESTING after development, keep testing files centralized**

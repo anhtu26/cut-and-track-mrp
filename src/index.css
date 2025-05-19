@@ -96,6 +96,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    /* @apply bg-background text-foreground; */ /* Old way */
+    background-color: hsl(var(--background)); /* Direct CSS */
+    color: hsl(var(--foreground)); /* Direct CSS */
   }
 }

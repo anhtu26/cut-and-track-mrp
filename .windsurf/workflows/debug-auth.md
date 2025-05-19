@@ -2,7 +2,7 @@
 description: Auth issues
 ---
 
-1. Use Argon2 to hash password.
+1. Use Argon2 to hash password. WE ARE USING password_hash !!!
 2. Save hash password to database instead of password.
 3. Keep track of server's package.json and root folder package.json.
 4. Replace supabase with local API instead of being a supabase replication.

@@ -9,8 +9,9 @@
 
 import { WorkOrder, Customer, Part, Operation } from '@/types';
 
-// Base URL for API endpoints - configured to use local server or Docker container
-const API_BASE_URL = process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/api` : 'http://localhost:3002/api';
+// Base URL for API endpoints - always use localhost for browser access
+// IMPORTANT: For ITAR compliance, we use local connections only
+const API_BASE_URL = 'http://localhost:3002/api';
 
 // Custom error for API operations
 export class ApiError extends Error {
