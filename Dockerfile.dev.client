@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Create proper postcss.config.cjs file for compatibility
+RUN echo "module.exports = {\n  plugins: {\n    tailwindcss: {},\n    autoprefixer: {},\n  }\n}" > postcss.config.cjs
+
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV VITE_API_URL=http://localhost:3002
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
+# Expose the Vite dev server port
+EXPOSE 8080
+
+# Start the app in development mode with hot reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080", "--force"]

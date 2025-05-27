@@ -1,0 +1,98 @@
+# Docker Compose configuration for Cut-and-Track MRP - DEVELOPMENT MODE
+services:
+  # React client application with hot reloading
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.client
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./:/app:delegated
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3002
+      - PORT=8080
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - FAST_REFRESH=true
+    networks:
+      - mrp-network
+    depends_on:
+      - api-server
+    restart: unless-stopped
+    # Add healthcheck to ensure container is running properly
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080', (res) => process.exit(res.statusCode >= 400 ? 1 : 0))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      
+  # API server with hot reloading
+  api-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./server:/app:delegated
+      - /app/node_modules
+      - ./uploads:/app/uploads:delegated
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mrp_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL=false
+      - PORT=3002
+      - JWT_SECRET=mrp_jwt_secret_development
+      - MAX_FILE_SIZE=20971520
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mrp_db
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - mrp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    # Add healthcheck to ensure container is running properly
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (res) => process.exit(res.statusCode >= 400 ? 1 : 0))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      
+  # PostgreSQL database for local development
+  postgres:
+    image: postgres:15
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: mrp_db
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d/migrations
+      - ./database/init.sh:/docker-entrypoint-initdb.d/init.sh
+    networks:
+      - mrp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  mrp-network:
+    driver: bridge
+
+volumes:
+  postgres-data-dev:

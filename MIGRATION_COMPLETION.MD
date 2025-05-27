@@ -4,6 +4,17 @@ This document provides a step-by-step guide to complete the remaining tasks for 
 
 ## Remaining Migration Steps
 
+
+Useful Commands
+I've added several npm scripts to make working with the development environment easier:
+
+npm run docker:dev:up - Start the development environment
+npm run docker:dev:down - Stop the development environment
+npm run docker:dev:logs - View logs from all containers
+npm run docker:dev:rebuild - Rebuild and restart containers (use when changing dependencies)
+
+
+
 ### Step 1: Finalize Docker Configuration
 
 The Docker environment needs final adjustments to ensure proper communication between services:

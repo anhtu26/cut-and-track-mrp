@@ -1,0 +1,36 @@
+FROM node:18-slim
+
+WORKDIR /app
+
+# Install build dependencies for argon2
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    python3 \
+    gcc \
+    make \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package.json and package-lock.json first for better caching
+COPY package*.json ./
+
+# Install dependencies including nodemon for hot reloading
+RUN npm ci && \
+    npm install -g nodemon
+
+# Rebuild argon2 from source
+RUN npm rebuild argon2 --build-from-source
+
+# Create uploads directory with proper permissions
+RUN mkdir -p uploads && chmod 755 uploads
+
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=true
+
+# Expose the port the app runs on
+EXPOSE 3002
+
+# Start the server with nodemon for hot reloading with improved settings
+CMD ["nodemon", "--watch", ".", "--ext", "js,json", "--legacy-watch", "--polling-interval", "1000", "index.js"]

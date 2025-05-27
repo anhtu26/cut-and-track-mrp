@@ -32,6 +32,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'Cut and Track MRP Local Server is running!' });
 });
 
+// Health check endpoint for Docker
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
 // Test database connection at startup
 db.testConnection()
   .then(connected => {
