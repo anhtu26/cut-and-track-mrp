@@ -92,12 +92,19 @@
 
 @layer base {
   * {
-    @apply border-[hsl(var(--border))];
+    border-color: hsl(var(--border));
   }
 
   body {
-    /* @apply bg-background text-foreground; */ /* Old way */
     background-color: hsl(var(--background)); /* Direct CSS */
     color: hsl(var(--foreground)); /* Direct CSS */
   }
+
+  /* All base background utility classes applied directly */
+  .bg-background { background-color: hsl(var(--background)); }
+  .bg-foreground { color: hsl(var(--foreground)); }
+  .bg-card { background-color: hsl(var(--card)); }
+  .text-card-foreground { color: hsl(var(--card-foreground)); }
+  .bg-popover { background-color: hsl(var(--popover)); }
+  .text-popover-foreground { color: hsl(var(--popover-foreground)); }
 }

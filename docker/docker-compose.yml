@@ -3,8 +3,8 @@ services:
   # React client application
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.client
+      context: ..
+      dockerfile: docker/Dockerfile.client
     ports:
       - "8081:4173"
     # Remove volume mounting for production to use the built dist folder
@@ -20,13 +20,13 @@ services:
   # API server (ITAR-compliant local backend)
   api-server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: ../server
+      dockerfile: ../docker/Dockerfile
     ports:
       - "3002:3002"
     volumes:
       # Only mount uploads directory for persistent storage
-      - ./uploads:/app/uploads
+      - ../uploads:/app/uploads
     environment:
       - NODE_ENV=production
       - DB_HOST=postgres

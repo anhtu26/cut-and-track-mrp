@@ -21,7 +21,7 @@ export function AppHeader() {
       <div className="flex h-16 items-center px-4 md:px-8 max-w-screen-2xl mx-auto">
         <div className="flex items-center gap-3 font-bold text-xl">
           <img 
-            src="/src/logo.jpg" 
+            src="/logo.jpg" 
             alt="CUT & TRACK MRP" 
             className="h-10 w-10 rounded-md" 
           />

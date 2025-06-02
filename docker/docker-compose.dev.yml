@@ -3,12 +3,12 @@ services:
   # React client application with hot reloading
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.dev.client
+      context: ..
+      dockerfile: docker/Dockerfile.dev.client
     ports:
       - "8081:8080"
     volumes:
-      - ./:/app:delegated
+      - ../:/app:delegated
       - /app/node_modules
     environment:
       - NODE_ENV=development
@@ -32,14 +32,14 @@ services:
   # API server with hot reloading
   api-server:
     build:
-      context: ./server
-      dockerfile: Dockerfile.dev
+      context: ../server
+      dockerfile: ../docker/Dockerfile.dev
     ports:
       - "3002:3002"
     volumes:
-      - ./server:/app:delegated
+      - ../server:/app:delegated
       - /app/node_modules
-      - ./uploads:/app/uploads:delegated
+      - ../uploads:/app/uploads:delegated
     environment:
       - NODE_ENV=development
       - DB_HOST=postgres

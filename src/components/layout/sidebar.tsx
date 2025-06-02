@@ -30,7 +30,7 @@ export function Sidebar({ className }: SidebarProps) {
         <SheetContent side="left" className="w-72 p-0 pt-6 border-r-0" aria-describedby="sidebar-description">
           <div id="sidebar-description" className="sr-only">Application navigation sidebar</div>
           <div className="flex items-center gap-2 px-4 mb-6">
-            <img src="/src/logo.jpg" alt="CUT & TRACK MRP" className="h-8 w-8 rounded-md" />
+            <img src="/logo.jpg" alt="CUT & TRACK MRP" className="h-8 w-8 rounded-md" />
             <SheetTitle className="text-lg font-bold m-0">CUT & TRACK MRP</SheetTitle>
           </div>
           <SidebarNav className="px-2" />
@@ -45,7 +45,7 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       >
         <div className="sticky top-0 bg-background/80 backdrop-blur-sm border-b z-10 px-4 py-3 flex items-center gap-2">
-          <img src="/src/logo.jpg" alt="CUT & TRACK MRP" className="h-8 w-8 rounded-md" />
+          <img src="/logo.jpg" alt="CUT & TRACK MRP" className="h-8 w-8 rounded-md" />
           <h2 className="text-base font-semibold">CUT & TRACK MRP</h2>
         </div>
         <div className="py-4 px-2">

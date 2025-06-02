@@ -1,19 +1,32 @@
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 import { CustomerForm } from "@/components/customers/customer-form";
-import { apiClient } from '@/lib/api/client';;
+import { apiClient } from '@/lib/api/client';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { Customer } from "@/types";
+
+// Import the same schema used in the form
+const customerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  company: z.string().min(1, "Company is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+type CustomerFormData = z.infer<typeof customerSchema>;
 
 export default function AddCustomer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { mutateAsync: createCustomer, isPending } = useMutation({
+  const { mutateAsync, isPending } = useMutation({
     mutationFn: async (data: {
       name: string;
       company: string;
@@ -37,17 +50,13 @@ export default function AddCustomer() {
       
       console.log("Formatted customer data for insertion:", customerData);
 
-      const { data: customer, error } = await supabase
-        .from('customers')
-        .insert([customerData])
-        .select()
-        .single();
-
+      const { data: customer, error } = await apiClient.customers.create(customerData);
+      
       if (error) {
-        console.error("Supabase error:", error);
+        console.error("API error:", error);
         throw new Error(error.message || "Failed to create customer");
       }
-      
+
       if (!customer) {
         throw new Error("No customer data returned from database");
       }
@@ -83,7 +92,24 @@ export default function AddCustomer() {
           <CardTitle>Add New Customer</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomerForm onSubmit={createCustomer} isSubmitting={isPending} />
+          <CustomerForm 
+            onSubmit={async (data) => {
+              // Ensure data has all required fields for the mutation function
+              const customerData = {
+                name: data.name,
+                company: data.company,
+                email: data.email,
+                phone: data.phone || null,
+                address: data.address || null,
+                notes: data.notes || null,
+                active: true
+              };
+              
+              await mutateAsync(customerData);
+              return;
+            }} 
+            isSubmitting={isPending} 
+          />
         </CardContent>
       </Card>
     </div>

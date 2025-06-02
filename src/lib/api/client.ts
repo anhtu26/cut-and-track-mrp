@@ -7,7 +7,7 @@
  * This enhanced version supports all the operations needed by our Supabase proxy.
  */
 
-import { WorkOrder, Customer, Part, Operation } from '@/types';
+import { WorkOrder, Customer, Part, Operation, User } from '@/types';
 
 // Base URL for API endpoints - always use localhost for browser access
 // IMPORTANT: For ITAR compliance, we use local connections only
@@ -85,6 +85,72 @@ async function fetchApi<T>(
 export const apiClient = {
   // Expose the base URL for use in other modules
   baseUrl: API_BASE_URL,
+  
+  // User Management
+  users: {
+    getAll: async (): Promise<ApiResponse<User[]>> => {
+      return fetchApi<User[]>('/users');
+    },
+    
+    getById: async (id: string): Promise<ApiResponse<User>> => {
+      return fetchApi<User>(`/users/${id}`);
+    },
+    
+    create: async (userData: { email: string; password: string; role: string | 'admin' | 'manager' | 'operator' | 'inspector' }): Promise<ApiResponse<User>> => {
+      return fetchApi<User>('/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+    },
+    
+    update: async (id: string, updates: Partial<User>): Promise<ApiResponse<User>> => {
+      return fetchApi<User>(`/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+    },
+    
+    delete: async (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+      return fetchApi<{ success: boolean }>(`/users/${id}`, {
+        method: 'DELETE',
+      });
+    }
+  },
+  
+  // Customers
+  customers: {
+    getAll: async (): Promise<ApiResponse<Customer[]>> => {
+      return fetchApi<Customer[]>('/customers');
+    },
+    
+    getById: async (id: string): Promise<ApiResponse<Customer>> => {
+      return fetchApi<Customer>(`/customers/${id}`);
+    },
+    
+    create: async (customer: Omit<Customer, 'id'>): Promise<ApiResponse<Customer>> => {
+      return fetchApi<Customer>('/customers', {
+        method: 'POST',
+        body: JSON.stringify(customer),
+      });
+    },
+    
+    update: async (id: string, updates: Partial<Customer>): Promise<ApiResponse<Customer>> => {
+      return fetchApi<Customer>(`/customers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+    },
+    
+    delete: async (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+      return fetchApi<{ success: boolean }>(`/customers/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    
+    getWorkOrders: async (customerId: string): Promise<ApiResponse<WorkOrder[]>> => {
+      return fetchApi<WorkOrder[]>(`/customers/${customerId}/work-orders`);
+    }
+  },
   // Work Orders
   workOrders: {
     getAll: async (options: { archived?: boolean } = {}): Promise<ApiResponse<WorkOrder[]>> => {

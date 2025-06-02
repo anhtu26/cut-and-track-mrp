@@ -1,13 +1,15 @@
-// import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss";
 
-const config = {
+const config: Config = {
 	darkMode: "class",
 	content: [
+		"./index.html",
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
 		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
 	],
+	// @ts-ignore - safelist is valid but TypeScript definition might be outdated
 	safelist: ['bg-background'],
 	prefix: "",
 	theme: {

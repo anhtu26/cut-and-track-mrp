@@ -1,0 +1,56 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy application files
+COPY . .
+
+# Create Tailwind configuration files for both ESM and CommonJS environments
+RUN echo '/** @type {import("tailwindcss").Config} */\nexport default {\n  content: [\n    "./index.html",\n    "./src/**/*.{js,ts,jsx,tsx}",\n  ],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n};' > tailwind.config.js \
+  && echo '/** @type {import("tailwindcss").Config} */\nmodule.exports = {\n  content: [\n    "./index.html",\n    "./src/**/*.{js,ts,jsx,tsx}",\n  ],\n  theme: {\n    extend: {},\n  },\n  plugins: [],\n};' > tailwind.config.cjs
+
+# Create PostCSS configuration files for both ESM and CommonJS environments
+RUN echo '/** @type {import("postcss").Config} */\nexport default {\n  plugins: {\n    "@tailwindcss/postcss": {},\n    "autoprefixer": {}\n  }\n};' > postcss.config.js \
+  && echo '/** @type {import("postcss").Config} */\nmodule.exports = {\n  plugins: {\n    "@tailwindcss/postcss": {},\n    "autoprefixer": {}\n  }\n};' > postcss.config.cjs
+
+# Ensure src directory exists
+RUN mkdir -p src
+
+# Create index.css if it doesn't exist
+RUN if [ ! -f ./src/index.css ]; then \
+      echo '@tailwind base;\n@tailwind components;\n@tailwind utilities;' > ./src/index.css; \
+    fi
+
+# Ensure public directory exists
+RUN mkdir -p public
+
+# Pre-build Tailwind CSS for immediate availability
+RUN npx tailwindcss -i ./src/index.css -o ./public/tailwind.css
+
+# Update index.html to include our injection scripts
+# Use a more reliable approach than sed
+RUN grep -q '<script src="/tailwind-inject.js"></script>' index.html || \
+    sed -i 's/<head>/<head>\n    <script src=\"\/tailwind-inject.js\"><\/script>\n    <script src=\"\/css-inject.js\"><\/script>/' index.html
+
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV VITE_API_URL=http://localhost:3002
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
+# Expose the Vite dev server port
+EXPOSE 8080
+
+# Create a startup script for better error handling
+RUN echo '#!/bin/sh\n\necho "Starting Tailwind CSS build..."\nnode tailwind.build.js\n\nRESULT=$?\nif [ $RESULT -ne 0 ]; then\n  echo "Error: Tailwind CSS build failed with exit code $RESULT"\n  exit 1\nfi\n\necho "Starting Vite dev server..."\nnode_modules/.bin/vite --host 0.0.0.0 --port 8080 --force\n\nRESULT=$?\necho "Vite exited with code $RESULT"\nexit $RESULT' > /app/start.sh
+
+RUN chmod +x /app/start.sh
+
+# Start the dev server
+CMD ["/app/start.sh"]

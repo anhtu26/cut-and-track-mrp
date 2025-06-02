@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- CSS injection scripts - handles both static and dynamic CSS loading -->
+    <script src="/css-inject.js"></script>
+    <link rel="stylesheet" href="/essential-styles.css" />
+    <script src="/inject-simple.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cut-and-track-mrp</title>
@@ -15,6 +19,9 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- DIRECT TAILWIND CSS LINK - Ensures styles are loaded even if PostCSS fails -->
+    <link rel="stylesheet" href="/tailwind.css" id="tailwind-direct-link" />
     
     <!-- EMERGENCY FIX: Patch Array.from to prevent "undefined is not iterable" errors -->
     <script>

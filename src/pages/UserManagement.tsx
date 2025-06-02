@@ -1,7 +1,8 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from '@/lib/api/client';;
+import { apiClient } from '@/lib/api/client';
+import { User as ApiUser } from '@/types';
 import { 
   Card, 
   CardHeader, 
@@ -19,28 +20,58 @@ import { DeleteUserDialog } from "@/components/user-management/delete-user-dialo
 import { useAuthContext } from "@/providers/auth-provider";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
-interface User {
+// Local interface for UI representation of users
+interface UserWithRoleEnum {
   id: string;
   email: string;
   role: UserRole;
-  created_at: string;
+  created_at?: string; // Make optional to match API structure
 }
+
+// Map between UserRole enum and API user role strings
+const mapRoleToApiRole = (role: UserRole): 'admin' | 'manager' | 'operator' | 'inspector' => {
+  switch (role) {
+    case UserRole.ADMIN:
+      return 'admin';
+    case UserRole.MANAGER:
+      return 'manager';
+    case UserRole.OPERATOR:
+      return 'operator';
+    case UserRole.INSPECTOR:
+      return 'inspector';
+    default:
+      return 'operator'; // Default fallback
+  }
+};
+
+// Map from API role string to UserRole enum
+const mapApiRoleToRole = (role: string): UserRole => {
+  switch (role) {
+    case 'admin':
+      return UserRole.ADMIN;
+    case 'manager':
+      return UserRole.MANAGER;
+    case 'operator':
+      return UserRole.OPERATOR;
+    case 'inspector':
+      return UserRole.INSPECTOR;
+    default:
+      return UserRole.STAFF;
+  }
+};
 
 export default function UserManagement() {
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithRoleEnum | null>(null);
   const { session, user: currentUser } = useAuthContext();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await apiClient.users.getAll();
 
       if (error) {
         console.error("Error fetching users:", error);
@@ -49,7 +80,12 @@ export default function UserManagement() {
       }
 
       console.log("Fetched users:", data);
-      return data as User[];
+      // Map API user roles to UserRole enum
+      return (data || []).map((user: ApiUser) => ({
+        ...user,
+        role: mapApiRoleToRole(user.role),
+        created_at: user.created_at || new Date().toISOString() // Ensure created_at exists
+      })) as UserWithRoleEnum[];
     },
   });
 
@@ -59,9 +95,7 @@ export default function UserManagement() {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       try {
-        const { error } = await supabase.functions.invoke('delete-user', {
-          body: JSON.stringify({ userId }),
-        });
+        const { error } = await apiClient.users.delete(userId);
 
         if (error) throw error;
         
@@ -83,9 +117,9 @@ export default function UserManagement() {
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string, role: UserRole }) => {
       try {
-        const { error } = await supabase.functions.invoke('update-user', {
-          body: JSON.stringify({ userId, role }),
-        });
+        // Convert from UserRole enum to API role string
+        const apiRole = mapRoleToApiRole(role);
+        const { error } = await apiClient.users.update(userId, { role: apiRole });
 
         if (error) throw error;
         
@@ -106,10 +140,10 @@ export default function UserManagement() {
 
   const handleAddUser = async (email: string, password: string, role: UserRole) => {
     try {
-      // Use Supabase Functions to create the user
-      const { data: result, error } = await supabase.functions.invoke('create-user', {
-        body: JSON.stringify({ email, password, role }),
-      });
+      // Convert from UserRole enum to API role string
+      const apiRole = mapRoleToApiRole(role);
+      // Use local API to create the user
+      const { data, error } = await apiClient.users.create({ email, password, role: apiRole });
       
       if (error) {
         throw error;
@@ -125,7 +159,7 @@ export default function UserManagement() {
     }
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: UserWithRoleEnum) => {
     setSelectedUser(user);
     setEditUserDialogOpen(true);
   };
@@ -142,7 +176,7 @@ export default function UserManagement() {
     }
   };
 
-  const handleDeleteUser = (user: User) => {
+  const handleDeleteUser = (user: UserWithRoleEnum) => {
     setSelectedUser(user);
     setDeleteUserDialogOpen(true);
   };
@@ -208,11 +242,11 @@ export default function UserManagement() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <span className={`inline-block px-2 py-1 text-xs rounded ${
-                          user.role === 'Administrator' 
+                          user.role === UserRole.ADMIN 
                             ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                            : user.role === 'Manager'
+                            : user.role === UserRole.MANAGER
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                            : user.role === 'Staff'
+                            : user.role === UserRole.STAFF
                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
                             : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
                         }`}>
@@ -261,14 +295,14 @@ export default function UserManagement() {
           <EditUserDialog
             open={editUserDialogOpen}
             onOpenChange={setEditUserDialogOpen}
-            user={selectedUser}
+            user={selectedUser as any}
             onSubmit={handleUpdateUser}
           />
           
           <DeleteUserDialog
             open={deleteUserDialogOpen}
             onOpenChange={setDeleteUserDialogOpen}
-            user={selectedUser}
+            user={selectedUser as any}
             onConfirm={handleConfirmDelete}
           />
         </>
